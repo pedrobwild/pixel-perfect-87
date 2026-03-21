@@ -1032,5 +1032,6 @@ export default function UrbanFlexInvestorGuide() {
         </section>
       </main>
     </div>
+    </GuideDecisionProvider>
   );
 }
