@@ -1,4 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { GuideDecisionProvider } from "@/hooks/useGuideDecision";
+import MarketIntelSection from "@/components/MarketIntelSection";
+import PropertySimuladorSection from "@/components/ferramentas/PropertySimuladorSection";
 import { motion } from "framer-motion";
 import AppNavbar from "@/components/AppNavbar";
 import { cn } from "@/lib/utils";
@@ -378,6 +381,7 @@ export default function UrbanFlexInvestorGuide() {
   };
 
   return (
+    <GuideDecisionProvider>
     <div className="min-h-screen bg-background page-enter">
       <AppNavbar />
 
@@ -943,6 +947,19 @@ export default function UrbanFlexInvestorGuide() {
           </div>
         </section>
 
+        {/* Ferramentas integradas */}
+        <section className="scroll-mt-32 border-t border-border/40 bg-muted/25">
+          <div className="max-w-7xl mx-auto px-4 md:px-6">
+            <MarketIntelSection />
+          </div>
+        </section>
+
+        <section className="scroll-mt-32">
+          <div className="max-w-7xl mx-auto px-4 md:px-6">
+            <PropertySimuladorSection />
+          </div>
+        </section>
+
         <section id="faq" className="scroll-mt-32">
           <div className="max-w-4xl mx-auto px-4 md:px-6 py-16 md:py-20">
             <SectionLabel>FAQ</SectionLabel>
@@ -1016,5 +1033,6 @@ export default function UrbanFlexInvestorGuide() {
         </section>
       </main>
     </div>
+    </GuideDecisionProvider>
   );
 }
