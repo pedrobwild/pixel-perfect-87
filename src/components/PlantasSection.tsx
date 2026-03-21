@@ -190,7 +190,7 @@ export default function PlantasSection() {
                       target="_blank"
                       rel="noopener noreferrer"
                     >
-                      <Button size="sm" variant="outline" className="shrink-0">
+                      <Button size="sm" className="shrink-0 bg-orange-500 hover:bg-orange-600 text-black font-bold border-none">
                         Orçamento para Reforma
                       </Button>
                     </a>
