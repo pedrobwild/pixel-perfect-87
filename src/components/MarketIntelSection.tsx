@@ -110,10 +110,10 @@ export default function MarketIntelSection({ property = DEFAULT_PROPERTY }: Mark
             Dados ao vivo via IA
           </Badge>
           <h2 className="font-display text-2xl md:text-3xl font-bold text-foreground">
-            Comparativo de Mercado
+            Inteligência de Mercado — Consolação
           </h2>
           <p className="text-muted-foreground mt-1 max-w-xl">
-            Análise atualizada do mercado de short stay na região do {property.propertyName}, com dados reais de plataformas de hospedagem.
+            Análise atualizada do mercado de short stay no bairro Consolação, com dados reais de plataformas de hospedagem.
           </p>
         </div>
         <Button
