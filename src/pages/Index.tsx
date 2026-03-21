@@ -2,13 +2,14 @@ import { useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { motion, useInView } from "framer-motion";
 import {
-  ArrowRight, Building2, MapPin, TrendingUp, ShieldCheck,
+  ArrowRight, Building2, MapPin, TrendingUp,
   MessageCircle, Wrench, BarChart3
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import AppNavbar from "@/components/AppNavbar";
+import PlantasSection from "@/components/PlantasSection";
 import heroImg from "@/assets/uf-fachada.jpeg";
 
 const whatsappLink =
@@ -292,6 +293,9 @@ export default function Index() {
           </FadeIn>
         </div>
       </section>
+
+
+      <PlantasSection />
 
       <section className="bg-muted/25 border-b border-border/40">
         <div className="max-w-7xl mx-auto px-4 md:px-6 py-20 md:py-28">
