@@ -1,4 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { GuideDecisionProvider } from "@/hooks/useGuideDecision";
+import MarketIntelSection from "@/components/MarketIntelSection";
+import PropertySimuladorSection from "@/components/ferramentas/PropertySimuladorSection";
 import { motion } from "framer-motion";
 import AppNavbar from "@/components/AppNavbar";
 import { cn } from "@/lib/utils";
@@ -940,6 +943,19 @@ export default function UrbanFlexInvestorGuide() {
                 </CardContent>
               </Card>
             </div>
+          </div>
+        </section>
+
+        {/* Ferramentas integradas */}
+        <section className="scroll-mt-32 border-t border-border/40 bg-muted/25">
+          <div className="max-w-7xl mx-auto px-4 md:px-6">
+            <MarketIntelSection />
+          </div>
+        </section>
+
+        <section className="scroll-mt-32">
+          <div className="max-w-7xl mx-auto px-4 md:px-6">
+            <PropertySimuladorSection />
           </div>
         </section>
 
