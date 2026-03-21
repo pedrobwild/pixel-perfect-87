@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { motion, useInView } from "framer-motion";
 import {
   ArrowRight, Building2, MapPin, TrendingUp, ShieldCheck,
-  MessageCircle, BookOpen, Wrench, BarChart3, CheckCircle2,
+  MessageCircle, Wrench, BarChart3,
   Users, Star, Compass
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -303,45 +303,8 @@ export default function Index() {
             </h2>
           </FadeIn>
 
-          <div className="mt-12 grid gap-6 md:grid-cols-2">
-            {/* Guia */}
+          <div className="mt-12 max-w-xl mx-auto">
             <FadeIn delay={0.05}>
-              <Card className="card-elevated border-border/60 h-full group hover:border-primary/30 transition-colors">
-                <CardContent className="p-7">
-                  <div className="flex items-center gap-3 mb-5">
-                    <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                      <BookOpen className="h-5 w-5 text-primary" />
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-semibold text-foreground">Guia Short Stay</h3>
-                      <p className="text-xs text-muted-foreground">4 fases · 12+ seções</p>
-                    </div>
-                  </div>
-                  <ul className="space-y-3 mb-6">
-                    {[
-                      "Mapa de bairros rentáveis com dados de ocupação",
-                      "Simulador de receita e ROI por tipologia",
-                      "Checklist completo de due diligence",
-                      "Análise de mercado e tendências 2025–2026",
-                    ].map((item) => (
-                      <li key={item} className="flex items-start gap-2.5 text-sm text-muted-foreground">
-                        <CheckCircle2 className="h-4 w-4 text-primary/60 mt-0.5 shrink-0" />
-                        <span>{item}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <Link to="/ferramentas">
-                    <Button className="w-full min-h-[44px] group-hover:bg-primary/90 transition-colors">
-                      Ver ferramentas
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
-                  </Link>
-                </CardContent>
-              </Card>
-            </FadeIn>
-
-            {/* Ferramentas */}
-            <FadeIn delay={0.12}>
               <Card className="card-elevated border-border/60 h-full group hover:border-primary/30 transition-colors">
                 <CardContent className="p-7">
                   <div className="flex items-center gap-3 mb-5">
@@ -367,7 +330,7 @@ export default function Index() {
                     ))}
                   </ul>
                   <Link to="/ferramentas">
-                    <Button variant="outline" className="w-full min-h-[44px]">
+                    <Button className="w-full min-h-[44px] group-hover:bg-primary/90 transition-colors">
                       Acessar ferramentas
                       <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
