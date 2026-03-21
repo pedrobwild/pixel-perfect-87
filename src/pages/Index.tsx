@@ -109,47 +109,7 @@ export default function Index() {
         </div>
       </section>
 
-      {/* What we offer — 3 pillars */}
-      <section className="border-b border-border/40">
-        <div className="max-w-7xl mx-auto px-4 md:px-6 py-20 md:py-28">
-          <FadeIn>
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary/80 mb-3">O que oferecemos</p>
-            <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground max-w-2xl">
-              Tese, produto e operação em um só lugar.
-            </h2>
-          </FadeIn>
-
-          <div className="mt-12 grid gap-5 md:grid-cols-3">
-            {[
-              {
-                icon: MapPin,
-                title: "Localização estratégica",
-                text: "Ativos em regiões de alta demanda corporativa, médica e turística — endereços que já vendem sozinhos.",
-              },
-              {
-                icon: TrendingUp,
-                title: "Projeção de retorno clara",
-                text: "Simulador de yield, payback e composição de receita para transformar conversa comercial em decisão informada.",
-              },
-              {
-                icon: ShieldCheck,
-                title: "Operação simplificada",
-                text: "Amenidades, gestão integrada e estrutura de short stay para que o investidor foque no resultado.",
-              },
-            ].map((item, i) => (
-              <FadeIn key={item.title} delay={i * 0.08}>
-                <Card className="card-elevated border-border/60 h-full">
-                  <CardContent className="p-6">
-                    <item.icon className="h-5 w-5 text-primary mb-4" />
-                    <h3 className="text-lg font-semibold text-foreground mb-2">{item.title}</h3>
-                    <p className="text-sm text-muted-foreground leading-relaxed">{item.text}</p>
-                  </CardContent>
-                </Card>
-              </FadeIn>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* What we offer section removed */}
 
       {/* Tools & Guide — cross-link section */}
       <section className="bg-muted/25 border-b border-border/40">
