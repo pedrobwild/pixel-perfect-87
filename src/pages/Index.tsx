@@ -61,13 +61,13 @@ export default function Index() {
               className="font-display text-4xl md:text-5xl lg:text-6xl font-bold leading-[1.05] max-w-3xl"
               style={{ color: "hsl(var(--primary-foreground))" }}
             >
-              Transforme localização premium em renda recorrente.
+              LM Urban Flex - Bela Cintra
             </h1>
           </FadeIn>
 
           <FadeIn delay={0.16}>
             <p className="mt-5 text-lg md:text-xl max-w-2xl leading-relaxed" style={{ color: "hsl(var(--primary-foreground) / 0.8)" }}>
-              Conectamos investidores a ativos urbanos de alta demanda, com tese clara de short stay e operação simplificada.
+              Guia do investidor com tese clara de short stay e operação simplificada.
             </p>
           </FadeIn>
 
