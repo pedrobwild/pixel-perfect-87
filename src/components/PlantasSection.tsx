@@ -186,7 +186,7 @@ export default function PlantasSection() {
                       <p className="text-sm text-muted-foreground">{selected.area}</p>
                     </div>
                     <a
-                      href="https://envision-build-guide.lovable.app/o/2aa034962039"
+                      href={`https://envision-build-guide.lovable.app/o/2aa034962039?tipologia=${encodeURIComponent(selected.name)}`}
                       target="_blank"
                       rel="noopener noreferrer"
                     >
