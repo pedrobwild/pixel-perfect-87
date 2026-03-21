@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { motion, useInView } from "framer-motion";
-import { ArrowRight, Building2, MapPin, TrendingUp, ShieldCheck, MessageCircle } from "lucide-react";
+import { ArrowRight, Building2, MapPin, TrendingUp, ShieldCheck, MessageCircle, BookOpen, Wrench } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -40,7 +40,19 @@ export default function Index() {
             <Building2 className="h-5 w-5 text-primary" />
             Bwild
           </a>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <Link to="/guia-short-stay">
+              <Button variant="ghost" size="sm" className="hidden sm:inline-flex">
+                <BookOpen className="mr-1.5 h-3.5 w-3.5" />
+                Guia
+              </Button>
+            </Link>
+            <Link to="/ferramentas">
+              <Button variant="ghost" size="sm" className="hidden sm:inline-flex">
+                <Wrench className="mr-1.5 h-3.5 w-3.5" />
+                Ferramentas
+              </Button>
+            </Link>
             <Link to="/urban-flex-bela-cintra">
               <Button variant="outline" size="sm">Urban Flex</Button>
             </Link>
