@@ -224,6 +224,64 @@ export default function Index() {
               </FadeIn>
             ))}
           </div>
+
+          {/* Comparative table */}
+          <FadeIn className="mt-14">
+            <h3 className="font-display text-xl md:text-2xl font-bold text-foreground mb-2">
+              Consolação vs. outros bairros
+            </h3>
+            <p className="text-sm text-muted-foreground mb-6">
+              Yield estimado considera diária média, ocupação e preço de aquisição por m². Quanto menor o ticket e maior a receita, melhor o retorno.
+            </p>
+            <div className="overflow-x-auto rounded-xl border border-border/60 bg-background">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border/40 bg-muted/30">
+                    <th className="text-left py-3 px-4 font-semibold text-foreground">Bairro</th>
+                    <th className="text-center py-3 px-4 font-semibold text-foreground">Diária média</th>
+                    <th className="text-center py-3 px-4 font-semibold text-foreground">Ocupação</th>
+                    <th className="text-center py-3 px-4 font-semibold text-foreground">Preço/m²</th>
+                    <th className="text-center py-3 px-4 font-semibold text-foreground">Yield bruto est.</th>
+                    <th className="text-center py-3 px-4 font-semibold text-foreground">Veredito</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[
+                    { name: "Consolação", daily: "R$ 310", occ: "76%", price: "R$ 10.500", yield: "11,8%", highlight: true, verdict: "Melhor custo-benefício" },
+                    { name: "Pinheiros", daily: "R$ 380", occ: "82%", price: "R$ 14.000", yield: "8,1%", highlight: false, verdict: "Diária alta, ticket elevado" },
+                    { name: "Itaim Bibi", daily: "R$ 420", occ: "78%", price: "R$ 16.000", yield: "7,2%", highlight: false, verdict: "Premium, mas yield menor" },
+                    { name: "Vila Mariana", daily: "R$ 330", occ: "80%", price: "R$ 12.500", yield: "7,7%", highlight: false, verdict: "Boa ocupação, ticket médio" },
+                    { name: "Moema", daily: "R$ 360", occ: "77%", price: "R$ 14.500", yield: "7,0%", highlight: false, verdict: "Diária boa, preço alto" },
+                    { name: "República", daily: "R$ 245", occ: "72%", price: "R$ 8.200", yield: "7,8%", highlight: false, verdict: "Ticket baixo, risco maior" },
+                  ].map((row) => (
+                    <tr
+                      key={row.name}
+                      className={`border-b border-border/20 last:border-0 ${row.highlight ? "bg-primary/5" : ""}`}
+                    >
+                      <td className={`py-3 px-4 font-medium ${row.highlight ? "text-primary font-bold" : "text-foreground"}`}>
+                        {row.highlight && <span className="inline-block w-2 h-2 rounded-full bg-primary mr-2 align-middle" />}
+                        {row.name}
+                      </td>
+                      <td className="text-center py-3 px-4 text-muted-foreground">{row.daily}</td>
+                      <td className="text-center py-3 px-4 text-muted-foreground">{row.occ}</td>
+                      <td className="text-center py-3 px-4 text-muted-foreground">{row.price}</td>
+                      <td className={`text-center py-3 px-4 font-bold ${row.highlight ? "text-primary" : "text-foreground"}`}>
+                        {row.yield}
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className={`text-xs px-2 py-1 rounded-full ${row.highlight ? "bg-primary/10 text-primary font-semibold" : "bg-muted text-muted-foreground"}`}>
+                          {row.verdict}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="text-[11px] text-muted-foreground/70 mt-3">
+              Fonte: AirDNA, pesquisa Bwild 2025. Yield bruto estimado = (diária × ocupação × 365) / preço m² × área média 27 m². Valores médios para studios 20–35 m².
+            </p>
+          </FadeIn>
         </div>
       </section>
 
