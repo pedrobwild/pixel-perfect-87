@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Building2, BookOpen, Wrench, ArrowLeft, Menu, X } from "lucide-react";
+import lealMoreiraLogo from "@/assets/leal-moreira-logo.png";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
