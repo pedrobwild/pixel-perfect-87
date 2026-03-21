@@ -1,10 +1,15 @@
 import { useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { motion, useInView } from "framer-motion";
-import { ArrowRight, Building2, MapPin, TrendingUp, ShieldCheck, MessageCircle, BookOpen, Wrench } from "lucide-react";
+import {
+  ArrowRight, Building2, MapPin, TrendingUp, ShieldCheck,
+  MessageCircle, BookOpen, Wrench, BarChart3, CheckCircle2,
+  Users, Star, Compass
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import AppNavbar from "@/components/AppNavbar";
 import heroImg from "@/assets/hero-saopaulo.jpg";
 
 const whatsappLink =
@@ -16,7 +21,7 @@ function FadeIn({ children, delay = 0, className = "" }: { children: React.React
   return (
     <motion.div
       ref={ref}
-      initial={{ opacity: 0, y: 18, filter: "blur(4px)" }}
+      initial={{ opacity: 0, y: 16, filter: "blur(4px)" }}
       animate={inView ? { opacity: 1, y: 0, filter: "blur(0px)" } : {}}
       transition={{ duration: 0.6, delay, ease: [0.16, 1, 0.3, 1] }}
       className={className}
@@ -28,47 +33,20 @@ function FadeIn({ children, delay = 0, className = "" }: { children: React.React
 
 export default function Index() {
   useEffect(() => {
-    document.title = "Bwild · Investimento imobiliário inteligente";
+    document.title = "Bwild · Investimento imobiliário inteligente em short stay";
+    const meta = document.querySelector('meta[name="description"]');
+    if (meta) meta.setAttribute("content", "Plataforma de investimento em studios para short stay em São Paulo. Guia completo, simulador de retorno e ferramentas para investidores.");
   }, []);
 
   return (
-    <div className="min-h-screen bg-background page-enter">
-      {/* Nav */}
-      <header className="sticky top-0 z-40 glass-nav border-b border-border/40">
-        <div className="max-w-7xl mx-auto px-4 md:px-6 flex items-center justify-between h-16">
-          <a href="/" className="flex items-center gap-2 font-display text-lg font-bold text-foreground">
-            <Building2 className="h-5 w-5 text-primary" />
-            Bwild
-          </a>
-          <div className="flex items-center gap-2">
-            <Link to="/guia-short-stay">
-              <Button variant="ghost" size="sm" className="hidden sm:inline-flex">
-                <BookOpen className="mr-1.5 h-3.5 w-3.5" />
-                Guia
-              </Button>
-            </Link>
-            <Link to="/ferramentas">
-              <Button variant="ghost" size="sm" className="hidden sm:inline-flex">
-                <Wrench className="mr-1.5 h-3.5 w-3.5" />
-                Ferramentas
-              </Button>
-            </Link>
-            <Link to="/urban-flex-bela-cintra">
-              <Button variant="outline" size="sm">Urban Flex</Button>
-            </Link>
-            <Button size="sm" onClick={() => window.open(whatsappLink, "_blank")}>
-              <MessageCircle className="mr-1.5 h-3.5 w-3.5" />
-              Contato
-            </Button>
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen bg-background">
+      <AppNavbar />
 
       {/* Hero */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0">
-          <img src={heroImg} alt="Vista aérea de São Paulo" className="h-full w-full object-cover" />
-          <div className="absolute inset-0 bg-foreground/60" />
+          <img src={heroImg} alt="Vista aérea de São Paulo" className="h-full w-full object-cover" loading="eager" />
+          <div className="absolute inset-0 bg-foreground/65" />
         </div>
 
         <div className="relative max-w-7xl mx-auto px-4 md:px-6 py-24 md:py-36 lg:py-44">
@@ -95,9 +73,9 @@ export default function Index() {
 
           <FadeIn delay={0.24}>
             <div className="mt-10 flex flex-col sm:flex-row gap-3">
-              <Link to="/urban-flex-bela-cintra">
-                <Button size="lg" className="min-h-[48px]">
-                  Ver Urban Flex · Bela Cintra
+              <Link to="/guia-short-stay">
+                <Button size="lg" className="min-h-[48px] w-full sm:w-auto">
+                  Explorar o Guia do Investidor
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
@@ -112,14 +90,30 @@ export default function Index() {
               </Button>
             </div>
           </FadeIn>
+
+          {/* Quick stats */}
+          <FadeIn delay={0.32}>
+            <div className="mt-14 flex flex-wrap gap-8 md:gap-12">
+              {[
+                { value: "12+", label: "Bairros analisados" },
+                { value: "R$ 350", label: "Diária média (studios)" },
+                { value: "78%", label: "Ocupação média SP" },
+              ].map((s) => (
+                <div key={s.label}>
+                  <p className="font-display text-2xl md:text-3xl font-bold" style={{ color: "hsl(var(--primary-foreground))" }}>{s.value}</p>
+                  <p className="text-sm mt-0.5" style={{ color: "hsl(var(--primary-foreground) / 0.6)" }}>{s.label}</p>
+                </div>
+              ))}
+            </div>
+          </FadeIn>
         </div>
       </section>
 
-      {/* Value props */}
+      {/* What we offer — 3 pillars */}
       <section className="border-b border-border/40">
         <div className="max-w-7xl mx-auto px-4 md:px-6 py-20 md:py-28">
           <FadeIn>
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary/80 mb-3">Por que investir com a Bwild</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary/80 mb-3">O que oferecemos</p>
             <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground max-w-2xl">
               Tese, produto e operação em um só lugar.
             </h2>
@@ -140,7 +134,7 @@ export default function Index() {
               {
                 icon: ShieldCheck,
                 title: "Operação simplificada",
-                text: "Amenidades, gestão integrada e estrutura de short stay para que o investidor foque no resultado, não na operação.",
+                text: "Amenidades, gestão integrada e estrutura de short stay para que o investidor foque no resultado.",
               },
             ].map((item, i) => (
               <FadeIn key={item.title} delay={i * 0.08}>
@@ -157,8 +151,94 @@ export default function Index() {
         </div>
       </section>
 
-      {/* Featured project */}
+      {/* Tools & Guide — cross-link section */}
       <section className="bg-muted/25 border-b border-border/40">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 py-20 md:py-28">
+          <FadeIn>
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary/80 mb-3">Recursos para o investidor</p>
+            <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground max-w-2xl">
+              Tome decisões baseadas em dados, não em achismo.
+            </h2>
+          </FadeIn>
+
+          <div className="mt-12 grid gap-6 md:grid-cols-2">
+            {/* Guia */}
+            <FadeIn delay={0.05}>
+              <Card className="card-elevated border-border/60 h-full group hover:border-primary/30 transition-colors">
+                <CardContent className="p-7">
+                  <div className="flex items-center gap-3 mb-5">
+                    <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                      <BookOpen className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-foreground">Guia Short Stay</h3>
+                      <p className="text-xs text-muted-foreground">4 fases · 12+ seções</p>
+                    </div>
+                  </div>
+                  <ul className="space-y-3 mb-6">
+                    {[
+                      "Mapa de bairros rentáveis com dados de ocupação",
+                      "Simulador de receita e ROI por tipologia",
+                      "Checklist completo de due diligence",
+                      "Análise de mercado e tendências 2025–2026",
+                    ].map((item) => (
+                      <li key={item} className="flex items-start gap-2.5 text-sm text-muted-foreground">
+                        <CheckCircle2 className="h-4 w-4 text-primary/60 mt-0.5 shrink-0" />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <Link to="/guia-short-stay">
+                    <Button className="w-full min-h-[44px] group-hover:bg-primary/90 transition-colors">
+                      Ler o guia completo
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </Link>
+                </CardContent>
+              </Card>
+            </FadeIn>
+
+            {/* Ferramentas */}
+            <FadeIn delay={0.12}>
+              <Card className="card-elevated border-border/60 h-full group hover:border-primary/30 transition-colors">
+                <CardContent className="p-7">
+                  <div className="flex items-center gap-3 mb-5">
+                    <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                      <Wrench className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-foreground">Ferramentas do Investidor</h3>
+                      <p className="text-xs text-muted-foreground">Diagnóstico · Simulador · Ranking</p>
+                    </div>
+                  </div>
+                  <ul className="space-y-3 mb-6">
+                    {[
+                      "Diagnóstico de perfil do investidor personalizado",
+                      "Simulador de receita com cenários otimista/conservador",
+                      "Ranking de bairros por score de investimento",
+                      "Comparativo de tipologias e retorno esperado",
+                    ].map((item) => (
+                      <li key={item} className="flex items-start gap-2.5 text-sm text-muted-foreground">
+                        <BarChart3 className="h-4 w-4 text-primary/60 mt-0.5 shrink-0" />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <Link to="/ferramentas">
+                    <Button variant="outline" className="w-full min-h-[44px]">
+                      Acessar ferramentas
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </Link>
+                </CardContent>
+              </Card>
+            </FadeIn>
+          </div>
+        </div>
+      </section>
+
+      {/* Featured project — Urban Flex */}
+      <section className="border-b border-border/40">
         <div className="max-w-7xl mx-auto px-4 md:px-6 py-20 md:py-28">
           <div className="grid gap-8 lg:grid-cols-[1fr_1fr] lg:items-center">
             <FadeIn>
@@ -213,6 +293,30 @@ export default function Index() {
         </div>
       </section>
 
+      {/* Social proof */}
+      <section className="bg-muted/25 border-b border-border/40">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 py-16 md:py-20">
+          <FadeIn>
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+              {[
+                { icon: Users, value: "120+", label: "Investidores atendidos" },
+                { icon: Building2, value: "3", label: "Empreendimentos ativos" },
+                { icon: Star, value: "4.8", label: "Nota média dos studios" },
+                { icon: Compass, value: "São Paulo", label: "Mercado principal" },
+              ].map((stat, i) => (
+                <FadeIn key={stat.label} delay={i * 0.06}>
+                  <div className="text-center p-4">
+                    <stat.icon className="h-5 w-5 text-primary mx-auto mb-3" />
+                    <p className="font-display text-2xl md:text-3xl font-bold text-foreground">{stat.value}</p>
+                    <p className="text-sm text-muted-foreground mt-1">{stat.label}</p>
+                  </div>
+                </FadeIn>
+              ))}
+            </div>
+          </FadeIn>
+        </div>
+      </section>
+
       {/* CTA */}
       <section>
         <div className="max-w-7xl mx-auto px-4 md:px-6 py-20 md:py-28">
@@ -221,15 +325,15 @@ export default function Index() {
               Pronto para investir com mais clareza?
             </h2>
             <p className="mt-4 text-muted-foreground text-lg leading-relaxed">
-              Converse com a equipe comercial ou explore o guia do investidor do Urban Flex Bela Cintra.
+              Explore o guia completo, use as ferramentas de análise ou converse com a equipe comercial.
             </p>
             <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
               <Button size="lg" className="min-h-[48px]" onClick={() => window.open(whatsappLink, "_blank")}>
                 <MessageCircle className="mr-2 h-4 w-4" />
                 Falar com a equipe
               </Button>
-              <Link to="/urban-flex-bela-cintra">
-                <Button size="lg" variant="outline" className="min-h-[48px]">
+              <Link to="/guia-short-stay">
+                <Button size="lg" variant="outline" className="min-h-[48px] w-full sm:w-auto">
                   Ver guia do investidor
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
@@ -241,11 +345,15 @@ export default function Index() {
 
       {/* Footer */}
       <footer className="border-t border-border/40 bg-muted/25">
-        <div className="max-w-7xl mx-auto px-4 md:px-6 py-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
-          <p>© 2025 Bwild. Todos os direitos reservados.</p>
-          <Link to="/urban-flex-bela-cintra" className="hover:text-foreground transition-colors">
-            Urban Flex · Bela Cintra
-          </Link>
+        <div className="max-w-7xl mx-auto px-4 md:px-6 py-8">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
+            <p>© 2025 Bwild. Todos os direitos reservados.</p>
+            <div className="flex items-center gap-4">
+              <Link to="/guia-short-stay" className="hover:text-foreground transition-colors">Guia Short Stay</Link>
+              <Link to="/ferramentas" className="hover:text-foreground transition-colors">Ferramentas</Link>
+              <Link to="/urban-flex-bela-cintra" className="hover:text-foreground transition-colors">Urban Flex</Link>
+            </div>
+          </div>
         </div>
       </footer>
     </div>
