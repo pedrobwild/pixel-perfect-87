@@ -6,6 +6,13 @@ import PropertyPlanoAcaoSection from "@/components/ferramentas/PropertyPlanoAcao
 import PropertySimuladorSection from "@/components/ferramentas/PropertySimuladorSection";
 import PropertyBenchmarkSection from "@/components/ferramentas/PropertyBenchmarkSection";
 import MarketIntelSection from "@/components/MarketIntelSection";
+import RentabilidadeSection from "@/components/guide/RentabilidadeSection";
+import ChecklistSection from "@/components/guide/ChecklistSection";
+import AntiChecklistSection from "@/components/guide/AntiChecklistSection";
+import DecoracaoSection from "@/components/guide/DecoracaoSection";
+import ReformaSection from "@/components/guide/ReformaSection";
+import AnuncioPrecificacaoSection from "@/components/guide/AnuncioPrecificacaoSection";
+import ReservasSection from "@/components/guide/ReservasSection";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Building2, MessageCircle } from "lucide-react";
 import { Link } from "react-router-dom";
