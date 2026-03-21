@@ -180,8 +180,21 @@ export default function PlantasSection() {
                     Voltar à planta
                   </button>
 
-                  <h3 className="font-display text-xl font-bold text-foreground mb-1">Projetos 3D — {selected.name}</h3>
-                  <p className="text-sm text-muted-foreground mb-6">{selected.area}</p>
+                  <div className="flex items-start justify-between gap-4 mb-6">
+                    <div>
+                      <h3 className="font-display text-xl font-bold text-foreground mb-1">Projetos 3D — {selected.name}</h3>
+                      <p className="text-sm text-muted-foreground">{selected.area}</p>
+                    </div>
+                    <a
+                      href="https://envision-build-guide.lovable.app/o/2aa034962039"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <Button size="sm" variant="outline" className="shrink-0">
+                        Orçamento para Reforma
+                      </Button>
+                    </a>
+                  </div>
 
                   <div className="relative rounded-xl overflow-hidden bg-muted/20 border border-border/40">
                     <img
