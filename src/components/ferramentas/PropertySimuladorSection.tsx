@@ -7,64 +7,72 @@ import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { ArrowUpRight, FileText, Copy, Check, MapPin, Building2 } from "lucide-react";
+import { ArrowUpRight, FileText, Copy, Check, MapPin, Building2, TrendingUp, Percent } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { trackGlobal } from "@/hooks/useGuideAnalytics";
 import SectionBlock from "@/components/guide/SectionBlock";
 import { fmt } from "@/data/guide-data";
-
-// Property-specific data for Urban Flex Bela Cintra
-const PROPERTY = {
-  name: "LM Urban Flex Bela Cintra",
-  neighborhood: "Consolação / Bela Vista",
-  address: "R. Bela Cintra, 209",
-  dailyMin: 250,
-  dailyMax: 420,
-  avgOccupancy: 78,
-  typologies: [
-    { label: "Studio 18 m²", area: 18, dailyEstimate: 250 },
-    { label: "Studio 27 m²", area: 27, dailyEstimate: 320 },
-    { label: "Studio 36 m²", area: 36, dailyEstimate: 380 },
-    { label: "Studio 83 m²", area: 83, dailyEstimate: 520 },
-  ],
-};
+import { PROPERTY, TYPOLOGIES, calcFinancials } from "@/data/propertyData";
 
 export default function PropertySimuladorSection() {
-  const [selectedTypo, setSelectedTypo] = useState(1); // 27m² default
-  const [simOcupacao, setSimOcupacao] = useState([PROPERTY.avgOccupancy]);
+  const [selectedTypo, setSelectedTypo] = useState(1);
+  const [simOcupacao, setSimOcupacao] = useState<number[]>([PROPERTY.avgOccupancy]);
   const [simDiariaAtual, setSimDiariaAtual] = useState("");
   const [rateBoost, setRateBoost] = useState(0);
-  const [simReformaBudget, setSimReformaBudget] = useState("");
   const [exportOpen, setExportOpen] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const typo = PROPERTY.typologies[selectedTypo];
-  const baseDaily = simDiariaAtual ? Number(simDiariaAtual) : typo.dailyEstimate;
+  const typo = TYPOLOGIES[selectedTypo];
 
   const sim = useMemo(() => {
-    const boostedDaily = baseDaily * (1 + rateBoost / 100);
-    const nights = 30 * (simOcupacao[0] / 100);
-    const receitaMensal = Math.round(boostedDaily * nights);
-    const receitaAnual = receitaMensal * 12;
-    const baseMensal = Math.round(baseDaily * nights);
-    const delta = Math.round(boostedDaily * nights) - baseMensal;
-    const budget = Number(simReformaBudget) || 0;
-    const paybackMonths = delta > 0 && budget > 0 ? Math.ceil(budget / delta) : null;
-    return { baseDaily: Math.round(baseDaily), boostedDaily: Math.round(boostedDaily), receitaMensal, receitaAnual, baseMensal, delta, paybackMonths };
-  }, [baseDaily, simOcupacao, rateBoost, simReformaBudget]);
+    const customDaily = simDiariaAtual ? Number(simDiariaAtual) : undefined;
+    const base = calcFinancials(typo, simOcupacao[0], rateBoost);
+
+    // If user set custom daily, recalculate
+    if (customDaily && customDaily > 0) {
+      const nightsPerMonth = 30 * (simOcupacao[0] / 100);
+      const boostedDaily = Math.round(customDaily * (1 + rateBoost / 100));
+      const monthlyRevenue = Math.round(boostedDaily * nightsPerMonth);
+      const annualRevenue = monthlyRevenue * 12;
+      const totalInvestment = typo.purchasePrice + typo.setupCost;
+      const grossYield = (annualRevenue / totalInvestment) * 100;
+      const netYieldEstimate = grossYield * 0.75;
+      const paybackYears = totalInvestment / annualRevenue;
+      return {
+        boostedDaily,
+        monthlyRevenue,
+        annualRevenue,
+        totalInvestment,
+        grossYield: Number(grossYield.toFixed(1)),
+        netYieldEstimate: Number(netYieldEstimate.toFixed(1)),
+        paybackYears: Number(paybackYears.toFixed(1)),
+        setupPaybackMonths: Math.ceil(typo.setupCost / monthlyRevenue),
+      };
+    }
+
+    return base;
+  }, [typo, simOcupacao, rateBoost, simDiariaAtual]);
 
   const summaryText = useMemo(() => {
-    return `📊 Simulação de Receita — ${PROPERTY.name}\n\nEndereço: ${PROPERTY.address}\nTipologia: ${typo.label}\nOcupação: ${simOcupacao[0]}%\nDiária base: R$ ${fmt(sim.baseDaily)}\n` +
-      (rateBoost > 0 ? `Diária c/ boost +${rateBoost}%: R$ ${fmt(sim.boostedDaily)}\n` : "") +
-      `\nReceita mensal: R$ ${fmt(sim.receitaMensal)}\nReceita anual: R$ ${fmt(sim.receitaAnual)}\n` +
-      (sim.paybackMonths ? `\nPayback da reforma: ~${sim.paybackMonths} meses\n` : "") +
-      `\nSimulação gerada para fins de estudo. Valores estimados.`;
+    return `📊 Simulação de Retorno — ${PROPERTY.name}\n\n` +
+      `Tipologia: ${typo.label} (${typo.area} m²)\n` +
+      `Preço da unidade: R$ ${fmt(typo.purchasePrice)}\n` +
+      `Setup/decoração: R$ ${fmt(typo.setupCost)}\n` +
+      `Investimento total: R$ ${fmt(sim.totalInvestment)}\n\n` +
+      `Ocupação: ${simOcupacao[0]}%\n` +
+      `Diária: R$ ${fmt(sim.boostedDaily)}${rateBoost > 0 ? ` (+${rateBoost}%)` : ""}\n\n` +
+      `Receita mensal: R$ ${fmt(sim.monthlyRevenue)}\n` +
+      `Receita anual: R$ ${fmt(sim.annualRevenue)}\n` +
+      `Yield bruto: ${sim.grossYield}%\n` +
+      `Yield líquido est.: ${sim.netYieldEstimate}%\n` +
+      `Payback: ${sim.paybackYears} anos\n\n` +
+      `Simulação gerada para fins de estudo. Valores estimados.`;
   }, [typo, simOcupacao, sim, rateBoost]);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(summaryText);
     setCopied(true);
-    trackGlobal("export_simulation", { property: PROPERTY.name, tipologia: typo.label, resultado: sim.receitaMensal });
+    trackGlobal("export_simulation", { tipologia: typo.label, yield: sim.grossYield });
     setTimeout(() => setCopied(false), 2000);
   };
 
@@ -72,19 +80,19 @@ export default function PropertySimuladorSection() {
   useEffect(() => {
     if (simTracked.current) return;
     const t = setTimeout(() => {
-      if (simDiariaAtual || rateBoost > 0 || simReformaBudget) {
-        trackGlobal("simulator_used", { property: PROPERTY.name, tipologia: typo.label, ocupacao: simOcupacao[0], resultado: sim.receitaMensal });
+      if (simDiariaAtual || rateBoost > 0) {
+        trackGlobal("simulator_used", { tipologia: typo.label, yield: sim.grossYield });
         simTracked.current = true;
       }
     }, 2000);
     return () => clearTimeout(t);
-  }, [sim.receitaMensal]);
+  }, [sim.grossYield]);
 
   return (
     <SectionBlock
       id="simulador"
-      title="Simulador de Receita"
-      takeaway={`Calcule a rentabilidade estimada do ${PROPERTY.name} com base na tipologia escolhida.`}
+      title="Simulador de Retorno por Tipologia"
+      takeaway={`Compare o retorno financeiro de cada tipologia do ${PROPERTY.name} e encontre a que melhor se encaixa no seu objetivo.`}
     >
       {/* Property badge */}
       <div className="flex items-center gap-2 mb-5 bg-primary/5 rounded-lg px-4 py-2.5">
@@ -95,25 +103,48 @@ export default function PropertySimuladorSection() {
 
       <Card className="border-border">
         <CardContent className="p-6 space-y-5 font-body">
-          {/* Typology selector */}
+          {/* Typology selector — financial focus */}
           <div>
-            <label className="text-sm font-medium text-foreground mb-2 block">Tipologia</label>
+            <label className="text-sm font-medium text-foreground mb-2 block">Escolha a tipologia</label>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-              {PROPERTY.typologies.map((t, i) => (
-                <button
-                  key={t.label}
-                  onClick={() => { setSelectedTypo(i); setSimDiariaAtual(""); }}
-                  className={`p-3 rounded-xl border-2 text-left transition-all ${
-                    selectedTypo === i
-                      ? "border-primary bg-primary/5 shadow-sm"
-                      : "border-border hover:border-primary/30"
-                  }`}
-                >
-                  <Building2 className={`h-4 w-4 mb-1 ${selectedTypo === i ? "text-primary" : "text-muted-foreground"}`} />
-                  <p className="text-sm font-semibold text-foreground">{t.label}</p>
-                  <p className="text-xs text-muted-foreground">~R$ {fmt(t.dailyEstimate)}/noite</p>
-                </button>
-              ))}
+              {TYPOLOGIES.map((t, i) => {
+                const fin = calcFinancials(t, simOcupacao[0]);
+                return (
+                  <button
+                    key={t.id}
+                    onClick={() => { setSelectedTypo(i); setSimDiariaAtual(""); }}
+                    className={`p-3 rounded-xl border-2 text-left transition-all ${
+                      selectedTypo === i
+                        ? "border-primary bg-primary/5 shadow-sm"
+                        : "border-border hover:border-primary/30"
+                    }`}
+                  >
+                    <Building2 className={`h-4 w-4 mb-1 ${selectedTypo === i ? "text-primary" : "text-muted-foreground"}`} />
+                    <p className="text-sm font-semibold text-foreground">{t.label}</p>
+                    <p className="text-xs text-muted-foreground">R$ {fmt(t.purchasePrice)}</p>
+                    <p className="text-xs text-primary font-semibold mt-0.5">Yield {fin.grossYield}%</p>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Investment breakdown */}
+          <div className="bg-muted/40 rounded-xl p-4">
+            <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">Investimento total</p>
+            <div className="grid grid-cols-3 gap-3 text-center">
+              <div>
+                <p className="text-lg font-display font-bold text-foreground">R$ {fmt(typo.purchasePrice)}</p>
+                <p className="text-[10px] text-muted-foreground">Unidade</p>
+              </div>
+              <div>
+                <p className="text-lg font-display font-bold text-foreground">R$ {fmt(typo.setupCost)}</p>
+                <p className="text-[10px] text-muted-foreground">Setup/decoração</p>
+              </div>
+              <div>
+                <p className="text-lg font-display font-bold text-primary">R$ {fmt(sim.totalInvestment)}</p>
+                <p className="text-[10px] text-muted-foreground">Total</p>
+              </div>
             </div>
           </div>
 
@@ -137,61 +168,61 @@ export default function PropertySimuladorSection() {
               />
             </div>
             <div>
-              <label className="text-sm font-medium text-foreground mb-1.5 block">Orçamento de reforma (R$)</label>
-              <Input
-                type="number"
-                placeholder="Ex: 45.000"
-                value={simReformaBudget}
-                onChange={(e) => setSimReformaBudget(e.target.value)}
-                className="min-h-[48px] text-base"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="text-sm font-medium text-foreground mb-2 block">Impacto de valorização na diária</label>
-            <div className="flex gap-2 flex-wrap">
-              {[0, 10, 20, 30].map((v) => (
-                <Button
-                  key={v}
-                  size="sm"
-                  variant={rateBoost === v ? "default" : "outline"}
-                  onClick={() => setRateBoost(v)}
-                  className={`min-h-[44px] min-w-[48px] ${rateBoost === v ? "bg-primary text-primary-foreground" : ""}`}
-                >
-                  {v === 0 ? "Base" : `+${v}%`}
-                </Button>
-              ))}
+              <label className="text-sm font-medium text-foreground mb-1.5 block">Valorização na diária</label>
+              <div className="flex gap-2 flex-wrap">
+                {[0, 10, 20, 30].map((v) => (
+                  <Button
+                    key={v}
+                    size="sm"
+                    variant={rateBoost === v ? "default" : "outline"}
+                    onClick={() => setRateBoost(v)}
+                    className={`min-h-[44px] min-w-[48px] ${rateBoost === v ? "bg-primary text-primary-foreground" : ""}`}
+                  >
+                    {v === 0 ? "Base" : `+${v}%`}
+                  </Button>
+                ))}
+              </div>
             </div>
           </div>
 
           <Separator />
 
-          {/* Results */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+          {/* Results — financial return focused */}
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-center">
             <div>
-              <p className="text-2xl font-display font-bold text-primary">R$ {fmt(sim.boostedDaily)}</p>
-              <p className="text-xs text-muted-foreground">Diária {rateBoost > 0 ? `(+${rateBoost}%)` : "base"}</p>
-            </div>
-            <div>
-              <p className="text-2xl font-display font-bold text-primary">R$ {fmt(sim.receitaMensal)}</p>
+              <p className="text-2xl font-display font-bold text-foreground">R$ {fmt(sim.monthlyRevenue)}</p>
               <p className="text-xs text-muted-foreground">Receita / mês</p>
             </div>
             <div>
-              <p className="text-2xl font-display font-bold text-primary">R$ {fmt(sim.receitaAnual)}</p>
+              <p className="text-2xl font-display font-bold text-foreground">R$ {fmt(sim.annualRevenue)}</p>
               <p className="text-xs text-muted-foreground">Receita / ano</p>
             </div>
-            <div>
-              <p className="text-2xl font-display font-bold text-primary">{sim.paybackMonths ? `${sim.paybackMonths} meses` : "—"}</p>
-              <p className="text-xs text-muted-foreground">Payback reforma</p>
+            <div className="col-span-2 md:col-span-1">
+              <p className="text-3xl font-display font-bold text-primary">{sim.grossYield}%</p>
+              <p className="text-xs text-muted-foreground">Yield bruto anual</p>
             </div>
           </div>
 
-          {rateBoost > 0 && sim.delta > 0 && (
+          <div className="grid grid-cols-3 gap-4 text-center bg-muted/30 rounded-xl p-4">
+            <div>
+              <p className="text-lg font-display font-bold text-foreground">{sim.netYieldEstimate}%</p>
+              <p className="text-[10px] text-muted-foreground">Yield líquido est.</p>
+            </div>
+            <div>
+              <p className="text-lg font-display font-bold text-foreground">{sim.paybackYears} anos</p>
+              <p className="text-[10px] text-muted-foreground">Payback investimento</p>
+            </div>
+            <div>
+              <p className="text-lg font-display font-bold text-foreground">R$ {fmt(sim.boostedDaily)}</p>
+              <p className="text-[10px] text-muted-foreground">Diária {rateBoost > 0 ? `(+${rateBoost}%)` : ""}</p>
+            </div>
+          </div>
+
+          {rateBoost > 0 && (
             <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 flex items-start gap-3">
               <ArrowUpRight className="text-primary mt-0.5 flex-shrink-0" size={20} />
               <p className="text-sm text-muted-foreground">
-                Com +{rateBoost}% na diária, o {typo.label} gera <span className="font-bold text-foreground">R$ {fmt(sim.delta)}/mês</span> a mais em relação ao cenário base.
+                Com +{rateBoost}% na diária, o yield bruto do {typo.label} sobe para <span className="font-bold text-primary">{sim.grossYield}%</span> — {sim.grossYield > 8 ? "acima da maioria dos investimentos de renda fixa" : "competitivo com o mercado financeiro"}.
               </p>
             </div>
           )}
@@ -203,7 +234,7 @@ export default function PropertySimuladorSection() {
               </Button>
             </DialogTrigger>
             <DialogContent className="font-body">
-              <DialogHeader><DialogTitle className="font-display">Resumo da Simulação</DialogTitle></DialogHeader>
+              <DialogHeader><DialogTitle className="font-display">Resumo Financeiro</DialogTitle></DialogHeader>
               <pre className="bg-muted rounded-lg p-4 text-sm text-foreground whitespace-pre-wrap max-h-80 overflow-y-auto">{summaryText}</pre>
               <Button onClick={handleCopy} className="w-full bg-primary text-primary-foreground">
                 {copied ? <><Check size={16} className="mr-2" /> Copiado!</> : <><Copy size={16} className="mr-2" /> Copiar texto</>}
@@ -214,19 +245,19 @@ export default function PropertySimuladorSection() {
       </Card>
 
       <Accordion type="multiple" className="mt-4 font-body">
-        <AccordionItem value="rateboost">
-          <AccordionTrigger className="text-primary font-semibold min-h-[48px]">Como funciona o boost na diária</AccordionTrigger>
+        <AccordionItem value="yield">
+          <AccordionTrigger className="text-primary font-semibold min-h-[48px]">Como calculamos o yield</AccordionTrigger>
           <AccordionContent>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              <strong className="text-foreground">Base</strong> = diária estimada para a tipologia sem upgrades. <strong className="text-foreground">+10%</strong> = decoração básica melhorada. <strong className="text-foreground">+20%</strong> = decoração premium com fotos profissionais. <strong className="text-foreground">+30%</strong> = design autoral e operação otimizada. Os amenidades do {PROPERTY.name} (coworking, lavanderia, rooftop) já contribuem para diárias acima da média da região.
+              <strong className="text-foreground">Yield bruto</strong> = receita anual ÷ investimento total (unidade + setup). <strong className="text-foreground">Yield líquido</strong> = yield bruto × 0,75 — desconta ~25% de custos operacionais (condomínio, limpeza, plataformas, IPTU). O payback é o tempo para recuperar o investimento total com a receita bruta.
             </p>
           </AccordionContent>
         </AccordionItem>
-        <AccordionItem value="location">
-          <AccordionTrigger className="text-primary font-semibold min-h-[48px]">Por que a localização impacta a receita</AccordionTrigger>
+        <AccordionItem value="boost">
+          <AccordionTrigger className="text-primary font-semibold min-h-[48px]">O que impacta a diária</AccordionTrigger>
           <AccordionContent>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              O empreendimento fica a 200 m da Av. Paulista, com acesso a 2 estações de metrô (Consolação e Paulista), hospitais de referência (Sírio-Libanês, Samaritano), centros corporativos e polos gastronômicos. Essa concentração de demanda sustenta ocupação alta e justifica diárias premium — o público-alvo inclui executivos em viagem, profissionais de saúde e turistas de experiência urbana.
+              <strong className="text-foreground">Base</strong> = diária estimada para a tipologia sem upgrades. <strong className="text-foreground">+10%</strong> = decoração básica melhorada. <strong className="text-foreground">+20%</strong> = decoração premium com fotos profissionais. <strong className="text-foreground">+30%</strong> = design autoral e operação otimizada. Os amenities do {PROPERTY.name} (coworking, lavanderia, rooftop) já contribuem para diárias acima da média da região.
             </p>
           </AccordionContent>
         </AccordionItem>

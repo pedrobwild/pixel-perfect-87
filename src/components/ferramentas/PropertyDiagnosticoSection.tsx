@@ -11,6 +11,8 @@ import {
 import SectionBlock from "@/components/guide/SectionBlock";
 import { QUIZ_QUESTIONS, resolveProfile, type QuizAnswers } from "@/lib/investorQuiz";
 import { useGuideDecision } from "@/hooks/useGuideDecision";
+import { recommendTypology, calcFinancials, PROPERTY } from "@/data/propertyData";
+import { fmt } from "@/data/guide-data";
 
 const ICON_MAP: Record<string, any> = {
   Banknote, TrendingUp, Scale, Shield, Gauge, Rocket,
@@ -49,11 +51,15 @@ export default function PropertyDiagnosticoSection() {
     setInvestorDiagnostic({ objective: "", risk: "", priority: "" }, null as any);
   };
 
+  // Recommended typology when profile is complete
+  const recommended = isComplete ? recommendTypology(investorProfile.name) : null;
+  const recFinancials = recommended ? calcFinancials(recommended, PROPERTY.avgOccupancy) : null;
+
   return (
     <SectionBlock
       id="diagnostico"
       title="Seu Perfil de Investidor"
-      takeaway="Responda 3 perguntas rápidas para personalizar a análise do Urban Flex Bela Cintra ao seu perfil."
+      takeaway="Responda 3 perguntas rápidas para descobrir qual tipologia do Urban Flex Bela Cintra maximiza seu retorno."
     >
       {!isComplete ? (
         <>
@@ -136,7 +142,8 @@ export default function PropertyDiagnosticoSection() {
                     {investorProfile.description}
                   </p>
 
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {/* Profile weights */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
                     {Object.entries(investorProfile.weights).map(([key, weight]) => {
                       const labels: Record<string, string> = {
                         retorno: "Retorno", demanda: "Demanda", operacao: "Operação", futuro: "Futuro",
@@ -158,13 +165,42 @@ export default function PropertyDiagnosticoSection() {
                 </div>
               </div>
 
-              <div className="mt-4 pt-4 border-t border-border/50 flex items-center justify-between">
-                <p className="text-xs text-muted-foreground font-body flex items-center gap-1.5">
-                  <Building2 size={12} className="text-primary" />
-                  Análise personalizada para o Urban Flex Bela Cintra ativa.
-                </p>
+              {/* Typology recommendation */}
+              {recommended && recFinancials && (
+                <div className="mt-4 pt-4 border-t border-border/50">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Building2 size={16} className="text-primary" />
+                    <p className="text-sm font-display font-bold text-foreground">
+                      Tipologia recomendada para você
+                    </p>
+                  </div>
+                  <div className="bg-muted/40 rounded-xl p-4 grid grid-cols-2 md:grid-cols-4 gap-3 text-center">
+                    <div>
+                      <p className="text-base font-display font-bold text-foreground">{recommended.label}</p>
+                      <p className="text-[10px] text-muted-foreground">Tipologia</p>
+                    </div>
+                    <div>
+                      <p className="text-base font-display font-bold text-foreground">R$ {fmt(recommended.purchasePrice)}</p>
+                      <p className="text-[10px] text-muted-foreground">Investimento</p>
+                    </div>
+                    <div>
+                      <p className="text-base font-display font-bold text-primary">{recFinancials.grossYield}%</p>
+                      <p className="text-[10px] text-muted-foreground">Yield bruto</p>
+                    </div>
+                    <div>
+                      <p className="text-base font-display font-bold text-foreground">{recFinancials.paybackYears} anos</p>
+                      <p className="text-[10px] text-muted-foreground">Payback</p>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Use o simulador abaixo para ajustar ocupação e diária e comparar com outras tipologias.
+                  </p>
+                </div>
+              )}
+
+              <div className="mt-4 pt-4 border-t border-border/50 flex items-center justify-end">
                 <Button variant="ghost" size="sm" onClick={reset} className="text-xs text-muted-foreground">
-                  Refazer
+                  Refazer diagnóstico
                 </Button>
               </div>
             </CardContent>
