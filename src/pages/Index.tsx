@@ -109,7 +109,61 @@ export default function Index() {
         </div>
       </section>
 
-      {/* What we offer section removed */}
+      {/* Featured project — Urban Flex */}
+      <section className="border-b border-border/40">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 py-20 md:py-28">
+          <div className="grid gap-8 lg:grid-cols-[1fr_1fr] lg:items-center">
+            <FadeIn>
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary/80 mb-3">Empreendimento em destaque</p>
+              <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground">
+                LM Urban Flex · Bela Cintra
+              </h2>
+              <p className="mt-4 text-muted-foreground leading-relaxed max-w-lg">
+                Retrofit premium a 200 m da Av. Paulista. Studios de 18 a 83 m², amenidades de operação short stay e obra 63% concluída.
+              </p>
+
+              <div className="mt-6 grid grid-cols-2 gap-3">
+                {[
+                  { value: "R. Bela Cintra, 209", label: "Endereço" },
+                  { value: "18 a 83 m²", label: "Tipologias" },
+                  { value: "63,53%", label: "Obra concluída" },
+                  { value: "4 tipologias", label: "Opções de unidade" },
+                ].map((kpi) => (
+                  <div key={kpi.label} className="rounded-xl border border-border/60 bg-background p-4">
+                    <p className="font-display text-lg font-bold text-foreground">{kpi.value}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{kpi.label}</p>
+                  </div>
+                ))}
+              </div>
+
+              <Link to="/urban-flex-bela-cintra" className="mt-8 inline-block">
+                <Button size="lg" className="min-h-[46px]">
+                  Explorar guia do investidor
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
+            </FadeIn>
+
+            <FadeIn delay={0.1}>
+              <Card className="card-elevated border-primary/10 overflow-hidden">
+                <CardContent className="p-6 space-y-4">
+                  {[
+                    "Endereço ultra conhecido: Bela Cintra + Paulista.",
+                    "Tipologias variadas — da entrada leve ao produto assinatura.",
+                    "Amenidades pensadas para operação short stay e público corporativo.",
+                    "Simulador de retorno integrado na página de venda.",
+                  ].map((item) => (
+                    <div key={item} className="flex items-start gap-3 rounded-xl border border-border/60 p-4">
+                      <div className="mt-1.5 h-2 w-2 rounded-full bg-primary shrink-0" />
+                      <p className="text-sm leading-relaxed text-foreground">{item}</p>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            </FadeIn>
+          </div>
+        </div>
+      </section>
 
       {/* Tools & Guide — cross-link section */}
       <section className="bg-muted/25 border-b border-border/40">
@@ -190,62 +244,6 @@ export default function Index() {
                       <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
                   </Link>
-                </CardContent>
-              </Card>
-            </FadeIn>
-          </div>
-        </div>
-      </section>
-
-      {/* Featured project — Urban Flex */}
-      <section className="border-b border-border/40">
-        <div className="max-w-7xl mx-auto px-4 md:px-6 py-20 md:py-28">
-          <div className="grid gap-8 lg:grid-cols-[1fr_1fr] lg:items-center">
-            <FadeIn>
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary/80 mb-3">Empreendimento em destaque</p>
-              <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground">
-                LM Urban Flex · Bela Cintra
-              </h2>
-              <p className="mt-4 text-muted-foreground leading-relaxed max-w-lg">
-                Retrofit premium a 200 m da Av. Paulista. Studios de 18 a 83 m², amenidades de operação short stay e obra 63% concluída.
-              </p>
-
-              <div className="mt-6 grid grid-cols-2 gap-3">
-                {[
-                  { value: "R. Bela Cintra, 209", label: "Endereço" },
-                  { value: "18 a 83 m²", label: "Tipologias" },
-                  { value: "63,53%", label: "Obra concluída" },
-                  { value: "4 tipologias", label: "Opções de unidade" },
-                ].map((kpi) => (
-                  <div key={kpi.label} className="rounded-xl border border-border/60 bg-background p-4">
-                    <p className="font-display text-lg font-bold text-foreground">{kpi.value}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{kpi.label}</p>
-                  </div>
-                ))}
-              </div>
-
-              <Link to="/urban-flex-bela-cintra" className="mt-8 inline-block">
-                <Button size="lg" className="min-h-[46px]">
-                  Explorar guia do investidor
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </Link>
-            </FadeIn>
-
-            <FadeIn delay={0.1}>
-              <Card className="card-elevated border-primary/10 overflow-hidden">
-                <CardContent className="p-6 space-y-4">
-                  {[
-                    "Endereço ultra conhecido: Bela Cintra + Paulista.",
-                    "Tipologias variadas — da entrada leve ao produto assinatura.",
-                    "Amenidades pensadas para operação short stay e público corporativo.",
-                    "Simulador de retorno integrado na página de venda.",
-                  ].map((item) => (
-                    <div key={item} className="flex items-start gap-3 rounded-xl border border-border/60 p-4">
-                      <div className="mt-1.5 h-2 w-2 rounded-full bg-primary shrink-0" />
-                      <p className="text-sm leading-relaxed text-foreground">{item}</p>
-                    </div>
-                  ))}
                 </CardContent>
               </Card>
             </FadeIn>
