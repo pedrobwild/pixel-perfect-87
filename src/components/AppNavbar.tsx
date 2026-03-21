@@ -11,7 +11,6 @@ export default function AppNavbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const navLinks = [
-    { to: "/guia-short-stay", label: "Guia Short Stay", icon: BookOpen },
     { to: "/ferramentas", label: "Ferramentas", icon: Wrench },
   ];
 
