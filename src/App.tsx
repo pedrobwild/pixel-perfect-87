@@ -8,7 +8,6 @@ import Index from "./pages/Index.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const UrbanFlexInvestorGuide = lazy(() => import("./pages/UrbanFlexInvestorGuide"));
-// const ShortStayGuide = lazy(() => import("./pages/ShortStayGuide"));
 const Ferramentas = lazy(() => import("./pages/Ferramentas"));
 
 const queryClient = new QueryClient();
