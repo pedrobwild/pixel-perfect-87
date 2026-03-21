@@ -3,8 +3,7 @@ import { Link } from "react-router-dom";
 import { motion, useInView } from "framer-motion";
 import {
   ArrowRight, Building2, MapPin, TrendingUp, ShieldCheck,
-  MessageCircle, Wrench, BarChart3,
-  Users, Star, Compass
+  MessageCircle, Wrench, BarChart3
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -342,29 +341,6 @@ export default function Index() {
         </div>
       </section>
 
-      {/* Social proof */}
-      <section className="bg-muted/25 border-b border-border/40">
-        <div className="max-w-7xl mx-auto px-4 md:px-6 py-16 md:py-20">
-          <FadeIn>
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-              {[
-                { icon: Users, value: "120+", label: "Investidores atendidos" },
-                { icon: Building2, value: "3", label: "Empreendimentos ativos" },
-                { icon: Star, value: "4.8", label: "Nota média dos studios" },
-                { icon: Compass, value: "São Paulo", label: "Mercado principal" },
-              ].map((stat, i) => (
-                <FadeIn key={stat.label} delay={i * 0.06}>
-                  <div className="text-center p-4">
-                    <stat.icon className="h-5 w-5 text-primary mx-auto mb-3" />
-                    <p className="font-display text-2xl md:text-3xl font-bold text-foreground">{stat.value}</p>
-                    <p className="text-sm text-muted-foreground mt-1">{stat.label}</p>
-                  </div>
-                </FadeIn>
-              ))}
-            </div>
-          </FadeIn>
-        </div>
-      </section>
 
       {/* CTA */}
       <section>
