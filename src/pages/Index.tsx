@@ -72,22 +72,13 @@ export default function Index() {
           </FadeIn>
 
           <FadeIn delay={0.24}>
-            <div className="mt-10 flex flex-col sm:flex-row gap-3">
+            <div className="mt-10">
               <Link to="/ferramentas">
                 <Button size="lg" className="min-h-[48px] w-full sm:w-auto">
                   Explorar Ferramentas
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
-              <Button
-                size="lg"
-                variant="outline"
-                className="min-h-[48px] border-background/30 text-background hover:bg-background/10 hover:text-background"
-                onClick={() => window.open(whatsappLink, "_blank")}
-              >
-                <MessageCircle className="mr-2 h-4 w-4" />
-                Falar com consultor
-              </Button>
             </div>
           </FadeIn>
 
