@@ -1,90 +1,10 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion, useInView, AnimatePresence } from "framer-motion";
-import { X, ChevronLeft, ChevronRight, Maximize2, Eye } from "lucide-react";
+import { X, ChevronLeft, ChevronRight, Maximize2, Eye, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-
-const STORAGE_BASE = `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/images/plantas`;
-
-const planta19 = `${STORAGE_BASE}/planta-19m2.png`;
-const planta38 = `${STORAGE_BASE}/planta-38m2.png`;
-const planta40 = `${STORAGE_BASE}/planta-40m2.png`;
-const planta54 = `${STORAGE_BASE}/planta-54m2.png`;
-const planta76 = `${STORAGE_BASE}/planta-76m2.jpg`;
-const planta80 = `${STORAGE_BASE}/planta-80m2.png`;
-
-interface Planta {
-  id: string;
-  img: string;
-  area: string;
-  name: string;
-  bedrooms: string;
-  bathrooms: string;
-  highlights: string[];
-  galleryImgs: string[];
-}
-
-const plantas: Planta[] = [
-  {
-    id: "19",
-    img: planta19,
-    area: "19 m²",
-    name: "Studio Compacto",
-    bedrooms: "Integrado",
-    bathrooms: "1",
-    highlights: ["Entrada acessível", "Ideal para Airbnb", "Alta liquidez"],
-    galleryImgs: [planta19],
-  },
-  {
-    id: "38",
-    img: planta38,
-    area: "38 m²",
-    name: "Studio Confort",
-    bedrooms: "1 suíte",
-    bathrooms: "1",
-    highlights: ["Living amplo", "Piso chevron", "Cozinha completa"],
-    galleryImgs: [planta38],
-  },
-  {
-    id: "40",
-    img: planta40,
-    area: "40 m²",
-    name: "Studio Premium",
-    bedrooms: "1 suíte",
-    bathrooms: "1",
-    highlights: ["Varanda gourmet", "Sala de estar separada", "Acabamento premium"],
-    galleryImgs: [planta40],
-  },
-  {
-    id: "54",
-    img: planta54,
-    area: "54 m²",
-    name: "Flat Executive",
-    bedrooms: "1 suíte",
-    bathrooms: "1 lavabo",
-    highlights: ["Mesa de jantar 6 lugares", "Closet", "Pé-direito generoso"],
-    galleryImgs: [planta54],
-  },
-  {
-    id: "76",
-    img: planta76,
-    area: "76 m²",
-    name: "Duplex Assinatura",
-    bedrooms: "1 suíte + living",
-    bathrooms: "2",
-    highlights: ["Dois pavimentos", "Layout versátil", "Design autoral"],
-    galleryImgs: [planta76],
-  },
-  {
-    id: "80",
-    img: planta80,
-    area: "83 m²",
-    name: "Cobertura Garden",
-    bedrooms: "1 suíte",
-    bathrooms: "1",
-    highlights: ["Área externa privativa", "Jacuzzi", "Espaço gourmet"],
-    galleryImgs: [planta80],
-  },
-];
+import { supabase } from "@/integrations/supabase/client";
+import { tipologias, getPlantaUrl, getProjetosFolder, getStorageBase } from "@/data/tipologias";
+import type { Tipologia } from "@/data/tipologias";
 
 function FadeIn({ children, delay = 0, className = "" }: { children: React.ReactNode; delay?: number; className?: string }) {
   const ref = useRef(null);
@@ -103,22 +23,46 @@ function FadeIn({ children, delay = 0, className = "" }: { children: React.React
 }
 
 export default function PlantasSection() {
-  const [selected, setSelected] = useState<Planta | null>(null);
+  const [selected, setSelected] = useState<Tipologia | null>(null);
   const [showGallery, setShowGallery] = useState(false);
   const [galleryIdx, setGalleryIdx] = useState(0);
+  const [galleryImages, setGalleryImages] = useState<string[]>([]);
+  const [loadingGallery, setLoadingGallery] = useState(false);
 
-  const openPlanta = (p: Planta) => {
+  const openPlanta = (p: Tipologia) => {
     setSelected(p);
     setShowGallery(false);
     setGalleryIdx(0);
+    setGalleryImages([]);
   };
 
   const close = () => {
     setSelected(null);
     setShowGallery(false);
+    setGalleryImages([]);
   };
 
-  const allImages = plantas.map((p) => p.img);
+  const loadGalleryImages = async (tipologia: Tipologia) => {
+    setLoadingGallery(true);
+    const folder = getProjetosFolder(tipologia.id);
+    const { data, error } = await supabase.storage.from("images").list(folder, {
+      sortBy: { column: "name", order: "asc" },
+    });
+
+    if (error || !data || data.length === 0) {
+      // Fallback to planta image
+      setGalleryImages([getPlantaUrl(tipologia)]);
+    } else {
+      const base = getStorageBase();
+      const urls = data
+        .filter((f) => !f.id?.startsWith("."))
+        .map((f) => `${base}/${folder}/${f.name}`);
+      setGalleryImages(urls.length > 0 ? urls : [getPlantaUrl(tipologia)]);
+    }
+    setLoadingGallery(false);
+    setShowGallery(true);
+    setGalleryIdx(0);
+  };
 
   return (
     <>
@@ -135,7 +79,7 @@ export default function PlantasSection() {
           </FadeIn>
 
           <div className="mt-12 grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
-            {plantas.map((p, i) => (
+            {tipologias.map((p, i) => (
               <FadeIn key={p.id} delay={i * 0.06}>
                 <button
                   onClick={() => openPlanta(p)}
@@ -143,7 +87,7 @@ export default function PlantasSection() {
                 >
                   <div className="aspect-[4/3] overflow-hidden bg-muted/30">
                     <img
-                      src={p.img}
+                      src={getPlantaUrl(p)}
                       alt={`Planta ${p.name} — ${p.area}`}
                       className="h-full w-full object-contain p-2 transition-transform duration-500 group-hover:scale-105"
                       loading="lazy"
@@ -193,7 +137,7 @@ export default function PlantasSection() {
                 <div className="p-6 md:p-8">
                   <div className="rounded-xl overflow-hidden bg-muted/20 border border-border/40 mb-6">
                     <img
-                      src={selected.img}
+                      src={getPlantaUrl(selected)}
                       alt={`Planta ${selected.name}`}
                       className="w-full object-contain max-h-[50vh]"
                     />
@@ -214,12 +158,14 @@ export default function PlantasSection() {
                     <Button
                       size="lg"
                       className="w-full min-h-[48px] mt-4"
-                      onClick={() => {
-                        setShowGallery(true);
-                        setGalleryIdx(0);
-                      }}
+                      disabled={loadingGallery}
+                      onClick={() => loadGalleryImages(selected)}
                     >
-                      <Eye className="mr-2 h-4 w-4" />
+                      {loadingGallery ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Eye className="mr-2 h-4 w-4" />
+                      )}
                       Visualizar tipologias de projetos
                     </Button>
                   </div>
@@ -239,21 +185,21 @@ export default function PlantasSection() {
 
                   <div className="relative rounded-xl overflow-hidden bg-muted/20 border border-border/40">
                     <img
-                      src={allImages[galleryIdx % allImages.length]}
+                      src={galleryImages[galleryIdx % galleryImages.length]}
                       alt={`Projeto 3D ${galleryIdx + 1}`}
                       className="w-full object-contain max-h-[55vh]"
                     />
 
-                    {allImages.length > 1 && (
+                    {galleryImages.length > 1 && (
                       <>
                         <button
-                          onClick={() => setGalleryIdx((prev) => (prev - 1 + allImages.length) % allImages.length)}
+                          onClick={() => setGalleryIdx((prev) => (prev - 1 + galleryImages.length) % galleryImages.length)}
                           className="absolute left-3 top-1/2 -translate-y-1/2 h-10 w-10 rounded-xl bg-background/80 backdrop-blur-sm border border-border/60 flex items-center justify-center hover:bg-background transition-colors active:scale-95"
                         >
                           <ChevronLeft className="h-5 w-5 text-foreground" />
                         </button>
                         <button
-                          onClick={() => setGalleryIdx((prev) => (prev + 1) % allImages.length)}
+                          onClick={() => setGalleryIdx((prev) => (prev + 1) % galleryImages.length)}
                           className="absolute right-3 top-1/2 -translate-y-1/2 h-10 w-10 rounded-xl bg-background/80 backdrop-blur-sm border border-border/60 flex items-center justify-center hover:bg-background transition-colors active:scale-95"
                         >
                           <ChevronRight className="h-5 w-5 text-foreground" />
@@ -263,19 +209,21 @@ export default function PlantasSection() {
                   </div>
 
                   {/* Thumbnails */}
-                  <div className="mt-4 flex gap-2 overflow-x-auto pb-2">
-                    {allImages.map((img, idx) => (
-                      <button
-                        key={idx}
-                        onClick={() => setGalleryIdx(idx)}
-                        className={`shrink-0 h-16 w-20 rounded-lg overflow-hidden border-2 transition-all active:scale-95 ${
-                          idx === galleryIdx ? "border-primary" : "border-border/40 opacity-60 hover:opacity-100"
-                        }`}
-                      >
-                        <img src={img} alt="" className="h-full w-full object-contain bg-muted/20" />
-                      </button>
-                    ))}
-                  </div>
+                  {galleryImages.length > 1 && (
+                    <div className="mt-4 flex gap-2 overflow-x-auto pb-2">
+                      {galleryImages.map((img, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => setGalleryIdx(idx)}
+                          className={`shrink-0 h-16 w-20 rounded-lg overflow-hidden border-2 transition-all active:scale-95 ${
+                            idx === galleryIdx ? "border-primary" : "border-border/40 opacity-60 hover:opacity-100"
+                          }`}
+                        >
+                          <img src={img} alt="" className="h-full w-full object-contain bg-muted/20" />
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </motion.div>
