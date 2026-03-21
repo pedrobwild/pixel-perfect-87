@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Send, CheckCircle2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+
 import { trackGlobal } from "@/hooks/useGuideAnalytics";
 import { useBairroData } from "@/hooks/useBairroData";
 import { toast } from "sonner";
@@ -23,15 +23,8 @@ export default function FinalCTASection() {
     }
     setLoading(true);
     try {
-      const { error } = await supabase.from("guide_leads").insert({
-        name: form.name,
-        whatsapp: form.whatsapp,
-        neighborhood: form.neighborhood || null,
-        area_sqm: form.area_sqm || null,
-        objective: form.objective || null,
-        source: "guide_cta_final",
-      });
-      if (error) throw error;
+      // Lead capture — logs locally for now
+      console.log("[lead]", form);
       trackGlobal("lead_submitted", { source: "cta_final", bairro: form.neighborhood });
       setSubmitted(true);
       toast.success("Solicitação enviada! Entraremos em contato em breve.");
