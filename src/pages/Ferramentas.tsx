@@ -4,6 +4,7 @@ import PropertyDiagnosticoSection from "@/components/ferramentas/PropertyDiagnos
 import PropertyRecomendacaoSection from "@/components/ferramentas/PropertyRecomendacaoSection";
 import PropertyPlanoAcaoSection from "@/components/ferramentas/PropertyPlanoAcaoSection";
 import PropertySimuladorSection from "@/components/ferramentas/PropertySimuladorSection";
+import PropertyBenchmarkSection from "@/components/ferramentas/PropertyBenchmarkSection";
 import MarketIntelSection from "@/components/MarketIntelSection";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Building2, MessageCircle } from "lucide-react";
@@ -61,6 +62,13 @@ export default function Ferramentas() {
         <div className="w-full bg-muted/20">
           <div className="max-w-[1280px] mx-auto px-5 lg:px-10">
             <PropertySimuladorSection />
+          </div>
+        </div>
+
+        {/* Benchmark vs renda fixa */}
+        <div className="w-full">
+          <div className="max-w-[1280px] mx-auto px-5 lg:px-10">
+            <PropertyBenchmarkSection />
           </div>
         </div>
 
