@@ -2,9 +2,16 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { GuideDecisionProvider } from "@/hooks/useGuideDecision";
 import MarketIntelSection from "@/components/MarketIntelSection";
 import PropertySimuladorSection from "@/components/ferramentas/PropertySimuladorSection";
+import PropertyDiagnosticoSection from "@/components/ferramentas/PropertyDiagnosticoSection";
+import RentabilidadeSection from "@/components/guide/RentabilidadeSection";
+import EscolhaAtivoSection from "@/components/guide/EscolhaAtivoSection";
+import CaseStudySection from "@/components/guide/CaseStudySection";
+import ChecklistSection from "@/components/guide/ChecklistSection";
+import TrustSignalsSection from "@/components/guide/TrustSignalsSection";
 import { motion } from "framer-motion";
 import AppNavbar from "@/components/AppNavbar";
 import { cn } from "@/lib/utils";
+import { FAQ_DATA } from "@/data/guide-data";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -38,16 +45,19 @@ import {
 
 type SectionId =
   | "hero"
+  | "diagnostico"
   | "visao-geral"
   | "tipologias"
+  | "rentabilidade"
   | "simulador"
+  | "escolha-ativo"
   | "localizacao"
   | "amenidades"
   | "obra"
+  | "casestudy"
+  | "checklist-final"
   | "faq"
   | "contato";
-
-type FurnishingLevel = "essencial" | "premium" | "signature";
 
 type UnitType = {
   id: string;
@@ -82,14 +92,21 @@ type BuildStage = {
   value: number;
 };
 
+type FurnishingLevel = "essencial" | "premium" | "signature";
+
 const sections: Array<{ id: SectionId; label: string }> = [
   { id: "hero", label: "Início" },
+  { id: "diagnostico", label: "Perfil" },
   { id: "visao-geral", label: "Tese" },
   { id: "tipologias", label: "Tipologias" },
+  { id: "rentabilidade", label: "Matemática" },
   { id: "simulador", label: "Simulador" },
+  { id: "escolha-ativo", label: "Avaliação" },
   { id: "localizacao", label: "Localização" },
   { id: "amenidades", label: "Amenidades" },
   { id: "obra", label: "Obra" },
+  { id: "casestudy", label: "Case" },
+  { id: "checklist-final", label: "Checklist" },
   { id: "faq", label: "FAQ" },
   { id: "contato", label: "Contato" },
 ];
@@ -498,6 +515,13 @@ export default function UrbanFlexInvestorGuide() {
           </div>
         </section>
 
+        {/* Diagnóstico do Investidor */}
+        <section id="diagnostico" className="scroll-mt-32">
+          <div className="max-w-7xl mx-auto px-4 md:px-6">
+            <PropertyDiagnosticoSection />
+          </div>
+        </section>
+
         <section id="visao-geral" className="scroll-mt-32">
           <div className="max-w-7xl mx-auto px-4 md:px-6 py-16 md:py-20">
             <SectionLabel>Tese comercial</SectionLabel>
@@ -615,6 +639,13 @@ export default function UrbanFlexInvestorGuide() {
                 );
               })}
             </div>
+          </div>
+        </section>
+
+        {/* Rentabilidade / Matemática */}
+        <section id="rentabilidade" className="scroll-mt-32">
+          <div className="max-w-7xl mx-auto px-4 md:px-6">
+            <RentabilidadeSection />
           </div>
         </section>
 
@@ -817,6 +848,13 @@ export default function UrbanFlexInvestorGuide() {
           </div>
         </section>
 
+        {/* Escolha do Ativo */}
+        <section id="escolha-ativo" className="scroll-mt-32">
+          <div className="max-w-7xl mx-auto px-4 md:px-6">
+            <EscolhaAtivoSection />
+          </div>
+        </section>
+
         <section id="localizacao" className="scroll-mt-32 bg-muted/25 border-y border-border/40">
           <div className="max-w-7xl mx-auto px-4 md:px-6 py-16 md:py-20">
             <SectionLabel>Localização</SectionLabel>
@@ -960,15 +998,34 @@ export default function UrbanFlexInvestorGuide() {
           </div>
         </section>
 
+        {/* Case Study */}
+        <section id="casestudy" className="scroll-mt-32">
+          <div className="max-w-7xl mx-auto px-4 md:px-6">
+            <CaseStudySection />
+          </div>
+        </section>
+
+        {/* Trust Signals */}
+        <div className="max-w-7xl mx-auto px-4 md:px-6">
+          <TrustSignalsSection />
+        </div>
+
+        {/* Checklist Final */}
+        <section id="checklist-final" className="scroll-mt-32">
+          <div className="max-w-7xl mx-auto px-4 md:px-6">
+            <ChecklistSection />
+          </div>
+        </section>
+
         <section id="faq" className="scroll-mt-32">
           <div className="max-w-4xl mx-auto px-4 md:px-6 py-16 md:py-20">
             <SectionLabel>FAQ</SectionLabel>
-            <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground mb-8">Perguntas que vale responder antes da publicação</h2>
+            <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground mb-8">Perguntas frequentes do investidor</h2>
 
             <Card className="card-elevated border-border/60">
               <CardContent className="p-0">
                 <Accordion type="single" collapsible className="px-6">
-                  {faqItems.map((item, index) => (
+                  {[...faqItems, ...FAQ_DATA.map(f => ({ question: f.q, answer: f.a }))].map((item, index) => (
                     <AccordionItem key={item.question} value={`item-${index}`}>
                       <AccordionTrigger className="text-left text-base">{item.question}</AccordionTrigger>
                       <AccordionContent className="text-sm text-muted-foreground leading-relaxed">
