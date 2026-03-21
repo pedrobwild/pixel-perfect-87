@@ -6,7 +6,7 @@ import PropertyPlanoAcaoSection from "@/components/ferramentas/PropertyPlanoAcao
 import PropertySimuladorSection from "@/components/ferramentas/PropertySimuladorSection";
 import MarketIntelSection from "@/components/MarketIntelSection";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Building2 } from "lucide-react";
+import { ArrowRight, Building2, MessageCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 import bwildLogo from "@/assets/bwild-logo.png";
 import { useEffect } from "react";
