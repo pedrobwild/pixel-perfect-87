@@ -73,9 +73,9 @@ export default function Index() {
 
           <FadeIn delay={0.24}>
             <div className="mt-10 flex flex-col sm:flex-row gap-3">
-              <Link to="/guia-short-stay">
+              <Link to="/ferramentas">
                 <Button size="lg" className="min-h-[48px] w-full sm:w-auto">
-                  Explorar o Guia do Investidor
+                  Explorar Ferramentas
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
@@ -330,9 +330,9 @@ export default function Index() {
                       </li>
                     ))}
                   </ul>
-                  <Link to="/guia-short-stay">
+                  <Link to="/ferramentas">
                     <Button className="w-full min-h-[44px] group-hover:bg-primary/90 transition-colors">
-                      Ler o guia completo
+                      Ver ferramentas
                       <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
                   </Link>
@@ -418,9 +418,9 @@ export default function Index() {
                 <MessageCircle className="mr-2 h-4 w-4" />
                 Falar com a equipe
               </Button>
-              <Link to="/guia-short-stay">
+              <Link to="/ferramentas">
                 <Button size="lg" variant="outline" className="min-h-[48px] w-full sm:w-auto">
-                  Ver guia do investidor
+                  Ver ferramentas
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
@@ -435,7 +435,6 @@ export default function Index() {
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
             <p>© 2025 Bwild. Todos os direitos reservados.</p>
             <div className="flex items-center gap-4">
-              <Link to="/guia-short-stay" className="hover:text-foreground transition-colors">Guia Short Stay</Link>
               <Link to="/ferramentas" className="hover:text-foreground transition-colors">Ferramentas</Link>
               <Link to="/urban-flex-bela-cintra" className="hover:text-foreground transition-colors">Urban Flex</Link>
             </div>

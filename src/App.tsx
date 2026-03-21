@@ -8,7 +8,7 @@ import Index from "./pages/Index.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const UrbanFlexInvestorGuide = lazy(() => import("./pages/UrbanFlexInvestorGuide"));
-const ShortStayGuide = lazy(() => import("./pages/ShortStayGuide"));
+// const ShortStayGuide = lazy(() => import("./pages/ShortStayGuide"));
 const Ferramentas = lazy(() => import("./pages/Ferramentas"));
 
 const queryClient = new QueryClient();
@@ -23,7 +23,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/urban-flex-bela-cintra" element={<UrbanFlexInvestorGuide />} />
-            <Route path="/guia-short-stay" element={<ShortStayGuide />} />
+            {/* <Route path="/guia-short-stay" element={<ShortStayGuide />} /> */}
             <Route path="/ferramentas" element={<Ferramentas />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
