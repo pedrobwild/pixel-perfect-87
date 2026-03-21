@@ -27,8 +27,8 @@ export default function AppNavbar() {
             </Link>
           )}
           <Link to="/" className="flex items-center gap-2 font-display text-lg font-bold text-foreground">
-            <Building2 className="h-5 w-5 text-primary" />
-            <span>Bwild</span>
+            <img src={lealMoreiraLogo} alt="Leal Moreira" className="h-8 w-auto" />
+          </Link>
           </Link>
         </div>
 
@@ -63,8 +63,7 @@ export default function AppNavbar() {
         <SheetContent side="right" className="w-64 p-0">
           <SheetHeader className="px-5 pt-5 pb-4 border-b border-border/40">
             <SheetTitle className="flex items-center gap-2 font-display text-lg font-bold">
-              <Building2 className="h-5 w-5 text-primary" />
-              Bwild
+              <img src={lealMoreiraLogo} alt="Leal Moreira" className="h-8 w-auto" />
             </SheetTitle>
           </SheetHeader>
           <nav className="px-4 py-5 space-y-1">
