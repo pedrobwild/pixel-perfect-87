@@ -24,6 +24,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/urban-flex-bela-cintra" element={<UrbanFlexInvestorGuide />} />
             <Route path="/ferramentas" element={<Ferramentas />} />
+            <Route path="/admin/upload" element={<AdminUpload />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
