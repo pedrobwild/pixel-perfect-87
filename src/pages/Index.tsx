@@ -294,6 +294,9 @@ export default function Index() {
         </div>
       </section>
 
+
+      <PlantasSection />
+
       <section className="bg-muted/25 border-b border-border/40">
         <div className="max-w-7xl mx-auto px-4 md:px-6 py-20 md:py-28">
           <FadeIn>
