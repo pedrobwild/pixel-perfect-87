@@ -18,7 +18,7 @@ interface MarketIntelProps {
 
 const DEFAULT_PROPERTY: PropertyConfig = {
   propertyName: "LM Urban Flex Bela Cintra",
-  neighborhood: "Bela Vista / Consolação (Av. Paulista)",
+  neighborhood: "Consolação (Av. Paulista)",
   city: "São Paulo",
 };
 

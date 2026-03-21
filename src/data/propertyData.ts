@@ -1,15 +1,15 @@
 // Central financial data for LM Urban Flex Bela Cintra
 // All investment logic derives from this single source of truth.
 //
-// FONTE DE DADOS (médias de mercado, região Consolação / Bela Vista, São Paulo):
+// FONTE DE DADOS (médias de mercado, região Consolação, São Paulo):
 // • Preço de aquisição: ~R$ 11.000/m² para studios novos (Proprietário Direto, Loft, 2025)
-// • Diárias: pesquisa Bwild 2025 — Consolação R$ 280–380, Bela Vista R$ 260–360
+// • Diárias: pesquisa Bwild 2025 — Consolação R$ 260–390
 //   Ajustadas por metragem: studios menores têm diária/m² mais alta, maiores diluem.
 // • Ocupação média: 78% (média plataformas short stay região central SP)
 
 export const PROPERTY = {
   name: "LM Urban Flex Bela Cintra",
-  neighborhood: "Consolação / Bela Vista",
+  neighborhood: "Consolação",
   address: "R. Bela Cintra, 209",
   city: "São Paulo",
   avgOccupancy: 78,
@@ -17,7 +17,7 @@ export const PROPERTY = {
   deliveryEstimate: "Dez/2026",
   amenities: ["Coworking", "Lavanderia", "Rooftop", "Academia", "Bike sharing"],
   avgPricePerSqm: 11_000,
-  dailyRateSource: "Pesquisa Bwild 2025 · Média Consolação/Bela Vista",
+  dailyRateSource: "Pesquisa Bwild 2025 · Média Consolação",
   priceSource: "Proprietário Direto / Loft · Média região 2025",
 } as const;
 
