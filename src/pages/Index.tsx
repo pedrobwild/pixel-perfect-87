@@ -2,13 +2,14 @@ import { useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { motion, useInView } from "framer-motion";
 import {
-  ArrowRight, Building2, MapPin, TrendingUp, ShieldCheck,
+  ArrowRight, Building2, MapPin, TrendingUp,
   MessageCircle, Wrench, BarChart3
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import AppNavbar from "@/components/AppNavbar";
+import PlantasSection from "@/components/PlantasSection";
 import heroImg from "@/assets/uf-fachada.jpeg";
 
 const whatsappLink =
