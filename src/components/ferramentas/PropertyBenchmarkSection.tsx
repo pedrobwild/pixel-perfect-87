@@ -11,15 +11,15 @@ const BENCHMARKS = [
   {
     id: "selic",
     label: "Selic (Tesouro)",
-    yieldAnnual: 14.25,
+    yieldAnnual: 14.75, // Copom 18/mar/2026
     icon: Landmark,
-    description: "Taxa básica de juros — referência para renda fixa",
+    description: "Taxa básica de juros — corte para 14,75% em mar/2026",
     color: "bg-emerald-500",
   },
   {
     id: "cdi",
     label: "CDB 100% CDI",
-    yieldAnnual: 14.15,
+    yieldAnnual: 14.65, // CDI acompanha Selic
     icon: Landmark,
     description: "Aplicação bancária atrelada ao CDI",
     color: "bg-emerald-400",
@@ -27,15 +27,15 @@ const BENCHMARKS = [
   {
     id: "fii",
     label: "FIIs (média IFIX)",
-    yieldAnnual: 10.8,
+    yieldAnnual: 11.2, // DY médio IFIX mar/2026
     icon: Building2,
-    description: "Dividend yield médio dos fundos imobiliários listados",
+    description: "Dividend yield médio 12 meses dos FIIs listados",
     color: "bg-sky-500",
   },
   {
     id: "poupanca",
     label: "Poupança",
-    yieldAnnual: 7.4,
+    yieldAnnual: 7.6, // 0,5% + TR com Selic > 8,5%
     icon: Landmark,
     description: "Rendimento da caderneta com Selic acima de 8,5%",
     color: "bg-muted-foreground/60",
