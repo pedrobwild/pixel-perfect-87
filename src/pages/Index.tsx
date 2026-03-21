@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import AppNavbar from "@/components/AppNavbar";
-import heroImg from "@/assets/hero-saopaulo.jpg";
+import heroImg from "@/assets/uf-fachada.jpeg";
 
 const whatsappLink =
   "https://wa.me/5591984804821?text=Olá!%20Vi%20o%20site%20da%20Bwild%20e%20quero%20saber%20mais%20sobre%20os%20empreendimentos.";
