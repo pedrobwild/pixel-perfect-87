@@ -3,8 +3,7 @@ import { Link } from "react-router-dom";
 import { motion, useInView } from "framer-motion";
 import {
   ArrowRight, Building2, MapPin, TrendingUp, ShieldCheck,
-  MessageCircle, Wrench, BarChart3,
-  Users, Star, Compass
+  MessageCircle, Wrench, BarChart3
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
