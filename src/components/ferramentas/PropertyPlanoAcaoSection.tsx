@@ -144,7 +144,7 @@ export default function PropertyPlanoAcaoSection() {
               {recommended.label} — yield de {recFin.grossYield}% a.a.
             </p>
             <p className="text-sm text-muted-foreground font-body">
-              Com R$ {fmt(recommended.purchasePrice)} + R$ {fmt(recommended.setupCost)} de setup, a projeção é de R$ {fmt(recFin.monthlyRevenue)}/mês com {PROPERTY.avgOccupancy}% de ocupação. Fale com a equipe para garantir condições especiais.
+              Com investimento de R$ {fmt(recommended.purchasePrice)}, a projeção é de R$ {fmt(recFin.monthlyRevenue)}/mês com {PROPERTY.avgOccupancy}% de ocupação. Fale com a equipe para garantir condições especiais.
             </p>
           </div>
         </div>
