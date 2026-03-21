@@ -34,7 +34,7 @@ export default function PropertySimuladorSection() {
       const boostedDaily = Math.round(customDaily * (1 + rateBoost / 100));
       const monthlyRevenue = Math.round(boostedDaily * nightsPerMonth);
       const annualRevenue = monthlyRevenue * 12;
-      const totalInvestment = typo.purchasePrice + typo.setupCost;
+      const totalInvestment = typo.purchasePrice;
       const grossYield = (annualRevenue / totalInvestment) * 100;
       const netYieldEstimate = grossYield * 0.75;
       const paybackYears = totalInvestment / annualRevenue;
@@ -46,7 +46,6 @@ export default function PropertySimuladorSection() {
         grossYield: Number(grossYield.toFixed(1)),
         netYieldEstimate: Number(netYieldEstimate.toFixed(1)),
         paybackYears: Number(paybackYears.toFixed(1)),
-        setupPaybackMonths: Math.ceil(typo.setupCost / monthlyRevenue),
       };
     }
 
@@ -56,9 +55,7 @@ export default function PropertySimuladorSection() {
   const summaryText = useMemo(() => {
     return `📊 Simulação de Retorno — ${PROPERTY.name}\n\n` +
       `Tipologia: ${typo.label} (${typo.area} m²)\n` +
-      `Preço da unidade: R$ ${fmt(typo.purchasePrice)}\n` +
-      `Setup/decoração: R$ ${fmt(typo.setupCost)}\n` +
-      `Investimento total: R$ ${fmt(sim.totalInvestment)}\n\n` +
+      `Investimento: R$ ${fmt(typo.purchasePrice)}\n\n` +
       `Ocupação: ${simOcupacao[0]}%\n` +
       `Diária: R$ ${fmt(sim.boostedDaily)}${rateBoost > 0 ? ` (+${rateBoost}%)` : ""}\n\n` +
       `Receita mensal: R$ ${fmt(sim.monthlyRevenue)}\n` +
@@ -131,19 +128,15 @@ export default function PropertySimuladorSection() {
 
           {/* Investment breakdown */}
           <div className="bg-muted/40 rounded-xl p-4">
-            <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">Investimento total</p>
-            <div className="grid grid-cols-3 gap-3 text-center">
+            <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">Investimento</p>
+            <div className="grid grid-cols-2 gap-3 text-center">
               <div>
                 <p className="text-lg font-display font-bold text-foreground">R$ {fmt(typo.purchasePrice)}</p>
-                <p className="text-[10px] text-muted-foreground">Unidade</p>
+                <p className="text-[10px] text-muted-foreground">Preço da unidade</p>
               </div>
               <div>
-                <p className="text-lg font-display font-bold text-foreground">R$ {fmt(typo.setupCost)}</p>
-                <p className="text-[10px] text-muted-foreground">Setup/decoração</p>
-              </div>
-              <div>
-                <p className="text-lg font-display font-bold text-primary">R$ {fmt(sim.totalInvestment)}</p>
-                <p className="text-[10px] text-muted-foreground">Total</p>
+                <p className="text-lg font-display font-bold text-muted-foreground">R$ {fmt(Math.round(typo.purchasePrice / typo.area))}/m²</p>
+                <p className="text-[10px] text-muted-foreground">Preço por m²</p>
               </div>
             </div>
           </div>
