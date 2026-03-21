@@ -3,12 +3,14 @@ import { motion, useInView, AnimatePresence } from "framer-motion";
 import { X, ChevronLeft, ChevronRight, Maximize2, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-import planta19 from "@/assets/planta-19m2.png";
-import planta38 from "@/assets/planta-38m2.png";
-import planta40 from "@/assets/planta-40m2.png";
-import planta54 from "@/assets/planta-54m2.png";
-import planta76 from "@/assets/planta-76m2.jpg";
-import planta80 from "@/assets/planta-80m2.png";
+const STORAGE_BASE = `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/images/plantas`;
+
+const planta19 = `${STORAGE_BASE}/planta-19m2.png`;
+const planta38 = `${STORAGE_BASE}/planta-38m2.png`;
+const planta40 = `${STORAGE_BASE}/planta-40m2.png`;
+const planta54 = `${STORAGE_BASE}/planta-54m2.png`;
+const planta76 = `${STORAGE_BASE}/planta-76m2.jpg`;
+const planta80 = `${STORAGE_BASE}/planta-80m2.png`;
 
 interface Planta {
   id: string;
