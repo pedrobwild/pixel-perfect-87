@@ -29,7 +29,6 @@ export default function AppNavbar() {
           <Link to="/" className="flex items-center gap-2 font-display text-lg font-bold text-foreground">
             <img src={lealMoreiraLogo} alt="Leal Moreira" className="h-8 w-auto" />
           </Link>
-          </Link>
         </div>
 
         {/* Desktop nav */}
