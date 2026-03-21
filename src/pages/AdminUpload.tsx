@@ -127,7 +127,7 @@ export default function AdminUpload() {
         <input
           type="text"
           value={folder}
-          onChange={(e) => setFolder(e.target.value.replace(/[^a-zA-Z0-9_-/]/g, ""))}
+          onChange={(e) => setFolder(e.target.value.replace(/[^a-zA-Z0-9_/\-]/g, ""))}
           placeholder="ex: plantas, projetos/3d"
           className="w-full max-w-xs rounded-md border border-border bg-card px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
         />
@@ -217,7 +217,7 @@ export default function AdminUpload() {
 
             {/* Status icon */}
             <div className="shrink-0">
-              {item.status === "done" && <CheckCircle className="h-5 w-5 text-green-500" />}
+              {item.status === "done" && <CheckCircle className="h-5 w-5 text-primary" />}
               {item.status === "error" && <XCircle className="h-5 w-5 text-destructive" />}
             </div>
 
