@@ -165,7 +165,68 @@ export default function Index() {
         </div>
       </section>
 
-      {/* Tools & Guide — cross-link section */}
+      {/* Market location data — Consolação */}
+      <section className="bg-muted/25 border-b border-border/40">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 py-20 md:py-28">
+          <FadeIn>
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary/80 mb-3">Por que a Consolação</p>
+            <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground max-w-2xl">
+              Um dos bairros mais rentáveis de São Paulo para short stay.
+            </h2>
+            <p className="mt-4 text-muted-foreground leading-relaxed max-w-2xl">
+              A Consolação concentra demanda corporativa, médica e turística em um raio de poucos quarteirões — o cenário ideal para ocupação alta e diárias consistentes.
+            </p>
+          </FadeIn>
+
+          <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              { value: "R$ 260–390", label: "Diária média (studios)", detail: "Airbnb / Booking · 2025" },
+              { value: "76%", label: "Ocupação média anual", detail: "Acima da média de SP" },
+              { value: "350+", label: "Listings ativos na região", detail: "Mercado validado e líquido" },
+              { value: "R$ 10.500/m²", label: "Preço médio residencial", detail: "Abaixo de Pinheiros e Itaim" },
+            ].map((stat, i) => (
+              <FadeIn key={stat.label} delay={i * 0.06}>
+                <div className="rounded-xl border border-border/60 bg-background p-5 h-full">
+                  <p className="font-display text-xl md:text-2xl font-bold text-primary">{stat.value}</p>
+                  <p className="text-sm font-medium text-foreground mt-2">{stat.label}</p>
+                  <p className="text-[11px] text-muted-foreground mt-1">{stat.detail}</p>
+                </div>
+              </FadeIn>
+            ))}
+          </div>
+
+          <div className="mt-10 grid gap-4 md:grid-cols-3">
+            {[
+              {
+                icon: Building2,
+                title: "Corredor corporativo",
+                text: "Av. Paulista, FIESP, hospitais Sírio-Libanês e 9 de Julho a menos de 1 km. Demanda constante de profissionais em trânsito.",
+              },
+              {
+                icon: MapPin,
+                title: "Infraestrutura completa",
+                text: "3 estações de metrô em 10 min a pé (Consolação, Paulista, Trianon). Gastronomia, cultura e vida noturna que atraem turistas o ano todo.",
+              },
+              {
+                icon: TrendingUp,
+                title: "Potencial de valorização",
+                text: "Preço/m² ainda abaixo de bairros vizinhos como Jardins e Itaim, com tendência de alta impulsionada por novos empreendimentos na região.",
+              },
+            ].map((item, i) => (
+              <FadeIn key={item.title} delay={i * 0.08}>
+                <Card className="card-elevated border-border/60 h-full">
+                  <CardContent className="p-5">
+                    <item.icon className="h-5 w-5 text-primary mb-3" />
+                    <h3 className="text-base font-semibold text-foreground mb-2">{item.title}</h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed">{item.text}</p>
+                  </CardContent>
+                </Card>
+              </FadeIn>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <section className="bg-muted/25 border-b border-border/40">
         <div className="max-w-7xl mx-auto px-4 md:px-6 py-20 md:py-28">
           <FadeIn>
