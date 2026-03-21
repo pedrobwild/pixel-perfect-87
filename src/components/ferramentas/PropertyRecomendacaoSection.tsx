@@ -2,166 +2,133 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
 import {
-  MapPin, TrendingUp, Building2, Train, HeartPulse, Briefcase,
-  CheckCircle2, Star, BarChart3, Users, Coffee,
+  Building2, TrendingUp, Star, BarChart3, CheckCircle2,
 } from "lucide-react";
 import SectionBlock from "@/components/guide/SectionBlock";
 import { useGuideDecision } from "@/hooks/useGuideDecision";
 import { fmt } from "@/data/guide-data";
-
-const PROPERTY_METRICS = {
-  name: "LM Urban Flex Bela Cintra",
-  address: "R. Bela Cintra, 209 — Consolação / Bela Vista",
-  dailyRange: "R$ 250 – R$ 520",
-  avgOccupancy: "78%",
-  yieldEstimate: "6,5% – 9,2%",
-  obraProgress: "63,53%",
-};
-
-const LOCATION_ADVANTAGES = [
-  { icon: MapPin, text: "200 m da Av. Paulista — endereço com demanda premium constante" },
-  { icon: Train, text: "2 estações de metrô a 5 min (Consolação + Paulista)" },
-  { icon: HeartPulse, text: "Próximo a hospitais de referência: Sírio-Libanês, Samaritano, Santa Catarina" },
-  { icon: Briefcase, text: "Polo corporativo: Faria Lima, Paulista e Itaim a menos de 15 min" },
-  { icon: Coffee, text: "Gastronomia e vida noturna: R. Augusta, R. Oscar Freire, Vila Madalena" },
-  { icon: Users, text: "Público diversificado: executivos, médicos, turistas e nômades digitais" },
-];
-
-const COMPARISON = [
-  { bairro: "Consolação (Urban Flex)", dailyAvg: 320, occupancy: 78, yield: "7,8%", highlight: true },
-  { bairro: "Pinheiros", dailyAvg: 380, occupancy: 82, yield: "6,2%", highlight: false },
-  { bairro: "Vila Mariana", dailyAvg: 280, occupancy: 80, yield: "7,1%", highlight: false },
-  { bairro: "Itaim Bibi", dailyAvg: 420, occupancy: 78, yield: "5,8%", highlight: false },
-  { bairro: "República", dailyAvg: 200, occupancy: 72, yield: "8,5%", highlight: false },
-];
+import { PROPERTY, TYPOLOGIES, calcFinancials, rankByYield, recommendTypology } from "@/data/propertyData";
 
 export default function PropertyRecomendacaoSection() {
   const { investorProfile, hasProfile } = useGuideDecision();
 
+  const ranked = rankByYield(PROPERTY.avgOccupancy);
+  const recommended = hasProfile ? recommendTypology(investorProfile!.name) : null;
+
   return (
     <SectionBlock
       id="recomendacao"
-      title="Por que investir aqui"
-      takeaway="Veja como a localização do Urban Flex se posiciona frente ao mercado de short stay em São Paulo."
+      title="Comparativo de Retorno por Tipologia"
+      takeaway={`Veja qual tipologia do ${PROPERTY.name} entrega o melhor retorno financeiro para o seu perfil.`}
     >
-      {/* Property card */}
-      <Card className="border-2 border-primary/20 bg-primary/[0.02] mb-8">
-        <CardContent className="p-6">
-          <div className="flex items-start gap-4">
-            <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
-              <Building2 size={28} className="text-primary" />
-            </div>
-            <div className="flex-1">
-              <h3 className="font-display text-lg font-bold text-foreground mb-1">{PROPERTY_METRICS.name}</h3>
-              <p className="text-sm text-muted-foreground mb-4">{PROPERTY_METRICS.address}</p>
-
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <MetricBox label="Diária estimada" value={PROPERTY_METRICS.dailyRange} />
-                <MetricBox label="Ocupação média" value={PROPERTY_METRICS.avgOccupancy} />
-                <MetricBox label="Yield bruto est." value={PROPERTY_METRICS.yieldEstimate} />
-                <MetricBox label="Obra concluída" value={PROPERTY_METRICS.obraProgress} />
-              </div>
-            </div>
-          </div>
-
-          {hasProfile && (
-            <div className="mt-4 pt-4 border-t border-border/50 flex items-center gap-2">
-              <Badge className={`${investorProfile!.color} ${investorProfile!.textColor} font-body text-xs`}>
-                {investorProfile!.name}
-              </Badge>
-              <span className="text-xs text-muted-foreground">
-                Seu perfil indica foco em {getProfileFocus(investorProfile!)} — o Urban Flex atende esse critério.
-              </span>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Location advantages */}
-      <h3 className="font-display text-lg font-bold text-foreground mb-4">Vantagens da localização</h3>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-8">
-        {LOCATION_ADVANTAGES.map((adv, i) => (
-          <motion.div
-            key={i}
-            initial={{ opacity: 0, x: -8 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: i * 0.06 }}
-          >
-            <div className="flex items-start gap-3 p-3 rounded-xl border border-border/60 bg-background hover:bg-muted/30 transition-colors">
-              <adv.icon className="h-5 w-5 text-primary mt-0.5 shrink-0" />
-              <p className="text-sm text-muted-foreground leading-relaxed">{adv.text}</p>
-            </div>
-          </motion.div>
-        ))}
-      </div>
-
-      {/* Comparative table */}
-      <h3 className="font-display text-lg font-bold text-foreground mb-4">
-        Comparativo com bairros concorrentes
-      </h3>
-      <p className="text-sm text-muted-foreground mb-4">
-        A região do Urban Flex combina yield atrativo com ocupação estável — difícil de encontrar em bairros premium.
-      </p>
-      <Card className="border-border overflow-hidden">
+      {/* Typology comparison table */}
+      <Card className="border-border overflow-hidden mb-6">
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <table className="w-full text-sm font-body">
               <thead className="bg-secondary">
                 <tr>
-                  {["Região", "Diária média", "Ocupação", "Yield bruto"].map((h) => (
-                    <th key={h} className="px-4 py-3 text-left font-semibold text-foreground">{h}</th>
+                  {["Tipologia", "Preço", "Diária", "Receita/ano", "Yield bruto", "Payback"].map((h) => (
+                    <th key={h} className="px-4 py-3 text-left font-semibold text-foreground whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {COMPARISON.map((row) => (
-                  <tr
-                    key={row.bairro}
-                    className={`border-t border-border ${row.highlight ? "bg-primary/5 font-medium" : "hover:bg-muted/50"} transition-colors`}
-                  >
-                    <td className="px-4 py-3 text-foreground flex items-center gap-2">
-                      {row.highlight && <Star className="h-3.5 w-3.5 text-primary shrink-0" />}
-                      {row.bairro}
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground">R$ {fmt(row.dailyAvg)}</td>
-                    <td className="px-4 py-3 text-muted-foreground">{row.occupancy}%</td>
-                    <td className={`px-4 py-3 ${row.highlight ? "text-primary font-bold" : "text-muted-foreground"}`}>{row.yield}</td>
-                  </tr>
-                ))}
+                {ranked.map((t, i) => {
+                  const isRecommended = recommended?.id === t.id;
+                  const isBestYield = i === 0;
+                  return (
+                    <tr
+                      key={t.id}
+                      className={`border-t border-border transition-colors ${
+                        isRecommended ? "bg-primary/5 font-medium" : "hover:bg-muted/50"
+                      }`}
+                    >
+                      <td className="px-4 py-3 text-foreground">
+                        <div className="flex items-center gap-2">
+                          {isRecommended && <Star className="h-3.5 w-3.5 text-primary shrink-0" />}
+                          {isBestYield && !isRecommended && <TrendingUp className="h-3.5 w-3.5 text-primary shrink-0" />}
+                          <span>{t.label}</span>
+                          {isRecommended && (
+                            <Badge className="bg-primary/10 text-primary text-[10px] ml-1">Para você</Badge>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">R$ {fmt(t.purchasePrice)}</td>
+                      <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">R$ {fmt(t.dailyEstimate)}</td>
+                      <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">R$ {fmt(t.annualRevenue)}</td>
+                      <td className={`px-4 py-3 whitespace-nowrap font-bold ${isRecommended || isBestYield ? "text-primary" : "text-foreground"}`}>
+                        {t.grossYield}%
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{t.paybackYears} anos</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
         </CardContent>
       </Card>
 
-      <div className="mt-4 bg-primary/5 border border-primary/20 rounded-xl p-4 flex items-start gap-3">
+      {/* Typology cards with highlights */}
+      <h3 className="font-display text-lg font-bold text-foreground mb-4">Destaques por tipologia</h3>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
+        {TYPOLOGIES.map((t, i) => {
+          const fin = calcFinancials(t, PROPERTY.avgOccupancy);
+          const isRecommended = recommended?.id === t.id;
+          return (
+            <motion.div
+              key={t.id}
+              initial={{ opacity: 0, y: 12 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.08 }}
+            >
+              <Card className={`border-border transition-all hover:shadow-md ${
+                isRecommended ? "border-primary/40 bg-primary/[0.02]" : ""
+              }`}>
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between mb-3">
+                    <div>
+                      <p className="font-display font-bold text-foreground">{t.label}</p>
+                      <p className="text-xs text-muted-foreground">R$ {fmt(t.purchasePrice)} · {t.area} m²</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-display font-bold text-primary text-lg">{fin.grossYield}%</p>
+                      <p className="text-[10px] text-muted-foreground">yield bruto</p>
+                    </div>
+                  </div>
+                  <ul className="space-y-1.5">
+                    {t.highlights.map((h, j) => (
+                      <li key={j} className="flex items-start gap-2 text-xs text-muted-foreground">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
+                        {h}
+                      </li>
+                    ))}
+                  </ul>
+                  {isRecommended && (
+                    <div className="mt-3 pt-3 border-t border-border/50">
+                      <Badge className="bg-primary/10 text-primary text-xs">
+                        ✦ Recomendada para o perfil {investorProfile!.name}
+                      </Badge>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </motion.div>
+          );
+        })}
+      </div>
+
+      <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 flex items-start gap-3">
         <BarChart3 className="text-primary mt-0.5 shrink-0" size={18} />
         <p className="text-sm text-muted-foreground">
-          <strong className="text-foreground">Insight:</strong> Bairros como Itaim e Pinheiros têm diárias mais altas, mas yield menor — o custo de aquisição corrói a rentabilidade. A Consolação oferece o melhor equilíbrio entre diária competitiva e retorno sobre o investimento.
+          <strong className="text-foreground">Insight:</strong> Tipologias menores tendem a ter yield bruto mais alto pela relação ticket × diária. Já as maiores oferecem menor vacância e público premium. A escolha ideal depende do seu perfil — {hasProfile
+            ? `como ${investorProfile!.name}, a tipologia ${recommended?.label} é a mais alinhada.`
+            : "complete o diagnóstico acima para receber uma recomendação personalizada."
+          }
         </p>
       </div>
     </SectionBlock>
   );
-}
-
-function MetricBox({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="bg-muted/50 rounded-lg px-3 py-2.5 text-center">
-      <p className="text-sm font-display font-bold text-foreground">{value}</p>
-      <p className="text-[10px] text-muted-foreground font-body">{label}</p>
-    </div>
-  );
-}
-
-function getProfileFocus(profile: any): string {
-  const dominant = Object.entries(profile.weights as Record<string, number>)
-    .sort((a, b) => b[1] - a[1])[0][0];
-  const map: Record<string, string> = {
-    retorno: "maximizar retorno",
-    demanda: "alta liquidez e demanda",
-    operacao: "operação previsível",
-    futuro: "potencial de valorização",
-  };
-  return map[dominant] || "equilíbrio";
 }
