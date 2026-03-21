@@ -4,6 +4,7 @@ import { Upload, CheckCircle, XCircle, Trash2, Image as ImageIcon } from "lucide
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
+import { tipologias, getProjetosFolder } from "@/data/tipologias";
 
 interface UploadItem {
   id: string;
@@ -14,13 +15,19 @@ interface UploadItem {
   error?: string;
 }
 
+type DestType = "plantas" | "projetos3d";
+
 const BUCKET = "images";
-const MAX_SIZE = 500 * 1024 * 1024; // 500MB
+const MAX_SIZE = 500 * 1024 * 1024;
 
 export default function AdminUpload() {
   const [uploads, setUploads] = useState<UploadItem[]>([]);
-  const [folder, setFolder] = useState("plantas");
+  const [destType, setDestType] = useState<DestType>("projetos3d");
+  const [selectedTipologia, setSelectedTipologia] = useState(tipologias[0].id);
   const [isDragging, setIsDragging] = useState(false);
+
+  const folder = destType === "plantas" ? "plantas" : getProjetosFolder(selectedTipologia);
+  const selectedTip = tipologias.find((t) => t.id === selectedTipologia)!;
 
   const addFiles = useCallback((files: FileList | File[]) => {
     const items: UploadItem[] = Array.from(files).map((file) => ({
@@ -49,7 +56,6 @@ export default function AdminUpload() {
     const sanitizedName = item.file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
     const path = `${folder}/${Date.now()}_${sanitizedName}`;
 
-    // Simulate progress since supabase-js doesn't expose upload progress natively
     const progressInterval = setInterval(() => {
       setUploads((prev) =>
         prev.map((u) => {
@@ -121,16 +127,62 @@ export default function AdminUpload() {
         Envie imagens diretamente para o armazenamento na nuvem (máx. 500MB por arquivo).
       </p>
 
-      {/* Folder selector */}
-      <div className="mb-4">
-        <label className="text-sm font-medium mb-1 block">Pasta de destino</label>
-        <input
-          type="text"
-          value={folder}
-          onChange={(e) => setFolder(e.target.value.replace(/[^a-zA-Z0-9_/\-]/g, ""))}
-          placeholder="ex: plantas, projetos/3d"
-          className="w-full max-w-xs rounded-md border border-border bg-card px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-        />
+      {/* Destination selector */}
+      <div className="mb-6 space-y-4 rounded-xl border border-border bg-card p-4">
+        <div>
+          <label className="text-sm font-medium mb-1.5 block">Tipo de conteúdo</label>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setDestType("projetos3d")}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                destType === "projetos3d"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Projetos 3D (Galeria)
+            </button>
+            <button
+              onClick={() => setDestType("plantas")}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                destType === "plantas"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Plantas (Tipologia)
+            </button>
+          </div>
+        </div>
+
+        {destType === "projetos3d" && (
+          <div>
+            <label className="text-sm font-medium mb-1.5 block">Tipologia de destino</label>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {tipologias.map((t) => (
+                <button
+                  key={t.id}
+                  onClick={() => setSelectedTipologia(t.id)}
+                  className={`text-left px-3 py-2.5 rounded-lg border text-sm transition-all ${
+                    selectedTipologia === t.id
+                      ? "border-primary bg-primary/10 text-foreground ring-1 ring-primary"
+                      : "border-border bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground"
+                  }`}
+                >
+                  <span className="font-medium block">{t.name}</span>
+                  <span className="text-xs opacity-70">{t.area}</span>
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              As imagens enviadas aparecerão no slider de "Visualizar tipologias de projetos" do <strong>{selectedTip.name}</strong>.
+            </p>
+          </div>
+        )}
+
+        <p className="text-xs text-muted-foreground">
+          Pasta de destino: <code className="bg-muted px-1.5 py-0.5 rounded text-foreground">{folder}/</code>
+        </p>
       </div>
 
       {/* Drop zone */}
@@ -180,7 +232,6 @@ export default function AdminUpload() {
             key={item.id}
             className="flex items-center gap-3 rounded-lg border border-border bg-card p-3"
           >
-            {/* Thumbnail */}
             <div className="h-12 w-12 shrink-0 rounded-md bg-muted flex items-center justify-center overflow-hidden">
               {item.file.type.startsWith("image/") ? (
                 <img
@@ -193,7 +244,6 @@ export default function AdminUpload() {
               )}
             </div>
 
-            {/* Info */}
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium truncate">{item.file.name}</p>
               <p className="text-xs text-muted-foreground">
@@ -215,13 +265,11 @@ export default function AdminUpload() {
               )}
             </div>
 
-            {/* Status icon */}
             <div className="shrink-0">
               {item.status === "done" && <CheckCircle className="h-5 w-5 text-primary" />}
               {item.status === "error" && <XCircle className="h-5 w-5 text-destructive" />}
             </div>
 
-            {/* Remove */}
             <button
               onClick={() => removeItem(item.id)}
               className="shrink-0 text-muted-foreground hover:text-destructive transition-colors"
