@@ -9,6 +9,7 @@ import NotFound from "./pages/NotFound.tsx";
 
 const UrbanFlexInvestorGuide = lazy(() => import("./pages/UrbanFlexInvestorGuide"));
 const Ferramentas = lazy(() => import("./pages/Ferramentas"));
+const AdminUpload = lazy(() => import("./pages/AdminUpload"));
 
 const queryClient = new QueryClient();
 
