@@ -6,7 +6,7 @@ import PropertyPlanoAcaoSection from "@/components/ferramentas/PropertyPlanoAcao
 import PropertySimuladorSection from "@/components/ferramentas/PropertySimuladorSection";
 import MarketIntelSection from "@/components/MarketIntelSection";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Building2 } from "lucide-react";
+import { ArrowRight, Building2, MessageCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 import bwildLogo from "@/assets/bwild-logo.png";
 import { useEffect } from "react";
@@ -75,17 +75,25 @@ export default function Ferramentas() {
         <div className="w-full bg-muted/20">
           <div className="max-w-[1280px] mx-auto px-5 lg:px-10 py-12 text-center">
             <h2 className="font-display text-2xl font-bold text-foreground mb-3">
-              Pronto para explorar o empreendimento?
+              Pronto para garantir sua unidade?
             </h2>
             <p className="text-muted-foreground mb-6 max-w-lg mx-auto">
-              Veja todas as tipologias, simulador completo e detalhes do Urban Flex Bela Cintra.
+              Você já analisou o mercado e simulou a receita. Fale direto com a equipe e negocie as melhores condições.
             </p>
-            <Link to="/urban-flex-bela-cintra">
-              <Button size="lg" className="min-h-[48px]">
-                Ver Urban Flex Bela Cintra
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <a href="https://wa.me/5591984804821?text=Olá!%20Analisei%20o%20Urban%20Flex%20Bela%20Cintra%20nas%20ferramentas%20e%20quero%20saber%20mais." target="_blank" rel="noopener noreferrer">
+                <Button size="lg" className="min-h-[48px] gap-2 w-full sm:w-auto">
+                  <MessageCircle className="h-4 w-4" />
+                  Falar no WhatsApp
+                </Button>
+              </a>
+              <Link to="/urban-flex-bela-cintra">
+                <Button size="lg" variant="outline" className="min-h-[48px] gap-2 w-full sm:w-auto">
+                  Ver o empreendimento
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
 
