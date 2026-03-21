@@ -59,6 +59,39 @@ type SectionId =
   | "faq"
   | "contato";
 
+type UnitType = {
+  id: string;
+  title: string;
+  areaLabel: string;
+  areaNum: number;
+  priceFrom: number;
+  furnishingBudget: number;
+  dailyMin: number;
+  dailyMax: number;
+  occupancyBase: number;
+  tag?: string;
+  blurb: string;
+  positioning: string;
+};
+
+type Amenity = {
+  title: string;
+  icon: typeof Coffee;
+  text: string;
+};
+
+type NearbyPoint = {
+  name: string;
+  distance: string;
+  icon: typeof MapPin;
+  text: string;
+};
+
+type BuildStage = {
+  label: string;
+  value: number;
+};
+
 type FurnishingLevel = "essencial" | "premium" | "signature";
 
 const sections: Array<{ id: SectionId; label: string }> = [
