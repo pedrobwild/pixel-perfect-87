@@ -22,16 +22,16 @@ serve(async (req) => {
       );
     }
 
-    const query = `Dados atualizados do mercado de short stay e aluguel por temporada na região de ${neighborhood}, ${city}, Brasil.
+    const query = `Dados atualizados do mercado de short stay e aluguel por temporada no bairro ${neighborhood}, ${city}, Brasil.
 Inclua:
-1. Diária média de studios/apartamentos compactos na região (Airbnb/Booking)
-2. Taxa de ocupação média na região
-3. Crescimento da demanda por short stay nos últimos 12 meses
-4. Vantagens competitivas da localização ${neighborhood} para short stay (proximidade a hospitais, empresas, metrô, pontos turísticos)
-5. Comparação com bairros concorrentes próximos em termos de rentabilidade
-6. Tendências do mercado imobiliário de studios em ${city} para 2025-2026
+1. Diária média de studios/apartamentos compactos no bairro ${neighborhood} (Airbnb/Booking)
+2. Taxa de ocupação média no bairro ${neighborhood}
+3. Crescimento da demanda por short stay nos últimos 12 meses na região
+4. Vantagens competitivas do bairro ${neighborhood} para short stay (proximidade a hospitais, empresas, metrô, Av. Paulista, pontos turísticos)
+5. Perfil de hóspedes mais frequentes na região (corporativo, turismo, saúde)
+6. Tendências do mercado imobiliário de studios em ${neighborhood} para 2025-2026
 
-Foque em dados que reforcem a tese de investimento em studios para short stay nesta região. Seja objetivo e use números quando possível.`;
+NÃO compare com outros bairros. Foque exclusivamente nos dados do bairro ${neighborhood}. Seja objetivo e use números quando possível.`;
 
     const response = await fetch("https://api.perplexity.ai/chat/completions", {
       method: "POST",
