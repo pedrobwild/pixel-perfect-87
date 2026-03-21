@@ -381,6 +381,7 @@ export default function UrbanFlexInvestorGuide() {
   };
 
   return (
+    <GuideDecisionProvider>
     <div className="min-h-screen bg-background page-enter">
       <AppNavbar />
 
