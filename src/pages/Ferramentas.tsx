@@ -79,6 +79,52 @@ export default function Ferramentas() {
           </div>
         </div>
 
+        {/* Rentabilidade — waterfall + cenários */}
+        <div className="w-full bg-muted/20">
+          <div className="max-w-[1280px] mx-auto px-5 lg:px-10">
+            <RentabilidadeSection />
+          </div>
+        </div>
+
+        {/* Decoração + Reforma */}
+        <div className="w-full">
+          <div className="max-w-[1280px] mx-auto px-5 lg:px-10">
+            <DecoracaoSection />
+          </div>
+        </div>
+
+        <div className="w-full bg-muted/20">
+          <div className="max-w-[1280px] mx-auto px-5 lg:px-10">
+            <ReformaSection />
+          </div>
+        </div>
+
+        {/* Anúncio & Precificação + Reservas */}
+        <div className="w-full">
+          <div className="max-w-[1280px] mx-auto px-5 lg:px-10">
+            <AnuncioPrecificacaoSection />
+          </div>
+        </div>
+
+        <div className="w-full bg-muted/20">
+          <div className="max-w-[1280px] mx-auto px-5 lg:px-10">
+            <ReservasSection />
+          </div>
+        </div>
+
+        {/* Checklist + Anti-checklist */}
+        <div className="w-full">
+          <div className="max-w-[1280px] mx-auto px-5 lg:px-10">
+            <ChecklistSection />
+          </div>
+        </div>
+
+        <div className="w-full bg-muted/20">
+          <div className="max-w-[1280px] mx-auto px-5 lg:px-10">
+            <AntiChecklistSection />
+          </div>
+        </div>
+
         {/* Plano de ação */}
         <div className="w-full">
           <div className="max-w-[1280px] mx-auto px-5 lg:px-10">
