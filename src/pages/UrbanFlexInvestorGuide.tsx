@@ -2,9 +2,16 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { GuideDecisionProvider } from "@/hooks/useGuideDecision";
 import MarketIntelSection from "@/components/MarketIntelSection";
 import PropertySimuladorSection from "@/components/ferramentas/PropertySimuladorSection";
+import PropertyDiagnosticoSection from "@/components/ferramentas/PropertyDiagnosticoSection";
+import RentabilidadeSection from "@/components/guide/RentabilidadeSection";
+import EscolhaAtivoSection from "@/components/guide/EscolhaAtivoSection";
+import CaseStudySection from "@/components/guide/CaseStudySection";
+import ChecklistSection from "@/components/guide/ChecklistSection";
+import TrustSignalsSection from "@/components/guide/TrustSignalsSection";
 import { motion } from "framer-motion";
 import AppNavbar from "@/components/AppNavbar";
 import { cn } from "@/lib/utils";
+import { FAQ_DATA } from "@/data/guide-data";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -38,58 +45,35 @@ import {
 
 type SectionId =
   | "hero"
+  | "diagnostico"
   | "visao-geral"
   | "tipologias"
+  | "rentabilidade"
   | "simulador"
+  | "escolha-ativo"
   | "localizacao"
   | "amenidades"
   | "obra"
+  | "casestudy"
+  | "checklist-final"
   | "faq"
   | "contato";
 
 type FurnishingLevel = "essencial" | "premium" | "signature";
 
-type UnitType = {
-  id: string;
-  title: string;
-  areaLabel: string;
-  areaNum: number;
-  priceFrom: number;
-  furnishingBudget: number;
-  dailyMin: number;
-  dailyMax: number;
-  occupancyBase: number;
-  tag?: string;
-  blurb: string;
-  positioning: string;
-};
-
-type Amenity = {
-  title: string;
-  icon: typeof Coffee;
-  text: string;
-};
-
-type NearbyPoint = {
-  name: string;
-  distance: string;
-  icon: typeof MapPin;
-  text: string;
-};
-
-type BuildStage = {
-  label: string;
-  value: number;
-};
-
 const sections: Array<{ id: SectionId; label: string }> = [
   { id: "hero", label: "Início" },
+  { id: "diagnostico", label: "Perfil" },
   { id: "visao-geral", label: "Tese" },
   { id: "tipologias", label: "Tipologias" },
+  { id: "rentabilidade", label: "Matemática" },
   { id: "simulador", label: "Simulador" },
+  { id: "escolha-ativo", label: "Avaliação" },
   { id: "localizacao", label: "Localização" },
   { id: "amenidades", label: "Amenidades" },
   { id: "obra", label: "Obra" },
+  { id: "casestudy", label: "Case" },
+  { id: "checklist-final", label: "Checklist" },
   { id: "faq", label: "FAQ" },
   { id: "contato", label: "Contato" },
 ];
