@@ -278,8 +278,17 @@ export default function Index() {
                 </tbody>
               </table>
             </div>
+            <div className="mt-6 rounded-xl border border-border/60 bg-muted/30 p-5 space-y-3">
+              <h4 className="text-sm font-semibold text-foreground">O que é Yield bruto estimado?</h4>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                O <strong className="text-foreground">yield bruto</strong> é a relação entre a receita anual de aluguel e o valor investido no imóvel — quanto maior, mais rápido o imóvel "se paga". O cálculo simplificado é: <span className="font-mono text-xs bg-background px-1.5 py-0.5 rounded border border-border/60">(diária média × ocupação × 365) ÷ custo total do imóvel</span>.
+              </p>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                A Consolação lidera com <strong className="text-primary">11,8%</strong> porque combina dois fatores difíceis de encontrar juntos: <strong className="text-foreground">diária competitiva</strong> (R$ 310) com um <strong className="text-foreground">preço de aquisição por m² significativamente menor</strong> que bairros vizinhos como Pinheiros (R$ 14k) e Itaim (R$ 16k). Mesmo com ocupação ligeiramente inferior, o ticket de entrada mais baixo faz o retorno percentual ser até 64% maior do que no Itaim Bibi.
+              </p>
+            </div>
             <p className="text-[11px] text-muted-foreground/70 mt-3">
-              Fonte: AirDNA, pesquisa Bwild 2025. Yield bruto estimado = (diária × ocupação × 365) / preço m² × área média 27 m². Valores médios para studios 20–35 m².
+              Fonte: AirDNA, pesquisa Bwild 2025. Valores médios para studios 20–35 m².
             </p>
           </FadeIn>
         </div>
