@@ -16,7 +16,7 @@ import { PROPERTY, TYPOLOGIES, calcFinancials } from "@/data/propertyData";
 
 export default function PropertySimuladorSection() {
   const [selectedTypo, setSelectedTypo] = useState(1);
-  const [simOcupacao, setSimOcupacao] = useState([PROPERTY.avgOccupancy]);
+  const [simOcupacao, setSimOcupacao] = useState<number[]>([PROPERTY.avgOccupancy]);
   const [simDiariaAtual, setSimDiariaAtual] = useState("");
   const [rateBoost, setRateBoost] = useState(0);
   const [exportOpen, setExportOpen] = useState(false);
