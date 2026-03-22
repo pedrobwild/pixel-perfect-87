@@ -12,9 +12,11 @@ import {
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Cell, ReferenceLine, Legend,
+  RadialBarChart, RadialBar,
 } from "recharts";
 import {
   Calculator, TrendingUp, CalendarDays, DollarSign, ArrowUpRight,
+  Landmark, TrendingDown,
 } from "lucide-react";
 import { TYPOLOGIES, PROPERTY, type Typology } from "@/data/propertyData";
 
