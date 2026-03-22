@@ -10,6 +10,8 @@ interface InsightsData {
   insights: string;
   amandaName: string;
   totalMeetings: number;
+  totalDurationMinutes: number;
+  positiveSentimentPct: number | null;
   latestMeeting: string | null;
 }
 
@@ -30,6 +32,8 @@ export default function ElephantInsightsSection() {
           insights: result.insights,
           amandaName: result.amandaName,
           totalMeetings: result.totalMeetings,
+          totalDurationMinutes: result.totalDurationMinutes || 0,
+          positiveSentimentPct: result.positiveSentimentPct,
           latestMeeting: result.latestMeeting,
         });
       } else {
@@ -143,15 +147,15 @@ export default function ElephantInsightsSection() {
         <Card className="border-border/60">
           <CardContent className="py-16 text-center">
             <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
-            <p className="text-muted-foreground font-medium">Analisando reuniões do AskElephant…</p>
-            <p className="text-sm text-muted-foreground/60 mt-1">Buscando dados e consolidando com IA. Pode levar até 30 segundos.</p>
+            <p className="text-muted-foreground font-medium">Analisando reuniões do Elephan…</p>
+            <p className="text-sm text-muted-foreground/60 mt-1">Buscando transcrições e consolidando com IA. Pode levar até 30 segundos.</p>
           </CardContent>
         </Card>
       )}
 
       {data && (
         <div className="space-y-4">
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <Card className="border-border/60">
               <CardContent className="p-4 text-center">
                 <p className="text-2xl font-bold text-primary">{data.totalMeetings}</p>
@@ -160,10 +164,18 @@ export default function ElephantInsightsSection() {
             </Card>
             <Card className="border-border/60">
               <CardContent className="p-4 text-center">
-                <p className="text-2xl font-bold text-foreground">{data.amandaName}</p>
-                <p className="text-xs text-muted-foreground mt-1">consultora</p>
+                <p className="text-2xl font-bold text-foreground">{data.totalDurationMinutes > 60 ? `${Math.round(data.totalDurationMinutes / 60)}h ${data.totalDurationMinutes % 60}m` : `${data.totalDurationMinutes}m`}</p>
+                <p className="text-xs text-muted-foreground mt-1">tempo total gravado</p>
               </CardContent>
             </Card>
+            {data.positiveSentimentPct !== null && (
+              <Card className="border-border/60">
+                <CardContent className="p-4 text-center">
+                  <p className="text-2xl font-bold text-green-600">{data.positiveSentimentPct}%</p>
+                  <p className="text-xs text-muted-foreground mt-1">sentimento positivo</p>
+                </CardContent>
+              </Card>
+            )}
             {data.latestMeeting && (
               <Card className="border-border/60">
                 <CardContent className="p-4 text-center">
