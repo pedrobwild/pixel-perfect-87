@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { GuideDecisionProvider } from "@/hooks/useGuideDecision";
 import MarketIntelSection from "@/components/MarketIntelSection";
+import ElephantInsightsSection from "@/components/ElephantInsightsSection";
 import PropertySimuladorSection from "@/components/ferramentas/PropertySimuladorSection";
 import PropertyDiagnosticoSection from "@/components/ferramentas/PropertyDiagnosticoSection";
 import RentabilidadeSection from "@/components/guide/RentabilidadeSection";
@@ -57,6 +58,7 @@ type SectionId =
   | "casestudy"
   | "checklist-final"
   | "faq"
+  | "elephant-insights"
   | "contato";
 
 type UnitType = {
@@ -107,6 +109,7 @@ const sections: Array<{ id: SectionId; label: string }> = [
   { id: "obra", label: "Obra" },
   { id: "casestudy", label: "Case" },
   { id: "checklist-final", label: "Checklist" },
+  { id: "elephant-insights", label: "Insights" },
   { id: "faq", label: "FAQ" },
   { id: "contato", label: "Contato" },
 ];
@@ -1042,6 +1045,13 @@ export default function UrbanFlexInvestorGuide() {
         <section id="checklist-final" className="scroll-mt-32">
           <div className="max-w-7xl mx-auto px-4 md:px-6">
             <ChecklistSection />
+          </div>
+        </section>
+
+        {/* ═══════ INSIGHTS COMERCIAIS (AskElephant) ═══════ */}
+        <section id="elephant-insights" className="scroll-mt-32">
+          <div className="max-w-7xl mx-auto px-4 md:px-6">
+            <ElephantInsightsSection />
           </div>
         </section>
 
