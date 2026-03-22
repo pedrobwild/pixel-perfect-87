@@ -5,6 +5,7 @@ import {
   ArrowRight, AlertTriangle, CheckCircle2, TrendingUp,
   HelpCircle, EyeOff, Brain, Ban, MessageCircleQuestion,
 } from "lucide-react";
+import ScriptBuilder from "./ScriptBuilder";
 
 interface DashboardData {
   buyerPersona: {
@@ -162,6 +163,14 @@ export default function InsightsDashboard({ data }: { data: DashboardData }) {
         </Card>
       )}
 
+      {/* Script Builder */}
+      {data.personalityProfiles?.length > 0 && (
+        <Card className="border-border/60 overflow-hidden border-dashed border-primary/20 bg-primary/[0.02]">
+          <CardContent className="pt-5 pb-5">
+            <ScriptBuilder profiles={data.personalityProfiles} dashboardData={data} />
+          </CardContent>
+        </Card>
+      )}
       {/* Top Questions */}
       {data.topQuestions?.length > 0 && (
         <Card className="border-border/60 overflow-hidden">
