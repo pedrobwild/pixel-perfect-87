@@ -129,22 +129,27 @@ All colors MUST be HSL.
   }
 
   .bg-hero-gradient {
-    background: linear-gradient(135deg, hsl(210 70% 20%), hsl(200 60% 30%));
+    background: linear-gradient(135deg, hsl(215 30% 12%), hsl(215 25% 20%));
   }
 
   .bg-hero-gradient-subtle {
     background: linear-gradient(
       170deg,
-      hsl(var(--primary) / 0.04) 0%,
+      hsl(215 30% 15% / 0.04) 0%,
       hsl(var(--background)) 60%
     );
   }
 
   .text-gradient-premium {
-    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary) / 0.7) 100%);
+    background: linear-gradient(135deg, hsl(24 90% 50%) 0%, hsl(24 80% 42%) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+  }
+
+  .bg-accent-brand {
+    background-color: hsl(24 90% 50%);
+    color: hsl(0 0% 100%);
   }
 
   .page-enter {
