@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -7,6 +8,15 @@ const corsHeaders = {
 };
 
 const ELEPHAN_BASE = "https://api.elephan.dev/v1";
+const CACHE_KEY = "amanda_default";
+const CACHE_TTL_HOURS = 6;
+
+function getSupabaseAdmin() {
+  return createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+  );
+}
 
 async function elephanFetch(path: string, apiKey: string) {
   const res = await fetch(`${ELEPHAN_BASE}${path}`, {
@@ -28,6 +38,40 @@ serve(async (req) => {
   }
 
   try {
+    const url = new URL(req.url);
+    const forceRefresh = url.searchParams.get("refresh") === "true";
+    const sb = getSupabaseAdmin();
+
+    // Check cache unless force refresh
+    if (!forceRefresh) {
+      const { data: cached } = await sb
+        .from("elephant_insights_cache")
+        .select("*")
+        .eq("cache_key", CACHE_KEY)
+        .single();
+
+      if (cached) {
+        const age = (Date.now() - new Date(cached.updated_at).getTime()) / 3600000;
+        if (age < CACHE_TTL_HOURS) {
+          console.log(`Serving cached insights (${Math.round(age * 60)}min old)`);
+          return new Response(
+            JSON.stringify({
+              success: true,
+              cached: true,
+              cacheAge: Math.round(age * 60),
+              insights: cached.insights,
+              amandaName: cached.amanda_name,
+              totalMeetings: cached.total_meetings,
+              totalDurationMinutes: cached.total_duration_minutes,
+              positiveSentimentPct: cached.positive_sentiment_pct,
+              latestMeeting: cached.latest_meeting,
+            }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+      }
+    }
+
     const apiKey = Deno.env.get("ASKELEPHANT_API_KEY");
     if (!apiKey) {
       return new Response(
@@ -44,7 +88,7 @@ serve(async (req) => {
       );
     }
 
-    // Step 1: List users to find Amanda
+    // Fetch users to find Amanda
     console.log("Fetching users from Elephan...");
     const usersResult = await elephanFetch("/users?limit=100", apiKey);
     const users = usersResult.data || [];
@@ -58,7 +102,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({
           success: false,
-          error: `Usuário 'Amanda' não encontrado. Usuários disponíveis: ${users.map((u: any) => u.name || u.email).join(", ")}`,
+          error: `Usuário 'Amanda' não encontrado. Disponíveis: ${users.map((u: any) => u.name || u.email).join(", ")}`,
         }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
@@ -66,167 +110,98 @@ serve(async (req) => {
 
     const amandaId = amanda.id;
     const amandaName = amanda.name || amanda.email || "Amanda";
-    console.log(`Found Amanda: ${amandaName} (${amandaId})`);
 
-    // Step 2: Fetch Amanda's transcriptions (all pages)
-    console.log("Fetching Amanda's transcriptions...");
+    // Fetch all transcriptions
     const allTranscribes: any[] = [];
     let page = 1;
     let hasNext = true;
-
     while (hasNext) {
-      const result = await elephanFetch(
-        `/transcribes?userId=${amandaId}&limit=100&page=${page}`,
-        apiKey
-      );
+      const result = await elephanFetch(`/transcribes?userId=${amandaId}&limit=100&page=${page}`, apiKey);
       allTranscribes.push(...(result.data || []));
       hasNext = result.pagination?.hasNext === true;
       page++;
     }
-
-    console.log(`Found ${allTranscribes.length} transcriptions for Amanda`);
+    console.log(`Found ${allTranscribes.length} transcriptions`);
 
     if (allTranscribes.length === 0) {
       return new Response(
-        JSON.stringify({
-          success: true,
-          insights: null,
-          message: "Nenhuma transcrição encontrada para Amanda.",
-          amandaName,
-          totalMeetings: 0,
-        }),
+        JSON.stringify({ success: true, insights: null, message: "Nenhuma transcrição encontrada.", amandaName, totalMeetings: 0 }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Step 3: Prepare transcription summaries for AI consolidation
+    // Build summaries for AI
     const meetingSummaries = allTranscribes.map((t: any) => {
-      const answers = (t.answers || [])
-        .map((a: any) => `- ${a.question}: ${a.yesNo !== undefined ? (a.yesNo ? "Sim" : "Não") : ""} (score: ${a.score ?? "?"})${a.subtopics?.length ? ` | Subtópicos: ${a.subtopics.join(", ")}` : ""}`)
-        .join("\n") || "Sem respostas";
-
-      const competitors = (t.competitors || [])
-        .map((c: any) => `- ${c.word} (mencionado ${c.count}x, posição: ${c.position})`)
-        .join("\n") || "Nenhum concorrente mencionado";
-
-      const reasons = (t.reasons || [])
-        .map((r: any) => `- [${r.type}] ${r.description}${r.details ? `: ${r.details}` : ""}`)
-        .join("\n") || "Sem objeções/razões";
-
+      const answers = (t.answers || []).map((a: any) => `- ${a.question}: ${a.yesNo !== undefined ? (a.yesNo ? "Sim" : "Não") : ""} (score: ${a.score ?? "?"})${a.subtopics?.length ? ` | Subtópicos: ${a.subtopics.join(", ")}` : ""}`).join("\n") || "Sem respostas";
+      const competitors = (t.competitors || []).map((c: any) => `- ${c.word} (${c.count}x, posição: ${c.position})`).join("\n") || "Nenhum";
+      const reasons = (t.reasons || []).map((r: any) => `- [${r.type}] ${r.description}${r.details ? `: ${r.details}` : ""}`).join("\n") || "Sem objeções";
       const importantPoints = (t.importantPoints || []).join("\n- ") || "Nenhum";
-      const keywords = (t.keywords || []).join(", ") || "Nenhuma";
-      const sentiment = t.sentimentAnalysis?.totalSentiment || "?";
-
-      return `## ${t.title || "Reunião sem título"}
-Data: ${t.dateIncluded || "?"}
-Duração: ${t.duration ? Math.round(t.duration / 60) + " min" : "?"}
-Sentimento geral: ${sentiment}
-Palavras-chave: ${keywords}
-Tags: ${(t.tags || []).join(", ") || "Nenhuma"}
-
-### Resumo:
-${t.summary || "Sem resumo"}
-
-### Pontos importantes:
-- ${importantPoints}
-
-### Respostas do formulário:
-${answers}
-
-### Concorrentes mencionados:
-${competitors}
-
-### Objeções / Razões:
-${reasons}
----`;
+      return `## ${t.title || "Reunião sem título"}\nData: ${t.dateIncluded || "?"}\nDuração: ${t.duration ? Math.round(t.duration / 60) + " min" : "?"}\nSentimento: ${t.sentimentAnalysis?.totalSentiment || "?"}\nPalavras-chave: ${(t.keywords || []).join(", ") || "Nenhuma"}\n\n### Resumo:\n${t.summary || "Sem resumo"}\n\n### Pontos importantes:\n- ${importantPoints}\n\n### Respostas:\n${answers}\n\n### Concorrentes:\n${competitors}\n\n### Objeções:\n${reasons}\n---`;
     }).join("\n\n");
 
-    // Step 4: Consolidate with Lovable AI
-    console.log("Consolidating insights with AI...");
+    // Consolidate with AI
+    console.log("Consolidating with AI...");
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${lovableKey}`,
-        "Content-Type": "application/json",
-      },
+      headers: { Authorization: `Bearer ${lovableKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
         messages: [
           {
             role: "system",
-            content: `Você é um analista de inteligência comercial especializado no mercado imobiliário de studios urbanos para investimento (short stay / aluguel por temporada). Sua tarefa é consolidar insights de reuniões comerciais para ajudar times de vendas.
-
-Analise as transcrições de reuniões da consultora Amanda e extraia:
-
-1. **Perfil dos Compradores** — Quem são as pessoas buscando studios para investimento? Faixa etária, profissão, motivação, ticket médio que buscam. Use dados reais das reuniões.
-
-2. **Objeções Recorrentes** — Quais são as principais dúvidas e resistências dos potenciais investidores? Liste com frequência.
-
-3. **Fatores de Decisão** — O que leva o investidor a fechar? Quais argumentos funcionam?
-
-4. **Sinais de Compra** — Quais comportamentos indicam que um lead está pronto para converter?
-
-5. **Concorrência** — Quais concorrentes são mencionados? Como se posicionam?
-
-6. **Oportunidades para o Time Comercial** — Ações práticas que o time pode tomar baseado nesses padrões.
-
-7. **Sentimento Geral** — Tendência de sentimento nas reuniões (positivo, neutro, negativo).
-
-Responda SEMPRE em português do Brasil. Use dados concretos das reuniões. Formate com markdown claro. Seja direto e acionável. Cite reuniões específicas quando relevante.`,
+            content: `Você é um analista de inteligência comercial especializado no mercado imobiliário de studios urbanos para investimento (short stay / aluguel por temporada). Analise as transcrições de reuniões da consultora Amanda e extraia:\n\n1. **Perfil dos Compradores**\n2. **Objeções Recorrentes**\n3. **Fatores de Decisão**\n4. **Sinais de Compra**\n5. **Concorrência**\n6. **Oportunidades para o Time Comercial**\n7. **Sentimento Geral**\n\nResponda em português do Brasil. Use dados concretos. Formate com markdown claro. Seja direto e acionável.`,
           },
-          {
-            role: "user",
-            content: `Aqui estão as ${allTranscribes.length} transcrições de reuniões da Amanda. Consolide os principais insights para o time comercial:\n\n${meetingSummaries}`,
-          },
+          { role: "user", content: `${allTranscribes.length} transcrições da Amanda:\n\n${meetingSummaries}` },
         ],
       }),
     });
 
     if (!aiResponse.ok) {
-      if (aiResponse.status === 429) {
-        return new Response(
-          JSON.stringify({ success: false, error: "Rate limit excedido. Tente novamente em alguns segundos." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      if (aiResponse.status === 402) {
-        return new Response(
-          JSON.stringify({ success: false, error: "Créditos insuficientes." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      const errText = await aiResponse.text();
-      console.error("AI gateway error:", aiResponse.status, errText);
+      if (aiResponse.status === 429) return new Response(JSON.stringify({ success: false, error: "Rate limit. Tente novamente." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      if (aiResponse.status === 402) return new Response(JSON.stringify({ success: false, error: "Créditos insuficientes." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       throw new Error(`AI error: ${aiResponse.status}`);
     }
 
     const aiData = await aiResponse.json();
     const insights = aiData.choices?.[0]?.message?.content || "";
 
-    // Collect aggregate stats
     const totalDuration = allTranscribes.reduce((sum: number, t: any) => sum + (t.duration || 0), 0);
     const sentiments = allTranscribes.map((t: any) => t.sentimentAnalysis?.totalSentiment).filter(Boolean);
-    const positivePct = sentiments.length
-      ? Math.round((sentiments.filter((s: string) => s === "positive").length / sentiments.length) * 100)
-      : null;
+    const positivePct = sentiments.length ? Math.round((sentiments.filter((s: string) => s === "positive").length / sentiments.length) * 100) : null;
+    const totalDurationMinutes = Math.round(totalDuration / 60);
+    const latestMeeting = allTranscribes[0]?.dateIncluded || null;
+
+    // Save to cache
+    await sb.from("elephant_insights_cache").upsert({
+      cache_key: CACHE_KEY,
+      insights,
+      amanda_name: amandaName,
+      total_meetings: allTranscribes.length,
+      total_duration_minutes: totalDurationMinutes,
+      positive_sentiment_pct: positivePct,
+      latest_meeting: latestMeeting,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: "cache_key" });
+
+    console.log("Insights cached successfully");
 
     return new Response(
       JSON.stringify({
         success: true,
+        cached: false,
         insights,
         amandaName,
         totalMeetings: allTranscribes.length,
-        totalDurationMinutes: Math.round(totalDuration / 60),
+        totalDurationMinutes: totalDurationMinutes,
         positiveSentimentPct: positivePct,
-        latestMeeting: allTranscribes[0]?.dateIncluded || null,
+        latestMeeting,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
     console.error("elephant-insights error:", error);
-    const msg = error instanceof Error ? error.message : "Unknown error";
     return new Response(
-      JSON.stringify({ success: false, error: msg }),
+      JSON.stringify({ success: false, error: error instanceof Error ? error.message : "Unknown error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
