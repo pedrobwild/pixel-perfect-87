@@ -96,7 +96,7 @@ export default function ElephantInsightsSection() {
             Inteligência Comercial via IA
           </Badge>
           <h2 className="font-display text-2xl md:text-3xl font-bold text-foreground">
-            Dashboard Comercial — Reuniões da Amanda
+            Dashboard Comercial
           </h2>
           <p className="text-muted-foreground mt-1 max-w-xl">
             Insights acionáveis extraídos das reuniões com investidores: objeções, argumentos que convertem e sinais de compra.
