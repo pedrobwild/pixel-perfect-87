@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -410,111 +411,193 @@ function YieldComparison({
   typoLabel: string;
   investmentValue: number;
 }) {
+  const [appreciation, setAppreciation] = useState(10);
   const studioColor = "hsl(142, 71%, 45%)";
+  const appreciationColor = "hsl(200, 70%, 50%)";
+
+  const studioTotalReturn = netYield + appreciation;
 
   const allItems = [
-    { name: typoLabel, net: netYield, gross: grossYield, color: studioColor, isStudio: true },
-    ...BENCHMARKS.map((b) => ({ ...b, net: b.net, isStudio: false })),
+    { name: `${typoLabel} (renda)`, net: netYield, color: studioColor, isStudio: true, isTotal: false },
+    { name: `${typoLabel} (renda + valorização)`, net: studioTotalReturn, color: studioColor, isStudio: true, isTotal: true },
+    ...BENCHMARKS.map((b) => ({ ...b, isStudio: false, isTotal: false })),
   ].sort((a, b) => b.net - a.net);
 
   const maxYield = Math.max(...allItems.map((i) => i.net));
 
-  // Annual return on same investment
   const annualReturns = allItems.map((item) => ({
     ...item,
     annualReturn: Math.round(investmentValue * (item.net / 100)),
   }));
+
+  // 5-year projection
+  const years = [1, 2, 3, 5];
+  const projections = years.map((y) => {
+    const studioRenda = Math.round(investmentValue * (netYield / 100) * y);
+    const studioValorizacao = Math.round(investmentValue * ((1 + appreciation / 100) ** y - 1));
+    const studioTotal = studioRenda + studioValorizacao;
+    const selicTotal = Math.round(investmentValue * ((1 + BENCHMARKS[0].net / 100) ** y - 1));
+    const cdiTotal = Math.round(investmentValue * ((1 + BENCHMARKS[1].net / 100) ** y - 1));
+    const advantage = studioTotal - selicTotal;
+    return { year: y, studioRenda, studioValorizacao, studioTotal, selicTotal, cdiTotal, advantage };
+  });
 
   return (
     <Card className="border-border/60 overflow-hidden">
       <CardHeader className="pb-3 bg-muted/30">
         <CardTitle className="text-base flex items-center gap-2">
           <Landmark className="h-4.5 w-4.5 text-primary" />
-          Yield do Studio vs Renda Fixa
+          Retorno Total: Renda + Valorização vs Renda Fixa
           <Badge variant="outline" className="ml-auto text-xs font-normal">
             Líquido de IR (15%)
           </Badge>
         </CardTitle>
       </CardHeader>
-      <CardContent className="pt-5 space-y-4">
-        <p className="text-xs text-muted-foreground">
-          Comparativo: se o mesmo valor ({formatCurrency(investmentValue)}) fosse investido em cada ativo, quanto renderia por ano líquido de IR.
-        </p>
-
-        <div className="space-y-3">
-          {annualReturns.map((item, i) => {
-            const barWidth = maxYield > 0 ? (item.net / maxYield) * 100 : 0;
-            const isWinner = item.isStudio && item.net >= Math.max(...BENCHMARKS.map((b) => b.net));
-
-            return (
-              <div key={i} className="space-y-1.5">
-                <div className="flex items-center justify-between text-sm">
-                  <div className="flex items-center gap-2">
-                    <span className={`font-medium ${item.isStudio ? "text-emerald-700" : "text-foreground"}`}>
-                      {item.name}
-                    </span>
-                    {isWinner && (
-                      <Badge className="text-[9px] px-1.5 py-0 bg-emerald-500/10 text-emerald-700 border-emerald-200 hover:bg-emerald-500/10">
-                        Melhor opção
-                      </Badge>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-3 tabular-nums">
-                    <span className={`text-xs font-bold ${item.isStudio ? "text-emerald-600" : "text-foreground"}`}>
-                      {item.net.toFixed(1)}% a.a.
-                    </span>
-                    <span className="text-xs text-muted-foreground w-24 text-right">
-                      {formatCurrency(item.annualReturn)}/ano
-                    </span>
-                  </div>
-                </div>
-                <div className="h-2.5 rounded-full bg-muted overflow-hidden">
-                  <div
-                    className="h-full rounded-full transition-all duration-500"
-                    style={{
-                      width: `${barWidth}%`,
-                      backgroundColor: item.isStudio ? studioColor : item.color,
-                      opacity: item.isStudio ? 1 : 0.6,
-                    }}
-                  />
-                </div>
-              </div>
-            );
-          })}
+      <CardContent className="pt-5 space-y-5">
+        {/* Appreciation slider */}
+        <div className="rounded-lg border border-border/60 p-4 space-y-2">
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              Valorização patrimonial estimada
+            </label>
+            <span className="text-sm font-bold text-primary tabular-nums">{appreciation}% a.a.</span>
+          </div>
+          <Slider
+            value={[appreciation]}
+            onValueChange={([v]) => setAppreciation(v)}
+            min={6}
+            max={15}
+            step={0.5}
+          />
+          <div className="flex justify-between text-[10px] text-muted-foreground/60">
+            <span>Conservador (6%)</span>
+            <span>Região Consolação (8-12%)</span>
+            <span>Otimista (15%)</span>
+          </div>
         </div>
 
+        <Tabs defaultValue="comparison" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="comparison">Comparativo Anual</TabsTrigger>
+            <TabsTrigger value="projection">Projeção Multi-Ano</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="comparison" className="space-y-4 mt-4">
+            <p className="text-xs text-muted-foreground">
+              Retorno anual sobre {formatCurrency(investmentValue)} — studio inclui renda líquida ({netYield.toFixed(1)}%) + valorização ({appreciation}%).
+            </p>
+            <div className="space-y-3">
+              {annualReturns.map((item, i) => {
+                const barWidth = maxYield > 0 ? (item.net / maxYield) * 100 : 0;
+                const isWinner = item.isTotal && item.net >= Math.max(...allItems.filter(x => !x.isStudio).map(x => x.net));
+
+                return (
+                  <div key={i} className="space-y-1.5">
+                    <div className="flex items-center justify-between text-sm">
+                      <div className="flex items-center gap-2">
+                        <span className={`font-medium text-xs ${item.isStudio ? "text-emerald-700" : "text-foreground"}`}>
+                          {item.name}
+                        </span>
+                        {isWinner && (
+                          <Badge className="text-[9px] px-1.5 py-0 bg-emerald-500/10 text-emerald-700 border-emerald-200 hover:bg-emerald-500/10">
+                            Melhor opção
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-3 tabular-nums">
+                        <span className={`text-xs font-bold ${item.isStudio ? "text-emerald-600" : "text-foreground"}`}>
+                          {item.net.toFixed(1)}% a.a.
+                        </span>
+                        <span className="text-xs text-muted-foreground w-24 text-right">
+                          {formatCurrency(item.annualReturn)}/ano
+                        </span>
+                      </div>
+                    </div>
+                    <div className="h-2.5 rounded-full bg-muted overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all duration-500"
+                        style={{
+                          width: `${barWidth}%`,
+                          background: item.isTotal
+                            ? `linear-gradient(90deg, ${studioColor}, ${appreciationColor})`
+                            : item.isStudio ? studioColor : item.color,
+                          opacity: item.isStudio ? 1 : 0.6,
+                        }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="projection" className="space-y-4 mt-4">
+            <p className="text-xs text-muted-foreground">
+              Projeção de ganho acumulado sobre {formatCurrency(investmentValue)} com juros compostos.
+            </p>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b border-border/60">
+                    <th className="text-left py-2 font-medium text-muted-foreground">Horizonte</th>
+                    <th className="text-right py-2 font-medium text-emerald-700">Renda</th>
+                    <th className="text-right py-2 font-medium text-sky-600">Valorização</th>
+                    <th className="text-right py-2 font-bold text-emerald-700">Total Studio</th>
+                    <th className="text-right py-2 font-medium text-muted-foreground">Selic</th>
+                    <th className="text-right py-2 font-medium text-muted-foreground">CDI</th>
+                    <th className="text-right py-2 font-bold text-primary">Vantagem</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {projections.map((p) => (
+                    <tr key={p.year} className="border-b border-border/30">
+                      <td className="py-2.5 font-medium text-foreground">{p.year} {p.year === 1 ? "ano" : "anos"}</td>
+                      <td className="py-2.5 text-right tabular-nums text-emerald-600">{formatCurrency(p.studioRenda)}</td>
+                      <td className="py-2.5 text-right tabular-nums text-sky-600">{formatCurrency(p.studioValorizacao)}</td>
+                      <td className="py-2.5 text-right tabular-nums font-bold text-emerald-700">{formatCurrency(p.studioTotal)}</td>
+                      <td className="py-2.5 text-right tabular-nums text-muted-foreground">{formatCurrency(p.selicTotal)}</td>
+                      <td className="py-2.5 text-right tabular-nums text-muted-foreground">{formatCurrency(p.cdiTotal)}</td>
+                      <td className="py-2.5 text-right tabular-nums font-bold text-primary">
+                        {p.advantage > 0 ? "+" : ""}{formatCurrency(p.advantage)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </TabsContent>
+        </Tabs>
+
         {/* Advantage callout */}
-        {netYield > Math.max(...BENCHMARKS.map((b) => b.net)) && (
+        {studioTotalReturn > Math.max(...BENCHMARKS.map((b) => b.net)) ? (
           <div className="rounded-lg bg-emerald-500/5 border border-emerald-200/40 p-3 flex items-start gap-2.5">
             <TrendingUp className="h-4 w-4 text-emerald-600 mt-0.5 shrink-0" />
             <div>
               <p className="text-xs font-medium text-emerald-700">
-                O {typoLabel} rende {(netYield - BENCHMARKS[0].net).toFixed(1)}pp a mais que a Selic líquida
+                Retorno total do {typoLabel}: {studioTotalReturn.toFixed(1)}% a.a. — supera a Selic em {(studioTotalReturn - BENCHMARKS[0].net).toFixed(1)}pp
               </p>
               <p className="text-[11px] text-emerald-600/70 mt-0.5">
-                Diferença de {formatCurrency(Math.round(investmentValue * ((netYield - BENCHMARKS[0].net) / 100)))}/ano 
-                a mais no seu bolso vs renda fixa.
+                Em 5 anos: {formatCurrency(projections[3].studioTotal)} vs {formatCurrency(projections[3].selicTotal)} na Selic — 
+                vantagem de {formatCurrency(projections[3].advantage)}.
               </p>
             </div>
           </div>
-        )}
-
-        {netYield <= Math.max(...BENCHMARKS.map((b) => b.net)) && (
+        ) : (
           <div className="rounded-lg bg-amber-500/5 border border-amber-200/40 p-3 flex items-start gap-2.5">
             <TrendingDown className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
             <div>
               <p className="text-xs font-medium text-amber-700">
-                Com essa ocupação, o imóvel fica abaixo da Selic — mas considere a valorização patrimonial
+                Mesmo com valorização de {appreciation}%, o retorno total fica abaixo da Selic
               </p>
               <p className="text-[11px] text-amber-600/70 mt-0.5">
-                Aumente a ocupação ou considere o ganho de capital na revenda (imóvel valoriza ~8-12% a.a. na região).
+                Considere aumentar a ocupação ou avaliar tipologias com maior rentabilidade.
               </p>
             </div>
           </div>
         )}
 
         <p className="text-[10px] text-muted-foreground/50">
-          Selic e CDI: março/2026. IFIX: média 12 meses. IR de 15% aplicado exceto poupança. Yield do studio já desconta 25% de custos operacionais.
+          Selic e CDI: março/2026. IFIX: média 12m. IR 15% exceto poupança. Yield desconta 25% custos operacionais. Valorização baseada em dados Consolação/Paulista.
         </p>
       </CardContent>
     </Card>
