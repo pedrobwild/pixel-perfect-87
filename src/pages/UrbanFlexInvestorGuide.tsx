@@ -11,7 +11,6 @@ import TrustSignalsSection from "@/components/guide/TrustSignalsSection";
 import { motion } from "framer-motion";
 import AppNavbar from "@/components/AppNavbar";
 import { cn } from "@/lib/utils";
-import { FAQ_DATA } from "@/data/guide-data";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -256,24 +255,44 @@ const buildStages: BuildStage[] = [
 
 const faqItems = [
   {
-    question: "Essa página substitui o material comercial oficial?",
+    question: "Quanto custa começar um studio para short stay?",
     answer:
-      "Não. Ela funciona como uma página de captura e pré-venda para o investidor. Os números do simulador são sementes editáveis para a equipe comercial refinar com tabela, fluxo de pagamento e estudo de operação.",
+      "Depende do estado do imóvel e do padrão desejado. Reformas leves começam em R$ 35.000 e projetos premium podem chegar a R$ 120.000. Use o simulador acima para estimar o retorno sobre cada faixa de investimento.",
   },
   {
-    question: "Quais números eu preciso validar antes de publicar?",
+    question: "Qual o retorno médio de um studio em São Paulo?",
     answer:
-      "Preço por tipologia, estoque disponível, política comercial, cronograma de obra, taxa condominial estimada e qualquer dado oficial de short stay ou gestão integrada que a incorporadora queira assumir publicamente.",
+      "Studios bem posicionados e operados geram entre R$ 5.000 e R$ 12.000 de receita bruta mensal, dependendo do bairro, metragem e qualidade do anúncio. Descontando custos operacionais (limpeza, taxa de plataforma, condomínio, IPTU), o yield líquido fica entre 6% e 12% ao ano.",
   },
   {
-    question: "Posso usar essa página como landing dedicada?",
+    question: "Preciso de CNPJ para operar no Airbnb?",
     answer:
-      "Sim. A estrutura foi pensada para funcionar tanto como rota interna do projeto quanto como landing de mídia paga, com hero direto, simulador, prova de localização, estágio de obra e CTA comercial forte.",
+      "Não é obrigatório, mas altamente recomendado. Com CNPJ (MEI ou Simples), você pode emitir notas fiscais, ter conta PJ dedicada e otimizar a tributação. Sem CNPJ, a renda deve ser declarada como pessoa física e pode ter alíquota mais alta de IR.",
   },
   {
-    question: "Como adaptar para outra incorporadora ou outro empreendimento?",
+    question: "E se o condomínio não permitir short stay?",
     answer:
-      "Troque os blocos de dados no topo do arquivo: tipologias, amenidades, pontos de entorno, progresso de obra, texto do hero e link de WhatsApp. A página foi montada para esse tipo de reaproveitamento.",
+      "A convenção do condomínio é o documento decisivo. Se for silente sobre locação por temporada, há espaço legal para operar. Verifique antes de comprar: leia a convenção, consulte atas de assembleia recentes e converse com a administradora.",
+  },
+  {
+    question: "Qual a diferença entre short stay e aluguel tradicional?",
+    answer:
+      "Short stay (menos de 90 dias) geralmente rende 40-80% mais que aluguel tradicional, mas envolve custos operacionais maiores e gestão ativa. Aluguel tradicional é mais previsível e passivo. A decisão depende do seu perfil de investidor e do endereço.",
+  },
+  {
+    question: "Como funciona a gestão operacional?",
+    answer:
+      "A gestão profissional cuida de tudo: precificação dinâmica, atendimento ao hóspede, limpeza, manutenção e relatórios mensais. Você recebe o rendimento líquido sem se envolver na operação diária. O custo médio de gestão é de ~20% da receita bruta.",
+  },
+  {
+    question: "Posso comprar na planta e começar a operar na entrega?",
+    answer:
+      "Sim, e esse é um dos atrativos. Comprar na planta garante preço mais acessível. Enquanto a obra avança, você planeja a decoração e a operação. Na entrega, o studio pode estar pronto para receber hóspedes em 30-60 dias.",
+  },
+  {
+    question: "Que perfil de hóspede esse endereço atrai?",
+    answer:
+      "A região da Bela Cintra/Paulista atrai 4 perfis principais: executivos em viagens corporativas (de segunda a quinta), turistas de lazer e cultura (fins de semana e feriados), profissionais de saúde e pacientes do Sírio-Libanês, e nômades digitais em estadias de 1-3 meses.",
   },
 ];
 
@@ -425,6 +444,7 @@ export default function UrbanFlexInvestorGuide() {
       </div>
 
       <main className="pb-24">
+        {/* ═══════ HERO ═══════ */}
         <section id="hero" className="scroll-mt-32 border-b border-border/50 bg-hero-gradient-subtle">
           <div className="max-w-7xl mx-auto px-4 md:px-6 py-14 md:py-20">
             <div className="grid gap-8 lg:grid-cols-[1.15fr_0.85fr] lg:items-center">
@@ -437,19 +457,18 @@ export default function UrbanFlexInvestorGuide() {
                 <div className="flex flex-wrap gap-2 mb-5">
                   <Badge className="bg-primary/10 text-primary border-primary/20 hover:bg-primary/10">Leal Moreira</Badge>
                   <Badge variant="outline">LM Urban Flex · Bela Cintra</Badge>
-                  <Badge variant="outline">Página para investidor</Badge>
+                  <Badge variant="outline">Guia do Investidor</Badge>
                 </div>
 
                 <h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-bold leading-tight text-foreground max-w-4xl">
-                  Uma página de guia do investidor para vender
+                  Invista em
                   <span className="text-gradient-premium"> short stay premium </span>
-                  na Bela Cintra.
+                  na Bela Cintra, a 200m da Paulista.
                 </h1>
 
                 <p className="mt-5 max-w-2xl text-lg text-muted-foreground leading-relaxed">
-                  Estruture a conversa comercial em torno de tese, localização, tipologia, obra e retorno potencial.
-                  Esta versão foi montada para encaixar no projeto atual da Bwild e traduzir o empreendimento em uma
-                  narrativa mais útil para quem compra pensando em renda.
+                  Entenda a tese de investimento, compare tipologias, simule o retorno potencial e veja por que esse
+                  endereço sustenta demanda forte para locação de curta temporada.
                 </p>
 
                 <div className="mt-8 flex flex-col sm:flex-row gap-3">
@@ -459,7 +478,7 @@ export default function UrbanFlexInvestorGuide() {
                   </Button>
                   <Button size="lg" variant="outline" className="min-h-[46px]" onClick={() => window.open(whatsappLink, "_blank")}>
                     <MessageCircle className="mr-2 h-4 w-4" />
-                    Falar com consultor
+                    Falar com a equipe
                   </Button>
                 </div>
 
@@ -467,7 +486,7 @@ export default function UrbanFlexInvestorGuide() {
                   <KpiCard value="R. Bela Cintra, 209" label="Endereço do empreendimento" />
                   <KpiCard value="18 a 83 m²" label="Faixa de tipologias" />
                   <KpiCard value="63,53%" label="Status geral da obra" highlight />
-                  <KpiCard value="6 áreas" label="Amenidades-chave no material público" />
+                  <KpiCard value="6 áreas" label="Amenidades-chave" />
                 </div>
               </motion.div>
 
@@ -481,9 +500,9 @@ export default function UrbanFlexInvestorGuide() {
                   <CardHeader className="pb-4">
                     <div className="flex items-center justify-between gap-3">
                       <div>
-                        <CardTitle className="text-2xl">Resumo da tese</CardTitle>
+                        <CardTitle className="text-2xl">Por que esse ativo faz sentido</CardTitle>
                         <CardDescription className="mt-2">
-                          O que a página precisa comunicar logo de cara para converter melhor.
+                          Os fundamentos que sustentam a tese de renda neste endereço.
                         </CardDescription>
                       </div>
                       <ShieldCheck className="h-8 w-8 text-primary" />
@@ -491,10 +510,10 @@ export default function UrbanFlexInvestorGuide() {
                   </CardHeader>
                   <CardContent className="space-y-5">
                     {[
-                      "Endereço ultra conhecido e de leitura imediata para o investidor: Bela Cintra + Paulista.",
-                      "Tipologias variadas para trabalhar desde entrada mais leve até produto premium assinatura.",
-                      "Amenidades que ajudam a sustentar a narrativa de short stay urbano e operação mais conveniente.",
-                      "Bloco de obra e cronograma para reduzir objeção de timing na venda.",
+                      "Endereço na Bela Cintra, a 200m da Paulista — reconhecimento imediato e demanda diversificada (corporativa, médica, cultural, turismo).",
+                      "Tipologias de 18 a 83 m² permitem encaixar desde entrada mais leve até produto premium com diárias mais altas.",
+                      "Amenidades como coworking, lavanderia e conveniência reforçam o posicionamento para hóspedes de curta temporada.",
+                      "Obra 63% concluída — janela de compra com preço de planta e previsibilidade de entrega.",
                     ].map((item) => (
                       <div key={item} className="flex items-start gap-3 rounded-xl border border-border/60 p-4">
                         <div className="mt-1 h-2.5 w-2.5 rounded-full bg-primary" />
@@ -504,8 +523,8 @@ export default function UrbanFlexInvestorGuide() {
 
                     <div className="rounded-xl border border-dashed border-primary/25 bg-primary/5 p-4">
                       <p className="text-sm font-medium text-foreground">
-                        Dica de produto: use esta rota como landing dedicada de mídia e também como apoio para o time
-                        comercial em atendimento 1:1.
+                        Este guia reúne as informações mais relevantes para você avaliar o investimento. Simule retornos,
+                        entenda os custos e fale com a equipe quando estiver pronto.
                       </p>
                     </div>
                   </CardContent>
@@ -515,25 +534,25 @@ export default function UrbanFlexInvestorGuide() {
           </div>
         </section>
 
-        {/* Diagnóstico do Investidor */}
+        {/* ═══════ DIAGNÓSTICO ═══════ */}
         <section id="diagnostico" className="scroll-mt-32">
           <div className="max-w-7xl mx-auto px-4 md:px-6">
             <PropertyDiagnosticoSection />
           </div>
         </section>
 
+        {/* ═══════ TESE COMERCIAL ═══════ */}
         <section id="visao-geral" className="scroll-mt-32">
           <div className="max-w-7xl mx-auto px-4 md:px-6 py-16 md:py-20">
             <SectionLabel>Tese comercial</SectionLabel>
             <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
               <div>
                 <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground">
-                  O investidor não compra só metragem. Ele compra contexto, fluidez de operação e narrativa de renda.
+                  Você não compra só metragem. Compra contexto, conveniência e potencial de renda.
                 </h2>
                 <p className="mt-4 text-muted-foreground leading-relaxed">
-                  Esta página foi desenhada para organizar a decisão em uma sequência simples: por que esse ativo faz
-                  sentido, qual tipologia encaixa no perfil do comprador, como fica uma conta preliminar de retorno e por
-                  que o entorno ajuda a sustentar a ocupação.
+                  Este guia foi pensado para facilitar sua análise: por que esse ativo faz sentido, qual tipologia combina
+                  com seu perfil, como fica a conta de retorno e por que o entorno sustenta a ocupação.
                 </p>
               </div>
 
@@ -542,22 +561,22 @@ export default function UrbanFlexInvestorGuide() {
                   {
                     icon: TrendingUp,
                     title: "Tese de renda",
-                    text: "A página precisa levar o usuário rapidamente da curiosidade para uma leitura clara de potencial de diária, ocupação e margem.",
+                    text: "Diária, ocupação e margem: entenda de forma clara o potencial de receita antes de investir.",
                   },
                   {
                     icon: LayoutGrid,
                     title: "Tese de produto",
-                    text: "Mostrar tipologias e diferenciais do retrofit ajuda a sair do discurso genérico de studio e posicionar melhor cada unidade.",
+                    text: "Conheça as tipologias e os diferenciais do retrofit que posicionam cada unidade além do studio genérico.",
                   },
                   {
                     icon: Compass,
                     title: "Tese de localização",
-                    text: "Bela Cintra e Paulista já comunicam demanda em poucos segundos. O papel do layout é dar lastro a essa intuição.",
+                    text: "Bela Cintra e Paulista já comunicam demanda. Veja os dados que sustentam essa percepção.",
                   },
                   {
                     icon: Hammer,
                     title: "Tese de timing",
-                    text: "O estágio de obra reduz objeção e ajuda o corretor a conduzir urgência e previsibilidade na conversa comercial.",
+                    text: "Com a obra avançada, você compra com preço de planta e entrega previsível — um fator decisivo no retorno.",
                   },
                 ].map((item) => (
                   <Card key={item.title} className="card-elevated h-full border-border/60">
@@ -573,20 +592,18 @@ export default function UrbanFlexInvestorGuide() {
           </div>
         </section>
 
+        {/* ═══════ TIPOLOGIAS ═══════ */}
         <section id="tipologias" className="scroll-mt-32 bg-muted/25 border-y border-border/40">
           <div className="max-w-7xl mx-auto px-4 md:px-6 py-16 md:py-20">
             <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between mb-8">
               <div>
                 <SectionLabel>Tipologias</SectionLabel>
-                <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground">Escolha a unidade-base da simulação</h2>
+                <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground">Escolha a tipologia que mais combina com o seu perfil de investimento</h2>
                 <p className="mt-3 text-muted-foreground max-w-2xl">
-                  Os cards abaixo já vêm com valores-semente inspirados no draft comercial. Você pode trocar preço, capex
-                  e diária manualmente no simulador sem mexer na estrutura da página.
+                  Cada tipologia tem um posicionamento diferente: tíquete de entrada, faixa de diária, ocupação esperada e
+                  perfil de hóspede. Selecione uma para ver os números no simulador.
                 </p>
               </div>
-              <Badge variant="outline" className="w-fit">
-                Dados facilmente editáveis no topo do arquivo
-              </Badge>
             </div>
 
             <div className="grid gap-4 lg:grid-cols-4">
@@ -642,22 +659,24 @@ export default function UrbanFlexInvestorGuide() {
           </div>
         </section>
 
-        {/* Rentabilidade / Matemática */}
+        {/* ═══════ RENTABILIDADE / MATEMÁTICA ═══════ */}
         <section id="rentabilidade" className="scroll-mt-32">
           <div className="max-w-7xl mx-auto px-4 md:px-6">
             <RentabilidadeSection />
           </div>
         </section>
 
+        {/* ═══════ SIMULADOR ═══════ */}
         <section id="simulador" className="scroll-mt-32">
           <div className="max-w-7xl mx-auto px-4 md:px-6 py-16 md:py-20">
             <SectionLabel>Simulador do investidor</SectionLabel>
             <div className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
               <Card className="card-elevated border-border/60">
                 <CardHeader>
-                  <CardTitle className="text-2xl">Ajuste os números da conversa comercial</CardTitle>
+                  <CardTitle className="text-2xl">Ajuste os números e simule seu cenário</CardTitle>
                   <CardDescription>
-                    O objetivo aqui não é prometer retorno. É transformar uma conversa vaga em uma projeção compreensível.
+                    Os valores iniciais são estimativas de mercado. Altere diária, preço da unidade e custos para testar
+                    seu cenário pessoal.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
@@ -739,8 +758,9 @@ export default function UrbanFlexInvestorGuide() {
                   </div>
 
                   <div className="rounded-xl border border-dashed border-primary/25 bg-primary/5 p-4 text-sm text-muted-foreground leading-relaxed">
-                    <strong className="text-foreground">Leitura recomendada para o comercial:</strong> use o card de resultado como
-                    “ordem de grandeza”. Depois, refine o cenário com tabela oficial, fluxo, condomínio, IPTU e premissas de operação.
+                    <strong className="text-foreground">Importante:</strong> estes números são projeções para análise
+                    preliminar. O resultado real depende de gestão, sazonalidade, qualidade do anúncio e condições de
+                    mercado. Valide com a equipe comercial antes de decidir.
                   </div>
                 </CardContent>
               </Card>
@@ -838,9 +858,6 @@ export default function UrbanFlexInvestorGuide() {
                       Quero falar sobre essa tipologia
                       <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
-                    <Button size="lg" variant="outline" className="min-h-[46px]" onClick={() => scrollTo("contato")}>
-                      Levar para CTA final
-                    </Button>
                   </div>
                 </CardContent>
               </Card>
@@ -848,24 +865,25 @@ export default function UrbanFlexInvestorGuide() {
           </div>
         </section>
 
-        {/* Escolha do Ativo */}
+        {/* ═══════ ESCOLHA DO ATIVO ═══════ */}
         <section id="escolha-ativo" className="scroll-mt-32">
           <div className="max-w-7xl mx-auto px-4 md:px-6">
             <EscolhaAtivoSection />
           </div>
         </section>
 
+        {/* ═══════ LOCALIZAÇÃO ═══════ */}
         <section id="localizacao" className="scroll-mt-32 bg-muted/25 border-y border-border/40">
           <div className="max-w-7xl mx-auto px-4 md:px-6 py-16 md:py-20">
             <SectionLabel>Localização</SectionLabel>
             <div className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
               <div>
                 <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground">
-                  A força comercial aqui começa pelo endereço.
+                  Um endereço que vende sozinho.
                 </h2>
                 <p className="mt-4 text-muted-foreground leading-relaxed max-w-2xl">
-                  Em vez de falar só em “São Paulo”, a página encara o que realmente ajuda a vender: Bela Cintra,
-                  Consolação e Paulista são referências que comprimem a explicação do ativo e facilitam a leitura de demanda.
+                  Bela Cintra, Consolação e Paulista são referências imediatas para qualquer hóspede. Isso comprime sua
+                  necessidade de explicação e sustenta demanda de múltiplos perfis: corporativo, médico, cultural e lazer.
                 </p>
 
                 <div className="mt-6 rounded-2xl border border-border/60 bg-background p-6">
@@ -879,16 +897,17 @@ export default function UrbanFlexInvestorGuide() {
 
                   <div className="mt-6 grid gap-4 md:grid-cols-2">
                     <div className="rounded-xl bg-secondary/70 p-4">
-                      <p className="text-sm font-semibold text-foreground">Leitura para o investidor</p>
+                      <p className="text-sm font-semibold text-foreground">Por que esse entorno importa</p>
                       <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
                         Endereço com forte repertório urbano, boa conexão de transporte e apelo para público corporativo,
-                        médico, cultural e de lazer.
+                        médico, cultural e de lazer — os 4 motores de demanda para short stay.
                       </p>
                     </div>
                     <div className="rounded-xl bg-secondary/70 p-4">
-                      <p className="text-sm font-semibold text-foreground">Leitura para mídia</p>
+                      <p className="text-sm font-semibold text-foreground">Na prática</p>
                       <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
-                        A comunicação ganha muito quando o anúncio parte de “200 m da Paulista” em vez de depender só de um texto institucional longo.
+                        Na hora de criar o anúncio, "200m da Paulista" já comunica tudo. Não precisa de texto longo para
+                        convencer — o endereço faz o trabalho pesado.
                       </p>
                     </div>
                   </div>
@@ -911,17 +930,16 @@ export default function UrbanFlexInvestorGuide() {
           </div>
         </section>
 
+        {/* ═══════ AMENIDADES ═══════ */}
         <section id="amenidades" className="scroll-mt-32">
           <div className="max-w-7xl mx-auto px-4 md:px-6 py-16 md:py-20">
             <SectionLabel>Amenidades</SectionLabel>
-            <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between mb-8">
-              <div>
-                <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground">O discurso de produto precisa conversar com a operação</h2>
-                <p className="mt-3 text-muted-foreground max-w-2xl">
-                  Mais do que “lista de áreas comuns”, este bloco mostra por que as amenidades ajudam a defender a tese de flexibilidade, conveniência e percepção premium.
-                </p>
-              </div>
-              <Badge variant="outline" className="w-fit">Bloco ótimo para criativo e argumento de corretor</Badge>
+            <div className="mb-8">
+              <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground">Amenidades que sustentam a experiência do hóspede</h2>
+              <p className="mt-3 text-muted-foreground max-w-2xl">
+                Mais do que áreas comuns, estas amenidades reforçam conveniência, produtividade e percepção premium — os
+                três pilares que elevam avaliações e justificam diárias mais altas.
+              </p>
             </div>
 
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -938,14 +956,16 @@ export default function UrbanFlexInvestorGuide() {
           </div>
         </section>
 
+        {/* ═══════ OBRA ═══════ */}
         <section id="obra" className="scroll-mt-32 bg-muted/25 border-y border-border/40">
           <div className="max-w-7xl mx-auto px-4 md:px-6 py-16 md:py-20">
             <SectionLabel>Obra</SectionLabel>
             <div className="grid gap-8 lg:grid-cols-[0.8fr_1.2fr]">
               <div>
-                <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground">Estágio de obra como argumento de confiança</h2>
+                <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground">Acompanhe o estágio da obra</h2>
                 <p className="mt-4 text-muted-foreground leading-relaxed">
-                  Esse bloco ajuda muito na venda porque tira a conversa do abstrato. Ele mostra que o ativo tem evolução concreta e permite ao time comercial trabalhar segurança e timing com mais clareza.
+                  A evolução concreta da obra traz segurança e previsibilidade ao investimento. Veja o progresso por etapa
+                  e entenda o timing de entrega.
                 </p>
 
                 <Card className="mt-6 border-primary/15 bg-primary/5">
@@ -958,7 +978,8 @@ export default function UrbanFlexInvestorGuide() {
                       </div>
                     </div>
                     <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
-                      Projeto, lançamento, fundação, estrutura e vedações aparecem concluídos no material público, com revestimento e fachada já avançados.
+                      Projeto, lançamento, fundação, estrutura e vedações concluídos. Revestimento e fachada avançados.
+                      Acabamento em andamento — boa janela para garantir preço de planta.
                     </p>
                   </CardContent>
                 </Card>
@@ -967,7 +988,7 @@ export default function UrbanFlexInvestorGuide() {
               <Card className="card-elevated border-border/60">
                 <CardHeader>
                   <CardTitle className="text-2xl">Quadro de progresso</CardTitle>
-                  <CardDescription>Use esses indicadores como bloco de confiança e atualização comercial.</CardDescription>
+                  <CardDescription>Progresso atualizado conforme material público do empreendimento.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {buildStages.map((stage) => (
@@ -998,34 +1019,35 @@ export default function UrbanFlexInvestorGuide() {
           </div>
         </section>
 
-        {/* Case Study */}
+        {/* ═══════ CASE STUDY ═══════ */}
         <section id="casestudy" className="scroll-mt-32">
           <div className="max-w-7xl mx-auto px-4 md:px-6">
             <CaseStudySection />
           </div>
         </section>
 
-        {/* Trust Signals */}
+        {/* ═══════ TRUST SIGNALS ═══════ */}
         <div className="max-w-7xl mx-auto px-4 md:px-6">
           <TrustSignalsSection />
         </div>
 
-        {/* Checklist Final */}
+        {/* ═══════ CHECKLIST FINAL ═══════ */}
         <section id="checklist-final" className="scroll-mt-32">
           <div className="max-w-7xl mx-auto px-4 md:px-6">
             <ChecklistSection />
           </div>
         </section>
 
+        {/* ═══════ FAQ ═══════ */}
         <section id="faq" className="scroll-mt-32">
           <div className="max-w-4xl mx-auto px-4 md:px-6 py-16 md:py-20">
             <SectionLabel>FAQ</SectionLabel>
-            <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground mb-8">Perguntas frequentes do investidor</h2>
+            <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground mb-8">Perguntas frequentes</h2>
 
             <Card className="card-elevated border-border/60">
               <CardContent className="p-0">
                 <Accordion type="single" collapsible className="px-6">
-                  {[...faqItems, ...FAQ_DATA.map(f => ({ question: f.q, answer: f.a }))].map((item, index) => (
+                  {faqItems.map((item, index) => (
                     <AccordionItem key={item.question} value={`item-${index}`}>
                       <AccordionTrigger className="text-left text-base">{item.question}</AccordionTrigger>
                       <AccordionContent className="text-sm text-muted-foreground leading-relaxed">
@@ -1039,18 +1061,20 @@ export default function UrbanFlexInvestorGuide() {
           </div>
         </section>
 
+        {/* ═══════ CTA FINAL ═══════ */}
         <section id="contato" className="scroll-mt-32 border-t border-border/40">
           <div className="max-w-7xl mx-auto px-4 md:px-6 py-16 md:py-20">
             <Card className="overflow-hidden border-primary/15 bg-hero-gradient-subtle">
               <CardContent className="p-8 md:p-10">
                 <div className="grid gap-8 lg:grid-cols-[1.15fr_0.85fr] lg:items-center">
                   <div>
-                    <SectionLabel>CTA final</SectionLabel>
+                    <SectionLabel>Próximo passo</SectionLabel>
                     <h2 className="font-display text-3xl md:text-5xl font-bold text-foreground max-w-3xl">
-                      Página pronta para vender melhor a tese de investimento, não só a unidade.
+                      Pronto para dar o próximo passo?
                     </h2>
                     <p className="mt-4 text-lg text-muted-foreground max-w-2xl leading-relaxed">
-                      Aqui o corretor ou mídia levam o investidor para uma ação simples: pedir tabela, validar disponibilidade e discutir a tipologia certa para o objetivo de renda.
+                      Fale com a equipe para validar disponibilidade, pedir tabela atualizada e discutir a tipologia ideal
+                      para o seu objetivo de renda.
                     </p>
 
                     <div className="mt-8 flex flex-col sm:flex-row gap-3">
@@ -1068,17 +1092,21 @@ export default function UrbanFlexInvestorGuide() {
                   <div className="grid gap-4">
                     <Card className="border-border/60 bg-background/90 backdrop-blur-sm">
                       <CardContent className="p-5">
-                        <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Sugestão de uso</p>
-                        <p className="mt-2 text-sm text-foreground leading-relaxed">
-                          Ideal como rota dedicada, como apoio ao corretor e também como destino de anúncios de captação de investidores.
-                        </p>
+                        <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground mb-3">Próximos passos</p>
+                        <ol className="space-y-2 text-sm text-foreground leading-relaxed list-decimal list-inside">
+                          <li>Solicitar tabela de preços atualizada</li>
+                          <li>Escolher a tipologia que se encaixa no seu perfil</li>
+                          <li>Validar o fluxo de pagamento com a equipe</li>
+                          <li>Planejar decoração e operação para a entrega</li>
+                        </ol>
                       </CardContent>
                     </Card>
                     <Card className="border-border/60 bg-background/90 backdrop-blur-sm">
                       <CardContent className="p-5">
-                        <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Personalização rápida</p>
-                        <p className="mt-2 text-sm text-foreground leading-relaxed">
-                          Se quiser, troque apenas o bloco de dados no topo do arquivo e você já reaproveita toda a estrutura para outro lançamento.
+                        <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground mb-3">Sobre a Bwild</p>
+                        <p className="text-sm text-foreground leading-relaxed">
+                          +200 studios operados, nota média 4.9 e +5 anos de experiência em short stay em São Paulo. A
+                          Bwild cuida da análise, reforma, decoração e operação para que você se concentre no retorno.
                         </p>
                       </CardContent>
                     </Card>

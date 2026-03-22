@@ -58,7 +58,7 @@ export default function PropertyDiagnosticoSection() {
   return (
     <SectionBlock
       id="diagnostico"
-      title="Seu Perfil de Investidor"
+      title="Qual é o seu perfil de investidor?"
       takeaway="Responda 3 perguntas rápidas para descobrir qual tipologia do Urban Flex Bela Cintra maximiza seu retorno."
     >
       {!isComplete ? (
