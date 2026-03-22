@@ -170,7 +170,7 @@ export default function InsightsDashboard({ data }: { data: DashboardData }) {
             <ScriptBuilder profiles={data.personalityProfiles} dashboardData={data} />
           </CardContent>
         </Card>
-
+      )}
       {/* Top Questions */}
       {data.topQuestions?.length > 0 && (
         <Card className="border-border/60 overflow-hidden">
