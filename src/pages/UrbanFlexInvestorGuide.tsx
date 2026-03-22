@@ -58,6 +58,7 @@ type SectionId =
   | "casestudy"
   | "checklist-final"
   | "faq"
+  | "elephant-insights"
   | "contato";
 
 type UnitType = {
