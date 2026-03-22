@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Building2, BookOpen, Wrench, ArrowLeft, Menu, X, Sparkles } from "lucide-react";
+import { Building2, BookOpen, Wrench, ArrowLeft, Menu, X, Sparkles, Handshake } from "lucide-react";
 import lealMoreiraLogo from "@/assets/leal-moreira-logo.png";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ export default function AppNavbar() {
   const navLinks = [
     { to: "/insights", label: "Insights", icon: Sparkles },
     { to: "/ferramentas", label: "Ferramentas", icon: Wrench },
+    { to: "/corretor", label: "Corretor", icon: Handshake },
   ];
 
   return (
