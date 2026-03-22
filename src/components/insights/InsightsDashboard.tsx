@@ -5,6 +5,7 @@ import {
   ArrowRight, AlertTriangle, CheckCircle2, TrendingUp,
   HelpCircle, EyeOff, Brain, Ban, MessageCircleQuestion,
 } from "lucide-react";
+import ScriptBuilder from "./ScriptBuilder";
 
 interface DashboardData {
   buyerPersona: {
