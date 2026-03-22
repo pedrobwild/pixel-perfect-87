@@ -13,7 +13,6 @@ export default function AppNavbar() {
   const navLinks = [
     { to: "/insights", label: "Insights", icon: Sparkles },
     { to: "/ferramentas", label: "Ferramentas", icon: Wrench },
-    { to: "/corretor", label: "Corretor", icon: Handshake },
   ];
 
   return (
