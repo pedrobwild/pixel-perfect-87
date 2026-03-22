@@ -53,7 +53,7 @@ function getImpactColor(impact: string) {
   return "text-blue-600 bg-blue-500/10";
 }
 
-export default function EventsCalendar() {
+export default function EventsCalendar({ onDataLoaded }: { onDataLoaded?: (data: EventsData) => void }) {
   const [data, setData] = useState<EventsData | null>(null);
   const [loading, setLoading] = useState(false);
   const [expanded, setExpanded] = useState(false);
@@ -67,6 +67,7 @@ export default function EventsCalendar() {
       if (error) throw error;
       if (!res?.success) throw new Error(res?.error || "Erro ao buscar eventos");
       setData(res.events);
+      onDataLoaded?.(res.events);
       toast({
         title: res.cached ? "Eventos carregados do cache" : "Eventos atualizados",
         description: res.cached
