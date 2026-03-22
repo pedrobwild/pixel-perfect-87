@@ -326,9 +326,12 @@ function SectionLabel({ children }: { children: ReactNode }) {
 
 function KpiCard({ value, label, highlight = false }: { value: string; label: string; highlight?: boolean }) {
   return (
-    <Card className={cn("card-elevated border-border/60", highlight && "border-primary/20 bg-primary/5")}>
-      <CardContent className="p-5">
-        <p className={cn("font-display text-3xl font-bold leading-none", highlight ? "text-primary" : "text-foreground")}>
+    <Card className={cn("card-elevated border-border/60 overflow-hidden", highlight && "border-primary/20 bg-primary/5")}>
+      <CardContent className="p-4 sm:p-5">
+        <p className={cn(
+          "font-display text-2xl sm:text-3xl font-bold leading-none break-all",
+          highlight ? "text-primary" : "text-foreground"
+        )}>
           {value}
         </p>
         <p className="mt-2 text-sm text-muted-foreground">{label}</p>
