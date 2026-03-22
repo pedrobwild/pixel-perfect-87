@@ -10,6 +10,7 @@ import ChecklistSection from "@/components/guide/ChecklistSection";
 import TrustSignalsSection from "@/components/guide/TrustSignalsSection";
 import { motion } from "framer-motion";
 import AppNavbar from "@/components/AppNavbar";
+import lealMoreiraLogo from "@/assets/leal-moreira-logo.png";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
