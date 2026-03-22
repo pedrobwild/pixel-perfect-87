@@ -6,11 +6,14 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const ELEPHANT_BASE = "https://api.askelephant.ai/api/v2";
+const ELEPHANT_BASE = "https://app.askelephant.ai/api/v2";
 
 async function elephantFetch(path: string, apiKey: string) {
   const res = await fetch(`${ELEPHANT_BASE}${path}`, {
-    headers: { Authorization: apiKey },
+    headers: { 
+      Authorization: `Bearer ${apiKey}`,
+      Accept: "application/json",
+    },
   });
   if (!res.ok) {
     const text = await res.text();
