@@ -6,6 +6,7 @@ import {
   HelpCircle, EyeOff, Brain, Ban, MessageCircleQuestion,
 } from "lucide-react";
 import ScriptBuilder from "./ScriptBuilder";
+import LeadRanking from "./LeadRanking";
 
 interface DashboardData {
   buyerPersona: {
@@ -59,6 +60,16 @@ interface DashboardData {
     impact: string;
   }[];
   sentimentSummary: string;
+  leadScores?: {
+    title: string;
+    date: string | null;
+    durationMinutes: number;
+    sentiment: string | null;
+    score: number;
+    objectionCount: number;
+    competitorMentions: number;
+    summary: string | null;
+  }[];
 }
 
 const freqColor: Record<string, string> = {
@@ -383,6 +394,9 @@ export default function InsightsDashboard({ data }: { data: DashboardData }) {
           </CardContent>
         </Card>
       )}
+
+      {/* Lead Ranking */}
+      {data.leadScores && <LeadRanking leads={data.leadScores} />}
 
       {/* Sentiment Summary */}
       {data.sentimentSummary && (

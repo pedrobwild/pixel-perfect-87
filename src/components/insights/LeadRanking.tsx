@@ -1,0 +1,135 @@
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Flame, TrendingDown, AlertTriangle, Clock, CalendarRange } from "lucide-react";
+
+interface LeadScore {
+  title: string;
+  date: string | null;
+  durationMinutes: number;
+  sentiment: string | null;
+  score: number;
+  objectionCount: number;
+  competitorMentions: number;
+  summary: string | null;
+}
+
+function getScoreTier(score: number) {
+  if (score >= 75) return { label: "Quente", color: "bg-red-500", textColor: "text-red-700", bgLight: "bg-red-500/10", icon: Flame };
+  if (score >= 50) return { label: "Morno", color: "bg-amber-500", textColor: "text-amber-700", bgLight: "bg-amber-500/10", icon: Clock };
+  return { label: "Frio", color: "bg-blue-400", textColor: "text-blue-700", bgLight: "bg-blue-400/10", icon: TrendingDown };
+}
+
+const sentimentLabel: Record<string, string> = {
+  positive: "Positivo",
+  negative: "Negativo",
+  neutral: "Neutro",
+};
+
+export default function LeadRanking({ leads }: { leads: LeadScore[] }) {
+  if (!leads?.length) return null;
+
+  const hot = leads.filter((l) => l.score >= 75).length;
+  const warm = leads.filter((l) => l.score >= 50 && l.score < 75).length;
+  const cold = leads.filter((l) => l.score < 50).length;
+
+  return (
+    <Card className="border-border/60 overflow-hidden">
+      <CardHeader className="pb-3 bg-muted/30">
+        <CardTitle className="text-base flex items-center gap-2">
+          <Flame className="h-4.5 w-4.5 text-primary" />
+          Ranking de Leads — Prontidão de Compra
+          <div className="ml-auto flex items-center gap-2">
+            {hot > 0 && (
+              <Badge variant="outline" className="text-[10px] bg-red-500/10 text-red-700 border-red-200">
+                {hot} quente{hot > 1 ? "s" : ""}
+              </Badge>
+            )}
+            {warm > 0 && (
+              <Badge variant="outline" className="text-[10px] bg-amber-500/10 text-amber-700 border-amber-200">
+                {warm} morno{warm > 1 ? "s" : ""}
+              </Badge>
+            )}
+            {cold > 0 && (
+              <Badge variant="outline" className="text-[10px] bg-blue-400/10 text-blue-700 border-blue-200">
+                {cold} frio{cold > 1 ? "s" : ""}
+              </Badge>
+            )}
+          </div>
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="pt-4 space-y-2">
+        {leads.map((lead, i) => {
+          const tier = getScoreTier(lead.score);
+          const TierIcon = tier.icon;
+
+          return (
+            <div
+              key={i}
+              className="flex items-center gap-3 rounded-lg border border-border/60 p-3 transition-colors hover:bg-muted/30"
+            >
+              {/* Score */}
+              <div className="relative shrink-0 w-12 h-12 flex items-center justify-center">
+                <svg viewBox="0 0 36 36" className="w-12 h-12 -rotate-90">
+                  <circle
+                    cx="18" cy="18" r="15.5"
+                    fill="none"
+                    stroke="hsl(var(--border))"
+                    strokeWidth="3"
+                  />
+                  <circle
+                    cx="18" cy="18" r="15.5"
+                    fill="none"
+                    className={lead.score >= 75 ? "stroke-red-500" : lead.score >= 50 ? "stroke-amber-500" : "stroke-blue-400"}
+                    strokeWidth="3"
+                    strokeDasharray={`${lead.score * 0.974} 100`}
+                    strokeLinecap="round"
+                  />
+                </svg>
+                <span className="absolute text-xs font-bold tabular-nums text-foreground">{lead.score}</span>
+              </div>
+
+              {/* Info */}
+              <div className="flex-1 min-w-0 space-y-1">
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-medium text-foreground truncate">{lead.title}</p>
+                  <Badge variant="outline" className={`shrink-0 text-[10px] ${tier.bgLight} ${tier.textColor} border-transparent`}>
+                    <TierIcon className="h-2.5 w-2.5 mr-0.5" />
+                    {tier.label}
+                  </Badge>
+                </div>
+                <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+                  {lead.date && (
+                    <span className="flex items-center gap-1">
+                      <CalendarRange className="h-3 w-3" />
+                      {new Date(lead.date).toLocaleDateString("pt-BR")}
+                    </span>
+                  )}
+                  <span>{lead.durationMinutes}min</span>
+                  {lead.sentiment && (
+                    <span>{sentimentLabel[lead.sentiment] || lead.sentiment}</span>
+                  )}
+                  {lead.objectionCount > 0 && (
+                    <span className="flex items-center gap-0.5 text-amber-600">
+                      <AlertTriangle className="h-2.5 w-2.5" />
+                      {lead.objectionCount} objeç{lead.objectionCount > 1 ? "ões" : "ão"}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Score bar */}
+              <div className="hidden sm:block w-24 shrink-0">
+                <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all ${tier.color}`}
+                    style={{ width: `${lead.score}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </CardContent>
+    </Card>
+  );
+}
