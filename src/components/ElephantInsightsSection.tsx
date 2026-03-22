@@ -253,6 +253,8 @@ export default function ElephantInsightsSection() {
             )}
           </div>
 
+          {data.chartsData && <InsightsCharts data={data.chartsData} />}
+
           <Card className="border-border/60 card-elevated">
             <CardHeader className="pb-3">
               <CardTitle className="text-lg flex items-center gap-2">
