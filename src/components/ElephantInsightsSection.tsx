@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Users, RefreshCw, Sparkles, CalendarRange } from "lucide-react";
+import { Loader2, Users, RefreshCw, Sparkles, CalendarRange, Database } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -13,39 +13,86 @@ interface InsightsData {
   totalDurationMinutes: number;
   positiveSentimentPct: number | null;
   latestMeeting: string | null;
+  cached?: boolean;
+  cacheAge?: number;
 }
 
 export default function ElephantInsightsSection() {
   const [data, setData] = useState<InsightsData | null>(null);
   const [loading, setLoading] = useState(false);
+  const [initialLoad, setInitialLoad] = useState(true);
   const { toast } = useToast();
 
-  const fetchInsights = async () => {
+  // Load cached data on mount
+  useEffect(() => {
+    const loadCache = async () => {
+      try {
+        const { data: cached } = await supabase
+          .from("elephant_insights_cache")
+          .select("*")
+          .eq("cache_key", "amanda_default")
+          .single();
+
+        if (cached) {
+          const age = Math.round((Date.now() - new Date(cached.updated_at).getTime()) / 60000);
+          setData({
+            insights: cached.insights,
+            amandaName: cached.amanda_name || "Amanda",
+            totalMeetings: cached.total_meetings,
+            totalDurationMinutes: cached.total_duration_minutes,
+            positiveSentimentPct: cached.positive_sentiment_pct,
+            latestMeeting: cached.latest_meeting,
+            cached: true,
+            cacheAge: age,
+          });
+        }
+      } catch {
+        // No cache, that's fine
+      } finally {
+        setInitialLoad(false);
+      }
+    };
+    loadCache();
+  }, []);
+
+  const fetchInsights = async (refresh = false) => {
     setLoading(true);
     try {
-      const { data: result, error } = await supabase.functions.invoke("elephant-insights");
+      const { data: result, error } = await supabase.functions.invoke("elephant-insights", {
+        body: null,
+        headers: {},
+      });
 
-      if (error) throw error;
+      // If we want refresh, call with query param
+      const finalResult = refresh
+        ? await supabase.functions.invoke("elephant-insights?refresh=true")
+        : { data: result, error };
 
-      if (result?.success) {
+      const res = refresh ? finalResult.data : result;
+      const err = refresh ? finalResult.error : error;
+
+      if (err) throw err;
+
+      if (res?.success) {
         setData({
-          insights: result.insights,
-          amandaName: result.amandaName,
-          totalMeetings: result.totalMeetings,
-          totalDurationMinutes: result.totalDurationMinutes || 0,
-          positiveSentimentPct: result.positiveSentimentPct,
-          latestMeeting: result.latestMeeting,
+          insights: res.insights,
+          amandaName: res.amandaName,
+          totalMeetings: res.totalMeetings,
+          totalDurationMinutes: res.totalDurationMinutes || 0,
+          positiveSentimentPct: res.positiveSentimentPct,
+          latestMeeting: res.latestMeeting,
+          cached: res.cached || false,
+          cacheAge: res.cacheAge,
         });
+        if (res.cached) {
+          toast({ title: "Insights carregados do cache", description: `Dados de ${res.cacheAge} minutos atrás.` });
+        }
       } else {
-        throw new Error(result?.error || "Erro ao buscar insights");
+        throw new Error(res?.error || "Erro ao buscar insights");
       }
     } catch (err: any) {
       console.error("ElephantInsights error:", err);
-      toast({
-        title: "Erro ao buscar insights",
-        description: err.message || "Tente novamente em alguns segundos.",
-        variant: "destructive",
-      });
+      toast({ title: "Erro ao buscar insights", description: err.message || "Tente novamente.", variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -56,24 +103,17 @@ export default function ElephantInsightsSection() {
     return lines.map((line, i) => {
       const trimmed = line.trim();
       if (!trimmed) return <br key={i} />;
-
-      if (trimmed.startsWith("### "))
-        return <h4 key={i} className="text-base font-semibold text-foreground mt-5 mb-2">{trimmed.slice(4)}</h4>;
-      if (trimmed.startsWith("## "))
-        return <h3 key={i} className="text-lg font-bold text-foreground mt-6 mb-3">{trimmed.slice(3)}</h3>;
-      if (trimmed.startsWith("# "))
-        return <h3 key={i} className="text-lg font-bold text-foreground mt-6 mb-3">{trimmed.slice(2)}</h3>;
-
+      if (trimmed.startsWith("### ")) return <h4 key={i} className="text-base font-semibold text-foreground mt-5 mb-2">{trimmed.slice(4)}</h4>;
+      if (trimmed.startsWith("## ")) return <h3 key={i} className="text-lg font-bold text-foreground mt-6 mb-3">{trimmed.slice(3)}</h3>;
+      if (trimmed.startsWith("# ")) return <h3 key={i} className="text-lg font-bold text-foreground mt-6 mb-3">{trimmed.slice(2)}</h3>;
       if (trimmed.startsWith("- ") || trimmed.startsWith("* ")) {
-        const itemText = trimmed.slice(2);
         return (
           <div key={i} className="flex items-start gap-2 py-1">
             <div className="mt-2 h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
-            <span className="text-sm text-muted-foreground leading-relaxed" dangerouslySetInnerHTML={{ __html: boldify(itemText) }} />
+            <span className="text-sm text-muted-foreground leading-relaxed" dangerouslySetInnerHTML={{ __html: boldify(trimmed.slice(2)) }} />
           </div>
         );
       }
-
       const numMatch = trimmed.match(/^(\d+)\.\s(.+)/);
       if (numMatch) {
         return (
@@ -83,7 +123,6 @@ export default function ElephantInsightsSection() {
           </div>
         );
       }
-
       return <p key={i} className="text-sm text-muted-foreground leading-relaxed py-0.5" dangerouslySetInnerHTML={{ __html: boldify(trimmed) }} />;
     });
   };
@@ -106,38 +145,52 @@ export default function ElephantInsightsSection() {
             Consolidação dos principais padrões e insights extraídos das reuniões com investidores interessados em studios para short stay.
           </p>
         </div>
-        <Button
-          onClick={fetchInsights}
-          disabled={loading}
-          size="lg"
-          className="min-h-[48px] shrink-0"
-        >
-          {loading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Analisando reuniões…
-            </>
-          ) : data ? (
-            <>
-              <RefreshCw className="mr-2 h-4 w-4" />
-              Atualizar insights
-            </>
-          ) : (
-            <>
-              <Users className="mr-2 h-4 w-4" />
-              Gerar insights comerciais
-            </>
+        <div className="flex gap-2 shrink-0">
+          {data && (
+            <Button
+              onClick={() => fetchInsights(true)}
+              disabled={loading}
+              variant="outline"
+              size="lg"
+              className="min-h-[48px]"
+            >
+              <RefreshCw className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+              Forçar atualização
+            </Button>
           )}
-        </Button>
+          <Button
+            onClick={() => fetchInsights(false)}
+            disabled={loading}
+            size="lg"
+            className="min-h-[48px]"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Analisando…
+              </>
+            ) : data ? (
+              <>
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Atualizar insights
+              </>
+            ) : (
+              <>
+                <Users className="mr-2 h-4 w-4" />
+                Gerar insights comerciais
+              </>
+            )}
+          </Button>
+        </div>
       </div>
 
-      {!data && !loading && (
+      {!data && !loading && !initialLoad && (
         <Card className="border-dashed border-2 border-border/60">
           <CardContent className="py-16 text-center">
             <Users className="h-10 w-10 text-muted-foreground/40 mx-auto mb-4" />
             <p className="text-muted-foreground font-medium mb-1">Nenhum insight carregado</p>
             <p className="text-sm text-muted-foreground/70 max-w-md mx-auto">
-              Clique em "Gerar insights comerciais" para analisar as reuniões da Amanda e consolidar padrões de comportamento dos investidores.
+              Clique em "Gerar insights comerciais" para analisar as reuniões da Amanda.
             </p>
           </CardContent>
         </Card>
@@ -148,13 +201,20 @@ export default function ElephantInsightsSection() {
           <CardContent className="py-16 text-center">
             <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
             <p className="text-muted-foreground font-medium">Analisando reuniões do Elephan…</p>
-            <p className="text-sm text-muted-foreground/60 mt-1">Buscando transcrições e consolidando com IA. Pode levar até 30 segundos.</p>
+            <p className="text-sm text-muted-foreground/60 mt-1">Pode levar até 30 segundos.</p>
           </CardContent>
         </Card>
       )}
 
       {data && (
         <div className="space-y-4">
+          {data.cached && data.cacheAge !== undefined && (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Database className="h-3.5 w-3.5" />
+              <span>Cache de {data.cacheAge < 60 ? `${data.cacheAge}min` : `${Math.round(data.cacheAge / 60)}h`} atrás</span>
+            </div>
+          )}
+
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <Card className="border-border/60">
               <CardContent className="p-4 text-center">
