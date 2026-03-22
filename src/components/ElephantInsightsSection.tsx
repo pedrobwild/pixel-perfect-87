@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, Users, RefreshCw, Sparkles, CalendarRange, Database } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import InsightsCharts from "@/components/insights/InsightsCharts";
 
 interface InsightsData {
   insights: string;
@@ -15,6 +16,7 @@ interface InsightsData {
   latestMeeting: string | null;
   cached?: boolean;
   cacheAge?: number;
+  chartsData?: any;
 }
 
 export default function ElephantInsightsSection() {
@@ -40,6 +42,7 @@ export default function ElephantInsightsSection() {
             amandaName: cached.amanda_name || "Amanda",
             totalMeetings: cached.total_meetings,
             totalDurationMinutes: cached.total_duration_minutes,
+            chartsData: cached.charts_data,
             positiveSentimentPct: cached.positive_sentiment_pct,
             latestMeeting: cached.latest_meeting,
             cached: true,
@@ -83,6 +86,7 @@ export default function ElephantInsightsSection() {
           latestMeeting: res.latestMeeting,
           cached: res.cached || false,
           cacheAge: res.cacheAge,
+          chartsData: res.chartsData,
         });
         if (res.cached) {
           toast({ title: "Insights carregados do cache", description: `Dados de ${res.cacheAge} minutos atrás.` });
@@ -248,6 +252,8 @@ export default function ElephantInsightsSection() {
               </Card>
             )}
           </div>
+
+          {data.chartsData && <InsightsCharts data={data.chartsData} />}
 
           <Card className="border-border/60 card-elevated">
             <CardHeader className="pb-3">
