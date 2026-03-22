@@ -12,9 +12,11 @@ import {
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Cell, ReferenceLine, Legend,
+  RadialBarChart, RadialBar,
 } from "recharts";
 import {
   Calculator, TrendingUp, CalendarDays, DollarSign, ArrowUpRight,
+  Landmark, TrendingDown,
 } from "lucide-react";
 import { TYPOLOGIES, PROPERTY, type Typology } from "@/data/propertyData";
 
@@ -367,6 +369,15 @@ export default function RevenueSimulator({ eventsData }: Props) {
         </CardContent>
       </Card>
 
+      {/* Yield Comparison */}
+      <YieldComparison
+        grossYield={simulation.grossYieldTotal}
+        netYield={simulation.netYieldTotal}
+        grossYieldBase={simulation.grossYieldBase}
+        typoLabel={typo.label}
+        investmentValue={typo.purchasePrice}
+      />
+
       {!eventsData && (
         <Card className="border-dashed border-2 border-border/60">
           <CardContent className="py-8 text-center">
@@ -379,5 +390,133 @@ export default function RevenueSimulator({ eventsData }: Props) {
         </Card>
       )}
     </section>
+  );
+}
+
+// Benchmarks: valores de março/2026 ajustados por IR (15%)
+const BENCHMARKS = [
+  { name: "Selic", gross: 14.25, net: 12.11, color: "hsl(220, 70%, 50%)" },
+  { name: "CDI", gross: 14.15, net: 12.03, color: "hsl(250, 50%, 55%)" },
+  { name: "IFIX", gross: 10.8, net: 9.18, color: "hsl(30, 70%, 50%)" },
+  { name: "Poupança", gross: 7.7, net: 7.7, color: "hsl(0, 0%, 55%)" },
+];
+
+function YieldComparison({
+  grossYield, netYield, grossYieldBase, typoLabel, investmentValue,
+}: {
+  grossYield: number;
+  netYield: number;
+  grossYieldBase: number;
+  typoLabel: string;
+  investmentValue: number;
+}) {
+  const studioColor = "hsl(142, 71%, 45%)";
+
+  const allItems = [
+    { name: typoLabel, net: netYield, gross: grossYield, color: studioColor, isStudio: true },
+    ...BENCHMARKS.map((b) => ({ ...b, net: b.net, isStudio: false })),
+  ].sort((a, b) => b.net - a.net);
+
+  const maxYield = Math.max(...allItems.map((i) => i.net));
+
+  // Annual return on same investment
+  const annualReturns = allItems.map((item) => ({
+    ...item,
+    annualReturn: Math.round(investmentValue * (item.net / 100)),
+  }));
+
+  return (
+    <Card className="border-border/60 overflow-hidden">
+      <CardHeader className="pb-3 bg-muted/30">
+        <CardTitle className="text-base flex items-center gap-2">
+          <Landmark className="h-4.5 w-4.5 text-primary" />
+          Yield do Studio vs Renda Fixa
+          <Badge variant="outline" className="ml-auto text-xs font-normal">
+            Líquido de IR (15%)
+          </Badge>
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="pt-5 space-y-4">
+        <p className="text-xs text-muted-foreground">
+          Comparativo: se o mesmo valor ({formatCurrency(investmentValue)}) fosse investido em cada ativo, quanto renderia por ano líquido de IR.
+        </p>
+
+        <div className="space-y-3">
+          {annualReturns.map((item, i) => {
+            const barWidth = maxYield > 0 ? (item.net / maxYield) * 100 : 0;
+            const isWinner = item.isStudio && item.net >= Math.max(...BENCHMARKS.map((b) => b.net));
+
+            return (
+              <div key={i} className="space-y-1.5">
+                <div className="flex items-center justify-between text-sm">
+                  <div className="flex items-center gap-2">
+                    <span className={`font-medium ${item.isStudio ? "text-emerald-700" : "text-foreground"}`}>
+                      {item.name}
+                    </span>
+                    {isWinner && (
+                      <Badge className="text-[9px] px-1.5 py-0 bg-emerald-500/10 text-emerald-700 border-emerald-200 hover:bg-emerald-500/10">
+                        Melhor opção
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-3 tabular-nums">
+                    <span className={`text-xs font-bold ${item.isStudio ? "text-emerald-600" : "text-foreground"}`}>
+                      {item.net.toFixed(1)}% a.a.
+                    </span>
+                    <span className="text-xs text-muted-foreground w-24 text-right">
+                      {formatCurrency(item.annualReturn)}/ano
+                    </span>
+                  </div>
+                </div>
+                <div className="h-2.5 rounded-full bg-muted overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all duration-500"
+                    style={{
+                      width: `${barWidth}%`,
+                      backgroundColor: item.isStudio ? studioColor : item.color,
+                      opacity: item.isStudio ? 1 : 0.6,
+                    }}
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Advantage callout */}
+        {netYield > Math.max(...BENCHMARKS.map((b) => b.net)) && (
+          <div className="rounded-lg bg-emerald-500/5 border border-emerald-200/40 p-3 flex items-start gap-2.5">
+            <TrendingUp className="h-4 w-4 text-emerald-600 mt-0.5 shrink-0" />
+            <div>
+              <p className="text-xs font-medium text-emerald-700">
+                O {typoLabel} rende {(netYield - BENCHMARKS[0].net).toFixed(1)}pp a mais que a Selic líquida
+              </p>
+              <p className="text-[11px] text-emerald-600/70 mt-0.5">
+                Diferença de {formatCurrency(Math.round(investmentValue * ((netYield - BENCHMARKS[0].net) / 100)))}/ano 
+                a mais no seu bolso vs renda fixa.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {netYield <= Math.max(...BENCHMARKS.map((b) => b.net)) && (
+          <div className="rounded-lg bg-amber-500/5 border border-amber-200/40 p-3 flex items-start gap-2.5">
+            <TrendingDown className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
+            <div>
+              <p className="text-xs font-medium text-amber-700">
+                Com essa ocupação, o imóvel fica abaixo da Selic — mas considere a valorização patrimonial
+              </p>
+              <p className="text-[11px] text-amber-600/70 mt-0.5">
+                Aumente a ocupação ou considere o ganho de capital na revenda (imóvel valoriza ~8-12% a.a. na região).
+              </p>
+            </div>
+          </div>
+        )}
+
+        <p className="text-[10px] text-muted-foreground/50">
+          Selic e CDI: março/2026. IFIX: média 12 meses. IR de 15% aplicado exceto poupança. Yield do studio já desconta 25% de custos operacionais.
+        </p>
+      </CardContent>
+    </Card>
   );
 }
