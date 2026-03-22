@@ -10,6 +10,7 @@ import NotFound from "./pages/NotFound.tsx";
 const UrbanFlexInvestorGuide = lazy(() => import("./pages/UrbanFlexInvestorGuide"));
 const Ferramentas = lazy(() => import("./pages/Ferramentas"));
 const AdminUpload = lazy(() => import("./pages/AdminUpload"));
+const Insights = lazy(() => import("./pages/Insights"));
 
 const queryClient = new QueryClient();
 
@@ -25,6 +26,7 @@ const App = () => (
             <Route path="/urban-flex-bela-cintra" element={<UrbanFlexInvestorGuide />} />
             <Route path="/ferramentas" element={<Ferramentas />} />
             <Route path="/admin/upload" element={<AdminUpload />} />
+            <Route path="/insights" element={<Insights />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
