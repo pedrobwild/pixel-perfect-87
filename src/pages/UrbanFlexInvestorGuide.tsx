@@ -329,7 +329,8 @@ function KpiCard({ value, label, highlight = false }: { value: string; label: st
     <Card className={cn("card-elevated border-border/60 overflow-hidden", highlight && "border-primary/20 bg-primary/5")}>
       <CardContent className="p-4 sm:p-5">
         <p className={cn(
-          "font-display text-2xl sm:text-3xl font-bold leading-none break-all",
+          "font-display font-bold leading-tight whitespace-nowrap",
+          "text-xl sm:text-2xl xl:text-3xl",
           highlight ? "text-primary" : "text-foreground"
         )}>
           {value}
