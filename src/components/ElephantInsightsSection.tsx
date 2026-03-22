@@ -10,6 +10,8 @@ interface InsightsData {
   insights: string;
   amandaName: string;
   totalMeetings: number;
+  totalDurationMinutes: number;
+  positiveSentimentPct: number | null;
   latestMeeting: string | null;
 }
 
@@ -30,6 +32,8 @@ export default function ElephantInsightsSection() {
           insights: result.insights,
           amandaName: result.amandaName,
           totalMeetings: result.totalMeetings,
+          totalDurationMinutes: result.totalDurationMinutes || 0,
+          positiveSentimentPct: result.positiveSentimentPct,
           latestMeeting: result.latestMeeting,
         });
       } else {
