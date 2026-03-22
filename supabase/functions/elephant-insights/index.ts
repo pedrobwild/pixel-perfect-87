@@ -204,6 +204,63 @@ serve(async (req) => {
     const totalDurationMinutes = Math.round(totalDuration / 60);
     const latestMeeting = allTranscribes[0]?.dateIncluded || null;
 
+    // Compute per-meeting lead readiness scores
+    const leadScores = allTranscribes.map((t: any) => {
+      let score = 50; // baseline
+
+      // Sentiment boost/penalty
+      const sentiment = t.sentimentAnalysis?.totalSentiment;
+      if (sentiment === "positive") score += 20;
+      else if (sentiment === "negative") score -= 15;
+      else if (sentiment === "neutral") score += 5;
+
+      // Duration factor: longer meetings (>20min) suggest engagement
+      const durationMin = Math.round((t.duration || 0) / 60);
+      if (durationMin >= 30) score += 10;
+      else if (durationMin >= 15) score += 5;
+      else if (durationMin < 5) score -= 10;
+
+      // Objections penalty (reasons array)
+      const objectionCount = (t.reasons || []).length;
+      score -= objectionCount * 5;
+
+      // Competitor mentions penalty
+      const competitorMentions = (t.competitors || []).reduce((s: number, c: any) => s + (c.count || 1), 0);
+      score -= competitorMentions * 3;
+
+      // Positive answers boost
+      const positiveAnswers = (t.answers || []).filter((a: any) => a.yesNo === true).length;
+      const negativeAnswers = (t.answers || []).filter((a: any) => a.yesNo === false).length;
+      score += positiveAnswers * 4;
+      score -= negativeAnswers * 3;
+
+      // Average answer score boost
+      const answerScores = (t.answers || []).map((a: any) => a.score).filter((s: any) => typeof s === "number");
+      if (answerScores.length > 0) {
+        const avgScore = answerScores.reduce((a: number, b: number) => a + b, 0) / answerScores.length;
+        score += Math.round((avgScore - 50) / 5); // normalize around 50
+      }
+
+      // Clamp 0-100
+      score = Math.max(0, Math.min(100, score));
+
+      return {
+        title: t.title || "Reunião sem título",
+        date: t.dateIncluded || null,
+        durationMinutes: durationMin,
+        sentiment,
+        score,
+        objectionCount,
+        competitorMentions,
+        summary: t.summary || null,
+      };
+    }).sort((a: any, b: any) => b.score - a.score);
+
+    // Merge lead scores into dashboard
+    if (dashboard) {
+      dashboard.leadScores = leadScores;
+    }
+
     const responseData = {
       success: true, cached: false, insights: rawContent, amandaName,
       totalMeetings: allTranscribes.length, totalDurationMinutes,
