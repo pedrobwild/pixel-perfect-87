@@ -432,7 +432,7 @@ export default function UrbanFlexInvestorGuide() {
                 className={cn(
                   "rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
                   activeSection === section.id
-                    ? "bg-primary text-primary-foreground"
+                    ? "bg-[hsl(24,90%,50%)] text-white"
                     : "bg-transparent text-muted-foreground hover:text-foreground hover:bg-secondary",
                 )}
               >
