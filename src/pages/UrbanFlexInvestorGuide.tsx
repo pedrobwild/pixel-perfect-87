@@ -10,6 +10,7 @@ import ChecklistSection from "@/components/guide/ChecklistSection";
 import TrustSignalsSection from "@/components/guide/TrustSignalsSection";
 import { motion } from "framer-motion";
 import AppNavbar from "@/components/AppNavbar";
+import lealMoreiraLogo from "@/assets/leal-moreira-logo.png";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -424,6 +425,8 @@ export default function UrbanFlexInvestorGuide() {
       <div className="sticky top-16 z-30 glass-nav border-t border-border/40">
         <div className="max-w-7xl mx-auto px-4 md:px-6 overflow-x-auto scrollbar-none">
           <div className="flex items-center gap-2 min-w-max py-3">
+            <img src={lealMoreiraLogo} alt="Leal Moreira" className="h-6 w-auto mr-1 shrink-0" />
+            <Separator orientation="vertical" className="h-5 mr-1" />
             {sections.map((section) => (
               <button
                 key={section.id}
