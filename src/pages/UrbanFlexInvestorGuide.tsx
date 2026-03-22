@@ -108,6 +108,7 @@ const sections: Array<{ id: SectionId; label: string }> = [
   { id: "obra", label: "Obra" },
   { id: "casestudy", label: "Case" },
   { id: "checklist-final", label: "Checklist" },
+  { id: "elephant-insights", label: "Insights" },
   { id: "faq", label: "FAQ" },
   { id: "contato", label: "Contato" },
 ];
