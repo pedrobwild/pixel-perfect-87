@@ -18,6 +18,7 @@ export type Database = {
         Row: {
           amanda_name: string | null
           cache_key: string
+          charts_data: Json | null
           created_at: string
           id: string
           insights: string
@@ -30,6 +31,7 @@ export type Database = {
         Insert: {
           amanda_name?: string | null
           cache_key?: string
+          charts_data?: Json | null
           created_at?: string
           id?: string
           insights: string
@@ -42,6 +44,7 @@ export type Database = {
         Update: {
           amanda_name?: string | null
           cache_key?: string
+          charts_data?: Json | null
           created_at?: string
           id?: string
           insights?: string
