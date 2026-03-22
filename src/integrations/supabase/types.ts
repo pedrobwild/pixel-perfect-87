@@ -14,7 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      elephant_insights_cache: {
+        Row: {
+          amanda_name: string | null
+          cache_key: string
+          created_at: string
+          id: string
+          insights: string
+          latest_meeting: string | null
+          positive_sentiment_pct: number | null
+          total_duration_minutes: number
+          total_meetings: number
+          updated_at: string
+        }
+        Insert: {
+          amanda_name?: string | null
+          cache_key?: string
+          created_at?: string
+          id?: string
+          insights: string
+          latest_meeting?: string | null
+          positive_sentiment_pct?: number | null
+          total_duration_minutes?: number
+          total_meetings?: number
+          updated_at?: string
+        }
+        Update: {
+          amanda_name?: string | null
+          cache_key?: string
+          created_at?: string
+          id?: string
+          insights?: string
+          latest_meeting?: string | null
+          positive_sentiment_pct?: number | null
+          total_duration_minutes?: number
+          total_meetings?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
