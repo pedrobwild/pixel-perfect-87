@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   UserCheck, ShieldAlert, Target, Eye, Swords, Zap,
   ArrowRight, AlertTriangle, CheckCircle2, TrendingUp,
+  HelpCircle, EyeOff, Brain, Ban, MessageCircleQuestion,
 } from "lucide-react";
 
 interface DashboardData {
@@ -13,10 +14,28 @@ interface DashboardData {
     motivations: string[];
     avgTicket: string;
   };
+  personalityProfiles?: {
+    type: string;
+    description: string;
+    frequency: string;
+    approachStrategy: string;
+    pitfalls: string;
+  }[];
+  topQuestions?: {
+    question: string;
+    frequency: string;
+    idealAnswer: string;
+    context: string;
+  }[];
   objections: {
     objection: string;
     frequency: string;
     rebuttal: string;
+  }[];
+  hiddenObjections?: {
+    objection: string;
+    signals: string;
+    approach: string;
   }[];
   closingArguments: {
     argument: string;
@@ -103,13 +122,90 @@ export default function InsightsDashboard({ data }: { data: DashboardData }) {
         </Card>
       )}
 
+      {/* Personality Profiles */}
+      {data.personalityProfiles?.length > 0 && (
+        <Card className="border-border/60 overflow-hidden">
+          <CardHeader className="pb-3 bg-muted/30">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Brain className="h-4.5 w-4.5 text-primary" />
+              Perfis de Personalidade Identificados
+              <Badge variant="outline" className="ml-auto text-xs font-normal">{data.personalityProfiles.length} perfis</Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-4 space-y-3">
+            {data.personalityProfiles.map((p, i) => (
+              <div key={i} className="rounded-lg border border-border/60 p-4 space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <p className="text-sm font-semibold text-foreground">{p.type}</p>
+                  <Badge variant="outline" className={`shrink-0 text-[10px] uppercase tracking-wider ${freqColor[p.frequency] || ""}`}>
+                    {p.frequency}
+                  </Badge>
+                </div>
+                <p className="text-sm text-muted-foreground leading-relaxed">{p.description}</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <div className="rounded-md bg-emerald-500/5 p-3">
+                    <p className="text-[10px] uppercase tracking-wider text-emerald-700 font-medium mb-1.5 flex items-center gap-1">
+                      <CheckCircle2 className="h-3 w-3" /> Como atender
+                    </p>
+                    <p className="text-xs text-emerald-800 dark:text-emerald-300 leading-relaxed">{p.approachStrategy}</p>
+                  </div>
+                  <div className="rounded-md bg-red-500/5 p-3">
+                    <p className="text-[10px] uppercase tracking-wider text-red-700 font-medium mb-1.5 flex items-center gap-1">
+                      <Ban className="h-3 w-3" /> O que evitar
+                    </p>
+                    <p className="text-xs text-red-800 dark:text-red-300 leading-relaxed">{p.pitfalls}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Top Questions */}
+      {data.topQuestions?.length > 0 && (
+        <Card className="border-border/60 overflow-hidden">
+          <CardHeader className="pb-3 bg-muted/30">
+            <CardTitle className="text-base flex items-center gap-2">
+              <MessageCircleQuestion className="h-4.5 w-4.5 text-primary" />
+              Perguntas Mais Frequentes dos Investidores
+              <Badge variant="outline" className="ml-auto text-xs font-normal">{data.topQuestions.length} perguntas</Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-4 space-y-3">
+            {data.topQuestions.map((q, i) => (
+              <div key={i} className="rounded-lg border border-border/60 p-4 space-y-2.5">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-2.5">
+                    <HelpCircle className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                    <p className="text-sm font-medium text-foreground leading-snug">"{q.question}"</p>
+                  </div>
+                  <Badge variant="outline" className={`shrink-0 text-[10px] uppercase tracking-wider ${freqColor[q.frequency] || ""}`}>
+                    {q.frequency}
+                  </Badge>
+                </div>
+                <div className="ml-6 space-y-2">
+                  <div className="rounded-md bg-emerald-500/5 p-3">
+                    <p className="text-[10px] uppercase tracking-wider text-emerald-700 font-medium mb-1">Resposta recomendada</p>
+                    <p className="text-xs text-emerald-800 dark:text-emerald-300 leading-relaxed">{q.idealAnswer}</p>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    <span className="font-medium">Quando surge:</span> {q.context}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Objections + Rebuttals */}
       {data.objections?.length > 0 && (
         <Card className="border-border/60 overflow-hidden">
           <CardHeader className="pb-3 bg-muted/30">
             <CardTitle className="text-base flex items-center gap-2">
               <ShieldAlert className="h-4.5 w-4.5 text-primary" />
-              Objeções e Como Contornar
+              Objeções Explícitas e Como Contornar
               <Badge variant="outline" className="ml-auto text-xs font-normal">{data.objections.length} objeções</Badge>
             </CardTitle>
           </CardHeader>
@@ -128,6 +224,40 @@ export default function InsightsDashboard({ data }: { data: DashboardData }) {
                 <div className="flex items-start gap-2.5 bg-emerald-500/5 rounded-md p-3 ml-6">
                   <ArrowRight className="h-3.5 w-3.5 text-emerald-600 mt-0.5 shrink-0" />
                   <p className="text-sm text-emerald-800 dark:text-emerald-300 leading-relaxed">{o.rebuttal}</p>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Hidden Objections */}
+      {data.hiddenObjections?.length > 0 && (
+        <Card className="border-border/60 overflow-hidden">
+          <CardHeader className="pb-3 bg-muted/30">
+            <CardTitle className="text-base flex items-center gap-2">
+              <EyeOff className="h-4.5 w-4.5 text-primary" />
+              Objeções Ocultas
+              <Badge variant="outline" className="ml-auto text-xs font-normal">{data.hiddenObjections.length} detectadas</Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-4 space-y-3">
+            {data.hiddenObjections.map((h, i) => (
+              <div key={i} className="rounded-lg border border-border/60 p-4 space-y-3">
+                <p className="text-sm font-medium text-foreground">{h.objection}</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <div className="rounded-md bg-amber-500/5 p-3">
+                    <p className="text-[10px] uppercase tracking-wider text-amber-700 font-medium mb-1.5 flex items-center gap-1">
+                      <Eye className="h-3 w-3" /> Como identificar
+                    </p>
+                    <p className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed">{h.signals}</p>
+                  </div>
+                  <div className="rounded-md bg-emerald-500/5 p-3">
+                    <p className="text-[10px] uppercase tracking-wider text-emerald-700 font-medium mb-1.5 flex items-center gap-1">
+                      <Target className="h-3 w-3" /> Como abordar
+                    </p>
+                    <p className="text-xs text-emerald-800 dark:text-emerald-300 leading-relaxed">{h.approach}</p>
+                  </div>
                 </div>
               </div>
             ))}
