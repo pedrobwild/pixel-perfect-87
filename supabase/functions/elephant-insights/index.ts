@@ -35,11 +35,35 @@ Analise TODAS as transcrições de reuniões e retorne um JSON válido (sem mark
     "motivations": ["Motivação 1", "Motivação 2", "Motivação 3"],
     "avgTicket": "Ticket médio que buscam (ex: R$ 300k - R$ 500k)"
   },
+  "personalityProfiles": [
+    {
+      "type": "Nome do tipo de personalidade (ex: Analítico, Expressivo, Pragmático, Cauteloso)",
+      "description": "Como esse perfil se comporta nas reuniões",
+      "frequency": "alta/média/baixa",
+      "approachStrategy": "Como o corretor deve adaptar o atendimento para esse perfil",
+      "pitfalls": "O que NÃO fazer com esse perfil"
+    }
+  ],
+  "topQuestions": [
+    {
+      "question": "Pergunta frequente feita pelos investidores",
+      "frequency": "alta/média/baixa",
+      "idealAnswer": "Resposta recomendada para o time comercial",
+      "context": "Em que momento da conversa essa pergunta costuma surgir"
+    }
+  ],
   "objections": [
     {
       "objection": "Descrição curta da objeção",
       "frequency": "alta/média/baixa",
       "rebuttal": "Argumento sugerido para contornar esta objeção"
+    }
+  ],
+  "hiddenObjections": [
+    {
+      "objection": "Objeção que o cliente não verbaliza diretamente mas demonstra através de comportamento ou perguntas indiretas",
+      "signals": "Como identificar essa objeção oculta (sinais verbais e não-verbais)",
+      "approach": "Estratégia para trazer à tona e resolver essa objeção antes que ela impeça o fechamento"
     }
   ],
   "closingArguments": [
@@ -76,8 +100,11 @@ Analise TODAS as transcrições de reuniões e retorne um JSON válido (sem mark
 REGRAS:
 - Retorne APENAS o JSON, sem texto antes ou depois
 - Use dados concretos das reuniões, nunca invente
-- Mínimo 3 objeções, 3 argumentos de fechamento, 3 sinais de compra
-- Ordene objeções e argumentos por frequência/efetividade (mais importante primeiro)
+- Mínimo 3 objeções, 3 argumentos de fechamento, 3 sinais de compra, 2 tipos de personalidade, 3 perguntas frequentes, 2 objeções ocultas
+- Ordene por frequência/efetividade (mais importante primeiro)
+- Para personalityProfiles: identifique padrões reais de comportamento dos compradores nas reuniões (analíticos que pedem muitos dados, expressivos que se empolgam rápido, cautelosos que demoram para decidir, etc)
+- Para hiddenObjections: identifique resistências que aparecem de forma indireta (ex: "vou pensar", perguntas excessivas sobre garantias = medo de risco)
+- Para topQuestions: foque nas perguntas que mais se repetem entre diferentes clientes
 - Escreva em português do Brasil
 - Seja direto e acionável`;
 
