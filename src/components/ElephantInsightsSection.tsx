@@ -153,7 +153,7 @@ export default function ElephantInsightsSection() {
           )}
 
           {/* Summary KPIs */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             <Card className="border-border/60">
               <CardContent className="p-4 text-center">
                 <p className="text-2xl font-bold text-primary tabular-nums">{data.totalMeetings}</p>
@@ -168,14 +168,6 @@ export default function ElephantInsightsSection() {
                 <p className="text-xs text-muted-foreground mt-1">tempo total gravado</p>
               </CardContent>
             </Card>
-            {data.positiveSentimentPct !== null && (
-              <Card className="border-border/60">
-                <CardContent className="p-4 text-center">
-                  <p className="text-2xl font-bold text-emerald-600 tabular-nums">{data.positiveSentimentPct}%</p>
-                  <p className="text-xs text-muted-foreground mt-1">sentimento positivo</p>
-                </CardContent>
-              </Card>
-            )}
             {data.latestMeeting && (
               <Card className="border-border/60">
                 <CardContent className="p-4 text-center">
