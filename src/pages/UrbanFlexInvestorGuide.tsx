@@ -787,7 +787,7 @@ export default function UrbanFlexInvestorGuide() {
                   </div>
                 </CardHeader>
                 <CardContent className="p-6 space-y-6">
-                  <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                  <div className="grid gap-3 grid-cols-2">
                     <KpiCard value={formatCurrency(simulation.avgDaily)} label="Diária média" highlight />
                     <KpiCard value={formatCurrency(simulation.netRevenue)} label="Líquido mensal" />
                     <KpiCard value={formatCurrency(simulation.annualNetRevenue)} label="Líquido anual" />
