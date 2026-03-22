@@ -101,7 +101,7 @@ export default function ChecklistSection() {
   };
 
   return (
-    <SectionBlock id="checklist" title="Checklist do Investidor" takeaway="Avalie sua preparação antes de investir.">
+    <SectionBlock id="checklist-final" title="Checklist: você está pronto para investir?" takeaway="Avalie sua preparação antes de investir.">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
         {CHECKLIST_ITEMS.map((item, i) => (
           <motion.div

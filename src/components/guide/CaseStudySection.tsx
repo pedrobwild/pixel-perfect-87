@@ -101,6 +101,10 @@ export default function CaseStudySection() {
           ))}
         </div>
       </div>
+
+      <p className="mt-6 text-xs text-muted-foreground text-center">
+        Case baseado em dados reais de operação Bwild. Resultados variam por unidade, localização e execução.
+      </p>
     </SectionBlock>
   );
 }

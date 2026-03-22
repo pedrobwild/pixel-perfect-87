@@ -51,10 +51,10 @@ const CATEGORIES = [
 const TOTAL_ITEMS = CATEGORIES.reduce((sum, cat) => sum + cat.items.length, 0);
 
 function getTier(score: number) {
-  if (score <= 5) return { label: "Alto risco", color: "text-destructive", stroke: "stroke-destructive", bg: "bg-destructive/10", desc: "Este ativo apresenta muitos pontos de atenção. Aprofunde a análise antes de investir." };
-  if (score <= 9) return { label: "Potencial com ressalvas", color: "text-amber-600", stroke: "stroke-amber-500", bg: "bg-amber-500/10", desc: "Há potencial, mas itens críticos precisam ser resolvidos para viabilizar a operação." };
-  if (score <= 13) return { label: "Boa oportunidade", color: "text-primary/80", stroke: "stroke-primary/70", bg: "bg-primary/10", desc: "Ativo com boa base. Resolva os itens pendentes para maximizar o retorno." };
-  return { label: "Excelente ativo", color: "text-primary", stroke: "stroke-primary", bg: "bg-primary/10", desc: "Ativo muito bem posicionado. Avance com confiança para a fase de operação." };
+  if (score <= 5) return { label: "Alto risco", color: "text-destructive", stroke: "stroke-destructive", bg: "bg-destructive/10", desc: "A unidade tem gaps importantes. Revise antes de avançar." };
+  if (score <= 9) return { label: "Potencial com ressalvas", color: "text-amber-600", stroke: "stroke-amber-500", bg: "bg-amber-500/10", desc: "Há oportunidade, mas itens críticos precisam de atenção." };
+  if (score <= 13) return { label: "Boa oportunidade", color: "text-primary/80", stroke: "stroke-primary/70", bg: "bg-primary/10", desc: "Ativo sólido. Foque nos itens pendentes para maximizar retorno." };
+  return { label: "Excelente ativo", color: "text-primary", stroke: "stroke-primary", bg: "bg-primary/10", desc: "Perfil ideal para short stay. Avance com confiança." };
 }
 
 function ScoreCircle({ score, total }: { score: number; total: number }) {
@@ -111,7 +111,7 @@ export default function EscolhaAtivoSection() {
   return (
     <SectionBlock
       id="escolha-ativo"
-      title="Como Avaliar a Unidade"
+      title="Como avaliar a unidade antes de comprar"
       takeaway="Use este scoring para comparar ativos de forma objetiva antes de tomar a decisão."
     >
       {/* Scoring Checklist */}
