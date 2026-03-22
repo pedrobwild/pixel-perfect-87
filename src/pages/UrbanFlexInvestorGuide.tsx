@@ -320,7 +320,7 @@ function stageTone(value: number) {
 }
 
 function SectionLabel({ children }: { children: ReactNode }) {
-  return <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary/80 mb-3">{children}</p>;
+  return <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[hsl(24,90%,50%)]/80 mb-3">{children}</p>;
 }
 
 function KpiCard({ value, label, highlight = false }: { value: string; label: string; highlight?: boolean }) {
@@ -432,7 +432,7 @@ export default function UrbanFlexInvestorGuide() {
                 className={cn(
                   "rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
                   activeSection === section.id
-                    ? "bg-primary text-primary-foreground"
+                    ? "bg-[hsl(24,90%,50%)] text-white"
                     : "bg-transparent text-muted-foreground hover:text-foreground hover:bg-secondary",
                 )}
               >
@@ -455,7 +455,7 @@ export default function UrbanFlexInvestorGuide() {
                 transition={{ duration: 0.5 }}
               >
                 <div className="flex flex-wrap gap-2 mb-5">
-                  <Badge className="bg-primary/10 text-primary border-primary/20 hover:bg-primary/10">Leal Moreira</Badge>
+                  <Badge className="bg-[hsl(24,90%,50%)]/10 text-[hsl(24,90%,50%)] border-[hsl(24,90%,50%)]/20 hover:bg-[hsl(24,90%,50%)]/10">Leal Moreira</Badge>
                   <Badge variant="outline">LM Urban Flex · Bela Cintra</Badge>
                   <Badge variant="outline">Guia do Investidor</Badge>
                 </div>
@@ -472,7 +472,7 @@ export default function UrbanFlexInvestorGuide() {
                 </p>
 
                 <div className="mt-8 flex flex-col sm:flex-row gap-3">
-                  <Button size="lg" className="min-h-[46px]" onClick={() => scrollTo("simulador")}>
+                  <Button size="lg" className="min-h-[46px] bg-[hsl(24,90%,50%)] hover:bg-[hsl(24,90%,44%)] text-white" onClick={() => scrollTo("simulador")}>
                     <CircleDollarSign className="mr-2 h-4 w-4" />
                     Simular retorno
                   </Button>
@@ -854,7 +854,7 @@ export default function UrbanFlexInvestorGuide() {
                   </div>
 
                   <div className="flex flex-col sm:flex-row gap-3">
-                    <Button size="lg" className="min-h-[46px]" onClick={() => window.open(whatsappLink, "_blank")}>
+                    <Button size="lg" className="min-h-[46px] bg-[hsl(24,90%,50%)] hover:bg-[hsl(24,90%,44%)] text-white" onClick={() => window.open(whatsappLink, "_blank")}>
                       Quero falar sobre essa tipologia
                       <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
@@ -1078,7 +1078,7 @@ export default function UrbanFlexInvestorGuide() {
                     </p>
 
                     <div className="mt-8 flex flex-col sm:flex-row gap-3">
-                      <Button size="lg" className="min-h-[48px]" onClick={() => window.open(whatsappLink, "_blank")}>
+                      <Button size="lg" className="min-h-[48px] bg-[hsl(24,90%,50%)] hover:bg-[hsl(24,90%,44%)] text-white" onClick={() => window.open(whatsappLink, "_blank")}>
                         <MessageCircle className="mr-2 h-4 w-4" />
                         Quero falar com a equipe comercial
                       </Button>
