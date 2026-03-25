@@ -337,7 +337,7 @@ serve(async (req) => {
     const metrics = processMeetings(filteredTranscribes);
 
     // ─── AI ANALYSIS (qualitative layer) ──────────────────────────────
-    const meetingSummaries = allTranscribes.slice(0, 50).map((t: any) => {
+    const meetingSummaries = filteredTranscribes.slice(0, 50).map((t: any) => {
       const reasons = (t.reasons || []).map((r: any) => `[${r.type}] ${r.description}`).join("; ");
       const dominant = extractDominantSentiment(t.sentimentAnalysis?.totalSentiment);
       return `[${t.dateIncluded || "?"}] ${t.title || "?"} | ${Math.round((t.duration || 0) / 60)}min | Sent:${dominant}\nResumo: ${(t.summary || "").replace(/<[^>]*>/g, "").substring(0, 400)}\nObjeções/Pontos: ${reasons || "—"}`;
