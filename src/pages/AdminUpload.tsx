@@ -52,8 +52,14 @@ function buildUploadTargets() {
   return targets;
 }
 
-const uploadTargets = buildUploadTargets();
-  const selectedTip = tipologias.find((t) => t.id === selectedTipologia)!;
+export default function AdminUpload() {
+  const [uploads, setUploads] = useState<UploadItem[]>([]);
+  const [destType, setDestType] = useState<DestType>("projetos3d");
+  const [selectedTarget, setSelectedTarget] = useState(uploadTargets[0].id);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const currentTarget = uploadTargets.find((t) => t.id === selectedTarget) ?? uploadTargets[0];
+  const folder = destType === "plantas" ? "plantas" : currentTarget.folder;
 
   const addFiles = useCallback((files: FileList | File[]) => {
     const items: UploadItem[] = Array.from(files).map((file) => ({
