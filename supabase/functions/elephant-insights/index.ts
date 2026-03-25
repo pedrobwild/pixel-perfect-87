@@ -352,7 +352,7 @@ serve(async (req) => {
           model: "google/gemini-2.5-flash",
           messages: [
             { role: "system", content: STRUCTURED_PROMPT },
-            { role: "user", content: `${allTranscribes.length} transcrições da ${amandaName}:\n\n${meetingSummaries}` },
+            { role: "user", content: `${filteredTranscribes.length} transcrições da ${amandaName}:\n\n${meetingSummaries}` },
           ],
         }),
       });
@@ -391,7 +391,7 @@ serve(async (req) => {
     const responseData = {
       success: true, cached: false,
       amandaName,
-      totalMeetings: allTranscribes.length,
+      totalMeetings: filteredTranscribes.length,
       totalDurationMinutes: metrics.totalDurationMinutes,
       positiveSentimentPct: positivePct,
       latestMeeting: metrics.latestMeeting,
@@ -403,7 +403,7 @@ serve(async (req) => {
       cache_key: CACHE_KEY,
       insights: JSON.stringify(aiDashboard),
       amanda_name: amandaName,
-      total_meetings: allTranscribes.length,
+      total_meetings: filteredTranscribes.length,
       total_duration_minutes: metrics.totalDurationMinutes,
       positive_sentiment_pct: positivePct,
       latest_meeting: metrics.latestMeeting,
