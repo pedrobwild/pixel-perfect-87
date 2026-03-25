@@ -319,12 +319,22 @@ serve(async (req) => {
       page++;
     }
 
-    if (allTranscribes.length === 0) {
+    // Filter out meetings with 0 duration (didn't happen) and specific exclusions
+    const filteredTranscribes = allTranscribes.filter((t: any) => {
+      const durationSec = t.duration || 0;
+      if (durationSec === 0) return false;
+      const title = (t.title || "").toLowerCase();
+      if (title.includes("incorp") && title.includes("joao pedro")) return false;
+      if (title.includes("incorp") && title.includes("joão pedro")) return false;
+      return true;
+    });
+
+    if (filteredTranscribes.length === 0) {
       return new Response(JSON.stringify({ success: true, amandaName, totalMeetings: 0, chartsData: null }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     // ─── EXTRACT REAL METRICS ─────────────────────────────────────────
-    const metrics = processMeetings(allTranscribes);
+    const metrics = processMeetings(filteredTranscribes);
 
     // ─── AI ANALYSIS (qualitative layer) ──────────────────────────────
     const meetingSummaries = allTranscribes.slice(0, 50).map((t: any) => {
