@@ -50,7 +50,8 @@ function buildUploadTargets() {
     }
   }
   return targets;
-}
+
+const uploadTargets = buildUploadTargets();
 
 export default function AdminUpload() {
   const [uploads, setUploads] = useState<UploadItem[]>([]);
@@ -189,25 +190,25 @@ export default function AdminUpload() {
 
         {destType === "projetos3d" && (
           <div>
-            <label className="text-sm font-medium mb-1.5 block">Tipologia de destino</label>
+            <label className="text-sm font-medium mb-1.5 block">Destino do projeto</label>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {tipologias.map((t) => (
+              {uploadTargets.map((t) => (
                 <button
                   key={t.id}
-                  onClick={() => setSelectedTipologia(t.id)}
+                  onClick={() => setSelectedTarget(t.id)}
                   className={`text-left px-3 py-2.5 rounded-lg border text-sm transition-all ${
-                    selectedTipologia === t.id
+                    selectedTarget === t.id
                       ? "border-primary bg-primary/10 text-foreground ring-1 ring-primary"
                       : "border-border bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground"
                   }`}
                 >
-                  <span className="font-medium block">{t.name}</span>
-                  <span className="text-xs opacity-70">{t.area}</span>
+                  <span className="font-medium block">{t.label}</span>
+                  <span className="text-xs opacity-70">{t.sublabel}</span>
                 </button>
               ))}
             </div>
             <p className="text-xs text-muted-foreground mt-2">
-              As imagens enviadas aparecerão no slider de "Visualizar tipologias de projetos" do <strong>{selectedTip.name}</strong>.
+              As imagens enviadas aparecerão na galeria de <strong>{currentTarget.label}</strong>.
             </p>
           </div>
         )}
