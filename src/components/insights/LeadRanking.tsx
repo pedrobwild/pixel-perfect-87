@@ -14,7 +14,7 @@ interface LeadScore {
 }
 
 function getScoreTier(score: number) {
-  if (score >= 75) return { label: "Quente", color: "bg-red-500", textColor: "text-red-700", bgLight: "bg-red-500/10", icon: Flame };
+  if (score >= 75) return { label: "Quente", color: "bg-emerald-500", textColor: "text-emerald-700", bgLight: "bg-emerald-500/10", icon: Flame };
   if (score >= 50) return { label: "Morno", color: "bg-amber-500", textColor: "text-amber-700", bgLight: "bg-amber-500/10", icon: Clock };
   return { label: "Frio", color: "bg-blue-400", textColor: "text-blue-700", bgLight: "bg-blue-400/10", icon: TrendingDown };
 }
@@ -40,7 +40,7 @@ export default function LeadRanking({ leads }: { leads: LeadScore[] }) {
           Ranking de Leads — Prontidão de Compra
           <div className="ml-auto flex items-center gap-2">
             {hot > 0 && (
-              <Badge variant="outline" className="text-[10px] bg-red-500/10 text-red-700 border-red-200">
+              <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-700 border-emerald-200">
                 {hot} quente{hot > 1 ? "s" : ""}
               </Badge>
             )}
@@ -79,7 +79,7 @@ export default function LeadRanking({ leads }: { leads: LeadScore[] }) {
                   <circle
                     cx="18" cy="18" r="15.5"
                     fill="none"
-                    className={lead.score >= 75 ? "stroke-red-500" : lead.score >= 50 ? "stroke-amber-500" : "stroke-blue-400"}
+                    className={lead.score >= 75 ? "stroke-emerald-500" : lead.score >= 50 ? "stroke-amber-500" : "stroke-blue-400"}
                     strokeWidth="3"
                     strokeDasharray={`${lead.score * 0.974} 100`}
                     strokeLinecap="round"
