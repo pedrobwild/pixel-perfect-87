@@ -59,7 +59,7 @@ interface DashboardData {
     priority: string;
     impact: string;
   }[];
-  sentimentSummary: string;
+  sentimentSummary: string | Record<string, unknown>;
   leadScores?: {
     title: string;
     date: string | null;
