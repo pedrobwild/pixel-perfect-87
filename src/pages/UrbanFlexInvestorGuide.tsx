@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { GuideDecisionProvider } from "@/hooks/useGuideDecision";
 import MarketIntelSection from "@/components/MarketIntelSection";
+import EventsCalendar from "@/components/insights/EventsCalendar";
+import RevenueSimulator from "@/components/insights/RevenueSimulator";
 
 import PropertySimuladorSection from "@/components/ferramentas/PropertySimuladorSection";
 import PropertyDiagnosticoSection from "@/components/ferramentas/PropertyDiagnosticoSection";
@@ -352,6 +354,8 @@ export default function UrbanFlexInvestorGuide() {
   const [fitoutInput, setFitoutInput] = useState<string>("");
   const [fixedCostsInput, setFixedCostsInput] = useState<string>("");
   const [furnishingLevel, setFurnishingLevel] = useState<FurnishingLevel>("premium");
+
+  const [eventsData, setEventsData] = useState<any>(null);
 
   const selectedUnit = unitTypes.find((item) => item.id === selectedType) ?? unitTypes[0];
 
@@ -1025,6 +1029,14 @@ export default function UrbanFlexInvestorGuide() {
         <section className="scroll-mt-32">
           <div className="max-w-7xl mx-auto px-4 md:px-6">
             <PropertySimuladorSection />
+          </div>
+        </section>
+
+        {/* Eventos e Simulador de Receita */}
+        <section className="scroll-mt-32 border-t border-border/40 bg-muted/25">
+          <div className="max-w-7xl mx-auto px-4 md:px-6 py-16 md:py-20 space-y-16">
+            <EventsCalendar onDataLoaded={setEventsData} />
+            <RevenueSimulator eventsData={eventsData} />
           </div>
         </section>
 
