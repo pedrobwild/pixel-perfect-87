@@ -41,7 +41,7 @@ export const tipologias: Tipologia[] = [
         variantId: "38-collection",
         label: "Bwild Collection",
         projetosFolder: "projetos3d/38-collection",
-        orcamentoUrl: "https://envision-build-guide.lovable.app/o/2aa034962039?tipologia=Studio%20Confort%20Collection",
+        orcamentoUrl: "https://envision-build-guide.lovable.app/o/7d9a7b268320",
       },
       {
         variantId: "38",
