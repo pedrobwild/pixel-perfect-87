@@ -402,7 +402,10 @@ export default function InsightsDashboard({ data }: { data: DashboardData }) {
       {data.sentimentSummary && (
         <div className="rounded-lg bg-muted/40 border border-border/60 px-5 py-4">
           <p className="text-sm text-muted-foreground leading-relaxed">
-            <span className="font-semibold text-foreground">Sentimento Geral:</span> {data.sentimentSummary}
+            <span className="font-semibold text-foreground">Sentimento Geral:</span>{" "}
+            {typeof data.sentimentSummary === "string"
+              ? data.sentimentSummary
+              : JSON.stringify(data.sentimentSummary)}
           </p>
         </div>
       )}
