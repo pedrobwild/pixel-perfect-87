@@ -50,6 +50,7 @@ function buildUploadTargets() {
     }
   }
   return targets;
+}
 
 const uploadTargets = buildUploadTargets();
 
