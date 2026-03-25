@@ -105,7 +105,7 @@ export default function LeadRanking({ leads }: { leads: LeadScore[] }) {
                     </span>
                   )}
                   <span>{lead.durationMinutes}min</span>
-                  {lead.sentiment && (
+                  {lead.sentiment && typeof lead.sentiment === "string" && (
                     <span>{sentimentLabel[lead.sentiment] || lead.sentiment}</span>
                   )}
                   {lead.objectionCount > 0 && (

@@ -209,7 +209,8 @@ serve(async (req) => {
       let score = 50; // baseline
 
       // Sentiment boost/penalty
-      const sentiment = t.sentimentAnalysis?.totalSentiment;
+      const rawSentiment = t.sentimentAnalysis?.totalSentiment;
+      const sentiment = typeof rawSentiment === "string" ? rawSentiment : null;
       if (sentiment === "positive") score += 20;
       else if (sentiment === "negative") score -= 15;
       else if (sentiment === "neutral") score += 5;
