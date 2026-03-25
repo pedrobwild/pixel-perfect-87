@@ -50,6 +50,7 @@ function buildUploadTargets() {
     }
   }
   return targets;
+}
 
 const uploadTargets = buildUploadTargets();
 
@@ -315,3 +316,4 @@ export default function AdminUpload() {
     </div>
   );
 }
+
