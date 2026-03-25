@@ -1,10 +1,10 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { motion, useInView, AnimatePresence } from "framer-motion";
 import { X, ChevronLeft, ChevronRight, Maximize2, Eye, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { tipologias, getPlantaUrl, getProjetosFolder, getStorageBase } from "@/data/tipologias";
-import type { Tipologia } from "@/data/tipologias";
+import type { Tipologia, TipologiaVariant } from "@/data/tipologias";
 
 function FadeIn({ children, delay = 0, className = "" }: { children: React.ReactNode; delay?: number; className?: string }) {
   const ref = useRef(null);
@@ -28,40 +28,56 @@ export default function PlantasSection() {
   const [galleryIdx, setGalleryIdx] = useState(0);
   const [galleryImages, setGalleryImages] = useState<string[]>([]);
   const [loadingGallery, setLoadingGallery] = useState(false);
+  const [activeVariant, setActiveVariant] = useState<TipologiaVariant | null>(null);
 
   const openPlanta = (p: Tipologia) => {
     setSelected(p);
     setShowGallery(false);
     setGalleryIdx(0);
     setGalleryImages([]);
+    setActiveVariant(null);
   };
 
   const close = () => {
     setSelected(null);
     setShowGallery(false);
     setGalleryImages([]);
+    setActiveVariant(null);
   };
 
-  const loadGalleryImages = async (tipologia: Tipologia) => {
+  const loadGalleryImages = async (folder: string, fallbackUrl: string) => {
     setLoadingGallery(true);
-    const folder = getProjetosFolder(tipologia.id);
     const { data, error } = await supabase.storage.from("images").list(folder, {
       sortBy: { column: "name", order: "asc" },
     });
 
     if (error || !data || data.length === 0) {
-      // Fallback to planta image
-      setGalleryImages([getPlantaUrl(tipologia)]);
+      setGalleryImages([fallbackUrl]);
     } else {
       const base = getStorageBase();
       const urls = data
         .filter((f) => !f.id?.startsWith("."))
         .map((f) => `${base}/${folder}/${f.name}`);
-      setGalleryImages(urls.length > 0 ? urls : [getPlantaUrl(tipologia)]);
+      setGalleryImages(urls.length > 0 ? urls : [fallbackUrl]);
     }
     setLoadingGallery(false);
     setShowGallery(true);
     setGalleryIdx(0);
+  };
+
+  const handleViewProjetos = (tipologia: Tipologia) => {
+    const folder = getProjetosFolder(tipologia.id);
+    loadGalleryImages(folder, getPlantaUrl(tipologia));
+  };
+
+  const handleVariantClick = (variant: TipologiaVariant, tipologia: Tipologia) => {
+    setActiveVariant(variant);
+    loadGalleryImages(variant.projetosFolder, getPlantaUrl(tipologia));
+  };
+
+  const getOrcamentoUrl = (tipologia: Tipologia) => {
+    if (activeVariant) return activeVariant.orcamentoUrl;
+    return `https://envision-build-guide.lovable.app/o/2aa034962039?tipologia=${encodeURIComponent(tipologia.name)}`;
   };
 
   return (
@@ -155,25 +171,57 @@ export default function PlantasSection() {
                       ))}
                     </div>
 
-                    <Button
-                      size="lg"
-                      className="w-full min-h-[48px] mt-4"
-                      disabled={loadingGallery}
-                      onClick={() => loadGalleryImages(selected)}
-                    >
-                      {loadingGallery ? (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      ) : (
-                        <Eye className="mr-2 h-4 w-4" />
-                      )}
-                      Visualizar tipologias de projetos
-                    </Button>
+                    {/* Variant selector or default button */}
+                    {selected.variants && selected.variants.length > 0 ? (
+                      <div className="mt-4 space-y-3">
+                        <p className="text-sm font-medium text-muted-foreground">Escolha a linha de projeto:</p>
+                        <div className="grid grid-cols-2 gap-3">
+                          {selected.variants.map((variant) => (
+                            <Button
+                              key={variant.variantId}
+                              size="lg"
+                              variant={variant.variantId.includes("collection") ? "outline" : "default"}
+                              className={`min-h-[56px] flex flex-col gap-0.5 ${
+                                variant.variantId.includes("collection")
+                                  ? "border-primary/40 hover:bg-primary/5"
+                                  : ""
+                              }`}
+                              disabled={loadingGallery}
+                              onClick={() => handleVariantClick(variant, selected)}
+                            >
+                              {loadingGallery ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <>
+                                  <span className="text-sm font-bold">{variant.label}</span>
+                                  <span className="text-xs opacity-70">Ver projetos 3D</span>
+                                </>
+                              )}
+                            </Button>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <Button
+                        size="lg"
+                        className="w-full min-h-[48px] mt-4"
+                        disabled={loadingGallery}
+                        onClick={() => handleViewProjetos(selected)}
+                      >
+                        {loadingGallery ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <Eye className="mr-2 h-4 w-4" />
+                        )}
+                        Visualizar tipologias de projetos
+                      </Button>
+                    )}
                   </div>
                 </div>
               ) : (
                 <div className="p-6 md:p-8">
                   <button
-                    onClick={() => setShowGallery(false)}
+                    onClick={() => { setShowGallery(false); setActiveVariant(null); }}
                     className="text-sm text-muted-foreground hover:text-foreground transition-colors mb-4 flex items-center gap-1"
                   >
                     <ChevronLeft className="h-4 w-4" />
@@ -182,11 +230,13 @@ export default function PlantasSection() {
 
                   <div className="flex items-start justify-between gap-4 mb-6">
                     <div>
-                      <h3 className="font-display text-xl font-bold text-foreground mb-1">Projetos 3D — {selected.name}</h3>
+                      <h3 className="font-display text-xl font-bold text-foreground mb-1">
+                        {activeVariant ? `${activeVariant.label} — ${selected.name}` : `Projetos 3D — ${selected.name}`}
+                      </h3>
                       <p className="text-sm text-muted-foreground">{selected.area}</p>
                     </div>
                     <a
-                      href={`https://envision-build-guide.lovable.app/o/2aa034962039?tipologia=${encodeURIComponent(selected.name)}`}
+                      href={getOrcamentoUrl(selected)}
                       target="_blank"
                       rel="noopener noreferrer"
                     >
