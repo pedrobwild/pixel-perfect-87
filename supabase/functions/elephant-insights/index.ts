@@ -23,90 +23,250 @@ async function elephanFetch(path: string, apiKey: string) {
   return res.json();
 }
 
-const STRUCTURED_PROMPT = `Você é um analista de inteligência comercial especializado no mercado imobiliário de studios urbanos para investimento (short stay / aluguel por temporada).
+// ─── DATA EXTRACTION (real metrics from API) ────────────────────────────
 
-Analise TODAS as transcrições de reuniões e retorne um JSON válido (sem markdown, sem backticks) com esta estrutura EXATA:
+interface SentimentEntry { sentimental: string; perc: number; total: number; }
+
+function extractDominantSentiment(sentimentData: unknown): string {
+  if (typeof sentimentData === "string") return sentimentData;
+  if (!Array.isArray(sentimentData)) return "unknown";
+  const sorted = [...sentimentData].sort((a: SentimentEntry, b: SentimentEntry) => b.perc - a.perc);
+  return sorted[0]?.sentimental?.toLowerCase() || "unknown";
+}
+
+function extractSentimentBreakdown(sentimentData: unknown): Record<string, number> {
+  if (!Array.isArray(sentimentData)) return {};
+  const result: Record<string, number> = {};
+  for (const entry of sentimentData) {
+    if (entry.sentimental && typeof entry.perc === "number") {
+      result[entry.sentimental.toLowerCase()] = entry.perc;
+    }
+  }
+  return result;
+}
+
+function extractReasonsByType(reasons: any[]): Record<string, any[]> {
+  const grouped: Record<string, any[]> = {};
+  for (const r of reasons || []) {
+    const type = r.type || "other";
+    if (!grouped[type]) grouped[type] = [];
+    grouped[type].push({
+      description: r.description || "",
+      details: r.details || null,
+    });
+  }
+  return grouped;
+}
+
+function extractAnswerMetrics(answers: any[]): { scoreQuestions: any[]; yesNoQuestions: any[]; openQuestions: any[]; avgScore: number | null } {
+  const scoreQuestions: any[] = [];
+  const yesNoQuestions: any[] = [];
+  const openQuestions: any[] = [];
+  const scores: number[] = [];
+
+  for (const a of answers || []) {
+    if (typeof a.score === "number") {
+      scoreQuestions.push({ question: a.question, score: a.score });
+      scores.push(a.score);
+    } else if (a.yesNo !== undefined) {
+      yesNoQuestions.push({ question: a.question, yesNo: a.yesNo === "yes" || a.yesNo === true });
+    } else {
+      openQuestions.push({ question: a.question });
+    }
+  }
+
+  return {
+    scoreQuestions,
+    yesNoQuestions,
+    openQuestions,
+    avgScore: scores.length > 0 ? Math.round((scores.reduce((a, b) => a + b, 0) / scores.length) * 10) / 10 : null,
+  };
+}
+
+function computeLeadScore(t: any): number {
+  let score = 50;
+  const dominant = extractDominantSentiment(t.sentimentAnalysis?.totalSentiment);
+  if (dominant === "positive") score += 20;
+  else if (dominant === "negative") score -= 15;
+  else if (dominant === "neutral") score += 5;
+
+  const durationMin = Math.round((t.duration || 0) / 60);
+  if (durationMin >= 30) score += 10;
+  else if (durationMin >= 15) score += 5;
+  else if (durationMin < 5) score -= 10;
+
+  const reasons = t.reasons || [];
+  const objections = reasons.filter((r: any) => r.type === "objection").length;
+  const positivePoints = reasons.filter((r: any) => r.type === "positive_point").length;
+  const potentialLoss = reasons.filter((r: any) => r.type === "potential_loss").length;
+  score -= objections * 5;
+  score += positivePoints * 4;
+  score -= potentialLoss * 8;
+
+  const competitors = (t.competitors || []).reduce((s: number, c: any) => s + (c.count || 1), 0);
+  score -= competitors * 3;
+
+  const answers = extractAnswerMetrics(t.answers);
+  const yesCount = answers.yesNoQuestions.filter((q: any) => q.yesNo).length;
+  const noCount = answers.yesNoQuestions.filter((q: any) => !q.yesNo).length;
+  score += yesCount * 4;
+  score -= noCount * 3;
+  if (answers.avgScore !== null) score += Math.round((answers.avgScore - 5) * 2);
+
+  return Math.max(0, Math.min(100, score));
+}
+
+function processMeetings(transcribes: any[]) {
+  // Aggregate sentiment across all meetings
+  const sentimentTotals: Record<string, number> = {};
+  let totalDuration = 0;
+  const allReasons: Record<string, any[]> = {};
+  const allCompetitors: Record<string, number> = {};
+  const scoreDistribution = { high: [] as any[], medium: [] as any[], low: [] as any[] };
+  const allAnswerScores: { question: string; scores: number[] }[] = [];
+  const questionScoreMap: Record<string, number[]> = {};
+
+  const leads = transcribes.map((t: any) => {
+    totalDuration += t.duration || 0;
+
+    // Sentiment
+    const breakdown = extractSentimentBreakdown(t.sentimentAnalysis?.totalSentiment);
+    for (const [key, val] of Object.entries(breakdown)) {
+      sentimentTotals[key] = (sentimentTotals[key] || 0) + val;
+    }
+
+    // Reasons grouped by type
+    const grouped = extractReasonsByType(t.reasons);
+    for (const [type, items] of Object.entries(grouped)) {
+      if (!allReasons[type]) allReasons[type] = [];
+      allReasons[type].push(...items);
+    }
+
+    // Competitors
+    for (const c of t.competitors || []) {
+      const name = c.word || c.name || "unknown";
+      allCompetitors[name] = (allCompetitors[name] || 0) + (c.count || 1);
+    }
+
+    // Answer scores
+    const answers = extractAnswerMetrics(t.answers);
+    for (const sq of answers.scoreQuestions) {
+      if (!questionScoreMap[sq.question]) questionScoreMap[sq.question] = [];
+      questionScoreMap[sq.question].push(sq.score);
+    }
+
+    const score = computeLeadScore(t);
+    const dominant = extractDominantSentiment(t.sentimentAnalysis?.totalSentiment);
+    const durationMin = Math.round((t.duration || 0) / 60);
+
+    const lead = {
+      title: t.title || "Reunião sem título",
+      date: t.dateIncluded || null,
+      durationMinutes: durationMin,
+      sentiment: dominant,
+      sentimentBreakdown: breakdown,
+      score,
+      objectionCount: (t.reasons || []).filter((r: any) => r.type === "objection").length,
+      positivePoints: (t.reasons || []).filter((r: any) => r.type === "positive_point").length,
+      competitorMentions: (t.competitors || []).reduce((s: number, c: any) => s + (c.count || 1), 0),
+      summary: t.summary ? t.summary.replace(/<[^>]*>/g, "").substring(0, 300) : null,
+      dealUrl: t.deal?.crmUrl && t.deal.id !== "null" ? t.deal.crmUrl : null,
+      avgAnswerScore: answers.avgScore,
+      yesCount: answers.yesNoQuestions.filter((q: any) => q.yesNo).length,
+      noCount: answers.yesNoQuestions.filter((q: any) => !q.yesNo).length,
+    };
+
+    if (score >= 75) scoreDistribution.high.push(lead);
+    else if (score >= 50) scoreDistribution.medium.push(lead);
+    else scoreDistribution.low.push(lead);
+
+    return lead;
+  }).sort((a: any, b: any) => b.score - a.score);
+
+  // Normalize sentiment across meetings
+  const meetingCount = transcribes.length;
+  const avgSentiment: Record<string, number> = {};
+  for (const [key, val] of Object.entries(sentimentTotals)) {
+    avgSentiment[key] = Math.round(val / meetingCount);
+  }
+
+  // Build aggregated answer scores
+  for (const [question, scores] of Object.entries(questionScoreMap)) {
+    allAnswerScores.push({
+      question,
+      scores,
+    });
+  }
+
+  return {
+    leads,
+    totalDurationMinutes: Math.round(totalDuration / 60),
+    latestMeeting: transcribes[0]?.dateIncluded || null,
+    avgSentiment,
+    reasonsByType: Object.fromEntries(
+      Object.entries(allReasons).map(([type, items]) => [type, { count: items.length, examples: items.slice(0, 3) }])
+    ),
+    competitors: Object.entries(allCompetitors)
+      .map(([name, count]) => ({ name, mentions: count }))
+      .sort((a, b) => b.mentions - a.mentions),
+    scoreDistribution: {
+      hot: scoreDistribution.high.length,
+      warm: scoreDistribution.medium.length,
+      cold: scoreDistribution.low.length,
+    },
+    answerScores: allAnswerScores.map(({ question, scores }) => ({
+      question: question.length > 80 ? question.substring(0, 77) + "…" : question,
+      avg: Math.round((scores.reduce((a, b) => a + b, 0) / scores.length) * 10) / 10,
+      count: scores.length,
+    })).sort((a, b) => b.count - a.count).slice(0, 10),
+  };
+}
+
+// ─── AI ANALYSIS PROMPT ─────────────────────────────────────────────────
+
+const STRUCTURED_PROMPT = `Você é um analista de inteligência comercial da BWild, empresa de reformas de studios para investimento (Airbnb/short stay).
+
+Analise as transcrições e retorne um JSON com esta estrutura. RETORNE APENAS O JSON, sem markdown.
 
 {
   "buyerPersona": {
-    "summary": "Descrição em 2-3 frases do perfil típico do comprador",
-    "ageRange": "Faixa etária predominante",
-    "professions": ["Profissão 1", "Profissão 2", "Profissão 3"],
-    "motivations": ["Motivação 1", "Motivação 2", "Motivação 3"],
-    "avgTicket": "Ticket médio que buscam (ex: R$ 300k - R$ 500k)"
+    "summary": "2-3 frases sobre o perfil típico",
+    "ageRange": "Faixa etária",
+    "professions": ["Prof1", "Prof2"],
+    "motivations": ["Mot1", "Mot2"],
+    "avgTicket": "Ex: R$ 60k - R$ 80k"
   },
   "personalityProfiles": [
-    {
-      "type": "Nome do tipo de personalidade (ex: Analítico, Expressivo, Pragmático, Cauteloso)",
-      "description": "Como esse perfil se comporta nas reuniões",
-      "frequency": "alta/média/baixa",
-      "approachStrategy": "Como o corretor deve adaptar o atendimento para esse perfil",
-      "pitfalls": "O que NÃO fazer com esse perfil"
-    }
+    {"type": "Nome", "description": "Como se comporta", "frequency": "alta/média/baixa", "approachStrategy": "Como atender", "pitfalls": "O que evitar"}
   ],
   "topQuestions": [
-    {
-      "question": "Pergunta frequente feita pelos investidores",
-      "frequency": "alta/média/baixa",
-      "idealAnswer": "Resposta recomendada para o time comercial",
-      "context": "Em que momento da conversa essa pergunta costuma surgir"
-    }
+    {"question": "Pergunta", "frequency": "alta/média/baixa", "idealAnswer": "Resposta", "context": "Quando surge"}
   ],
   "objections": [
-    {
-      "objection": "Descrição curta da objeção",
-      "frequency": "alta/média/baixa",
-      "rebuttal": "Argumento sugerido para contornar esta objeção"
-    }
+    {"objection": "Objeção", "frequency": "alta/média/baixa", "rebuttal": "Argumento"}
   ],
   "hiddenObjections": [
-    {
-      "objection": "Objeção que o cliente não verbaliza diretamente mas demonstra através de comportamento ou perguntas indiretas",
-      "signals": "Como identificar essa objeção oculta (sinais verbais e não-verbais)",
-      "approach": "Estratégia para trazer à tona e resolver essa objeção antes que ela impeça o fechamento"
-    }
+    {"objection": "Objeção oculta", "signals": "Como identificar", "approach": "Como resolver"}
   ],
   "closingArguments": [
-    {
-      "argument": "Argumento que funciona para fechar",
-      "effectiveness": "alta/média",
-      "context": "Em que situação usar este argumento"
-    }
+    {"argument": "Argumento", "effectiveness": "alta/média", "context": "Quando usar"}
   ],
   "buyingSignals": [
-    {
-      "signal": "Comportamento que indica que o lead vai converter",
-      "action": "O que o corretor deve fazer quando identificar este sinal"
-    }
-  ],
-  "competitors": [
-    {
-      "name": "Nome do concorrente",
-      "mentions": 0,
-      "positioning": "Como se posiciona vs nós",
-      "weakness": "Ponto fraco que podemos explorar"
-    }
+    {"signal": "Sinal", "action": "O que fazer"}
   ],
   "actionItems": [
-    {
-      "action": "Ação prática para o time comercial",
-      "priority": "alta/média/baixa",
-      "impact": "Impacto esperado desta ação"
-    }
+    {"action": "Ação", "priority": "alta/média/baixa", "impact": "Impacto"}
   ],
-  "sentimentSummary": "Resumo de 1-2 frases sobre o sentimento geral nas reuniões"
+  "sentimentSummary": "Resumo de 1-2 frases sobre sentimento geral"
 }
 
 REGRAS:
-- Retorne APENAS o JSON, sem texto antes ou depois
-- Use dados concretos das reuniões, nunca invente
-- Mínimo 3 objeções, 3 argumentos de fechamento, 3 sinais de compra, 2 tipos de personalidade, 3 perguntas frequentes, 2 objeções ocultas
-- Ordene por frequência/efetividade (mais importante primeiro)
-- Para personalityProfiles: identifique padrões reais de comportamento dos compradores nas reuniões (analíticos que pedem muitos dados, expressivos que se empolgam rápido, cautelosos que demoram para decidir, etc)
-- Para hiddenObjections: identifique resistências que aparecem de forma indireta (ex: "vou pensar", perguntas excessivas sobre garantias = medo de risco)
-- Para topQuestions: foque nas perguntas que mais se repetem entre diferentes clientes
-- Escreva em português do Brasil
-- Seja direto e acionável`;
+- APENAS JSON, sem texto antes/depois, sem backticks
+- Dados concretos das reuniões, nunca invente
+- Mínimo 3 objeções, 3 argumentos, 3 sinais, 2 perfis, 3 perguntas, 2 ocultas
+- Português do Brasil, direto e acionável`;
+
+// ─── MAIN HANDLER ───────────────────────────────────────────────────────
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -116,16 +276,19 @@ serve(async (req) => {
     const forceRefresh = url.searchParams.get("refresh") === "true";
     const sb = getSupabaseAdmin();
 
+    // Check cache
     if (!forceRefresh) {
       const { data: cached } = await sb.from("elephant_insights_cache").select("*").eq("cache_key", CACHE_KEY).single();
       if (cached) {
-        const age = (Date.now() - new Date(cached.updated_at).getTime()) / 3600000;
-        if (age < CACHE_TTL_HOURS) {
+        const ageHours = (Date.now() - new Date(cached.updated_at).getTime()) / 3600000;
+        if (ageHours < CACHE_TTL_HOURS) {
           return new Response(JSON.stringify({
-            success: true, cached: true, cacheAge: Math.round(age * 60),
-            insights: cached.insights, amandaName: cached.amanda_name,
-            totalMeetings: cached.total_meetings, totalDurationMinutes: cached.total_duration_minutes,
-            positiveSentimentPct: cached.positive_sentiment_pct, latestMeeting: cached.latest_meeting,
+            success: true, cached: true, cacheAge: Math.round(ageHours * 60),
+            amandaName: cached.amanda_name,
+            totalMeetings: cached.total_meetings,
+            totalDurationMinutes: cached.total_duration_minutes,
+            positiveSentimentPct: cached.positive_sentiment_pct,
+            latestMeeting: cached.latest_meeting,
             chartsData: cached.charts_data,
           }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
         }
@@ -137,14 +300,16 @@ serve(async (req) => {
     const lovableKey = Deno.env.get("LOVABLE_API_KEY");
     if (!lovableKey) return new Response(JSON.stringify({ success: false, error: "LOVABLE_API_KEY not configured" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
+    // Find Amanda
     const usersResult = await elephanFetch("/users?limit=100", apiKey);
     const users = usersResult.data || [];
     const amanda = users.find((u: any) => (u.name || "").toLowerCase().includes("amanda") || (u.email || "").toLowerCase().includes("amanda"));
     if (!amanda) return new Response(JSON.stringify({ success: false, error: "Usuário 'Amanda' não encontrado." }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
     const amandaId = amanda.id;
-    const amandaName = amanda.name || amanda.email || "Amanda";
+    const amandaName = amanda.name || "Amanda";
 
+    // Fetch all transcribes
     const allTranscribes: any[] = [];
     let page = 1, hasNext = true;
     while (hasNext) {
@@ -155,125 +320,85 @@ serve(async (req) => {
     }
 
     if (allTranscribes.length === 0) {
-      return new Response(JSON.stringify({ success: true, insights: null, amandaName, totalMeetings: 0, chartsData: null }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ success: true, amandaName, totalMeetings: 0, chartsData: null }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // Build concise summaries for AI
-    const meetingSummaries = allTranscribes.map((t: any) => {
-      const answers = (t.answers || []).map((a: any) => `${a.question}: ${a.yesNo !== undefined ? (a.yesNo ? "Sim" : "Não") : ""} (${a.score ?? "?"})`).join("; ");
-      const competitors = (t.competitors || []).map((c: any) => `${c.word}(${c.count}x)`).join(", ");
+    // ─── EXTRACT REAL METRICS ─────────────────────────────────────────
+    const metrics = processMeetings(allTranscribes);
+
+    // ─── AI ANALYSIS (qualitative layer) ──────────────────────────────
+    const meetingSummaries = allTranscribes.slice(0, 50).map((t: any) => {
       const reasons = (t.reasons || []).map((r: any) => `[${r.type}] ${r.description}`).join("; ");
-      return `[${t.dateIncluded || "?"}] ${t.title || "?"} | ${Math.round((t.duration || 0) / 60)}min | Sent:${t.sentimentAnalysis?.totalSentiment || "?"}\nResumo: ${t.summary || "?"}\nRespostas: ${answers || "—"}\nConcorrentes: ${competitors || "—"}\nObjeções: ${reasons || "—"}`;
+      const dominant = extractDominantSentiment(t.sentimentAnalysis?.totalSentiment);
+      return `[${t.dateIncluded || "?"}] ${t.title || "?"} | ${Math.round((t.duration || 0) / 60)}min | Sent:${dominant}\nResumo: ${(t.summary || "").replace(/<[^>]*>/g, "").substring(0, 400)}\nObjeções/Pontos: ${reasons || "—"}`;
     }).join("\n---\n");
 
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${lovableKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: STRUCTURED_PROMPT },
-          { role: "user", content: `${allTranscribes.length} transcrições da Amanda:\n\n${meetingSummaries}` },
-        ],
-      }),
-    });
-
-    if (!aiResponse.ok) {
-      if (aiResponse.status === 429) return new Response(JSON.stringify({ success: false, error: "Rate limit. Tente novamente." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      if (aiResponse.status === 402) return new Response(JSON.stringify({ success: false, error: "Créditos insuficientes." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      throw new Error(`AI error: ${aiResponse.status}`);
-    }
-
-    const aiData = await aiResponse.json();
-    let rawContent = aiData.choices?.[0]?.message?.content || "";
-    
-    // Strip markdown code fences if present
-    rawContent = rawContent.replace(/^```json?\s*\n?/i, "").replace(/\n?```\s*$/i, "").trim();
-    
-    let dashboard;
+    let aiDashboard = null;
     try {
-      dashboard = JSON.parse(rawContent);
-    } catch {
-      console.error("Failed to parse AI JSON, raw:", rawContent.slice(0, 500));
-      dashboard = null;
-    }
+      const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${lovableKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [
+            { role: "system", content: STRUCTURED_PROMPT },
+            { role: "user", content: `${allTranscribes.length} transcrições da ${amandaName}:\n\n${meetingSummaries}` },
+          ],
+        }),
+      });
 
-    const totalDuration = allTranscribes.reduce((sum: number, t: any) => sum + (t.duration || 0), 0);
-    const sentiments = allTranscribes.map((t: any) => t.sentimentAnalysis?.totalSentiment).filter(Boolean);
-    const positivePct = sentiments.length ? Math.round((sentiments.filter((s: string) => s === "positive").length / sentiments.length) * 100) : null;
-    const totalDurationMinutes = Math.round(totalDuration / 60);
-    const latestMeeting = allTranscribes[0]?.dateIncluded || null;
-
-    // Compute per-meeting lead readiness scores
-    const leadScores = allTranscribes.map((t: any) => {
-      let score = 50; // baseline
-
-      // Sentiment boost/penalty
-      const rawSentiment = t.sentimentAnalysis?.totalSentiment;
-      const sentiment = typeof rawSentiment === "string" ? rawSentiment : null;
-      if (sentiment === "positive") score += 20;
-      else if (sentiment === "negative") score -= 15;
-      else if (sentiment === "neutral") score += 5;
-
-      // Duration factor: longer meetings (>20min) suggest engagement
-      const durationMin = Math.round((t.duration || 0) / 60);
-      if (durationMin >= 30) score += 10;
-      else if (durationMin >= 15) score += 5;
-      else if (durationMin < 5) score -= 10;
-
-      // Objections penalty (reasons array)
-      const objectionCount = (t.reasons || []).length;
-      score -= objectionCount * 5;
-
-      // Competitor mentions penalty
-      const competitorMentions = (t.competitors || []).reduce((s: number, c: any) => s + (c.count || 1), 0);
-      score -= competitorMentions * 3;
-
-      // Positive answers boost
-      const positiveAnswers = (t.answers || []).filter((a: any) => a.yesNo === true).length;
-      const negativeAnswers = (t.answers || []).filter((a: any) => a.yesNo === false).length;
-      score += positiveAnswers * 4;
-      score -= negativeAnswers * 3;
-
-      // Average answer score boost
-      const answerScores = (t.answers || []).map((a: any) => a.score).filter((s: any) => typeof s === "number");
-      if (answerScores.length > 0) {
-        const avgScore = answerScores.reduce((a: number, b: number) => a + b, 0) / answerScores.length;
-        score += Math.round((avgScore - 50) / 5); // normalize around 50
+      if (aiResponse.ok) {
+        const aiData = await aiResponse.json();
+        let rawContent = aiData.choices?.[0]?.message?.content || "";
+        rawContent = rawContent.replace(/^```json?\s*\n?/i, "").replace(/\n?```\s*$/i, "").trim();
+        try { aiDashboard = JSON.parse(rawContent); } catch { console.error("AI JSON parse failed"); }
+      } else if (aiResponse.status === 429) {
+        console.warn("AI rate limited, returning metrics-only dashboard");
+      } else if (aiResponse.status === 402) {
+        console.warn("AI credits insufficient, returning metrics-only dashboard");
       }
-
-      // Clamp 0-100
-      score = Math.max(0, Math.min(100, score));
-
-      return {
-        title: t.title || "Reunião sem título",
-        date: t.dateIncluded || null,
-        durationMinutes: durationMin,
-        sentiment,
-        score,
-        objectionCount,
-        competitorMentions,
-        summary: t.summary || null,
-      };
-    }).sort((a: any, b: any) => b.score - a.score);
-
-    // Merge lead scores into dashboard
-    if (dashboard) {
-      dashboard.leadScores = leadScores;
+    } catch (err) {
+      console.error("AI analysis failed, continuing with metrics:", err);
     }
+
+    // ─── BUILD COMBINED DASHBOARD ─────────────────────────────────────
+    const dashboard = {
+      // Real data from Elephan API
+      metrics: {
+        avgSentiment: metrics.avgSentiment,
+        reasonsByType: metrics.reasonsByType,
+        competitors: metrics.competitors,
+        scoreDistribution: metrics.scoreDistribution,
+        answerScores: metrics.answerScores,
+      },
+      leadScores: metrics.leads,
+      // AI-generated qualitative analysis (may be null if AI failed)
+      ...(aiDashboard || {}),
+    };
+
+    const positivePct = metrics.avgSentiment.positive || null;
 
     const responseData = {
-      success: true, cached: false, insights: rawContent, amandaName,
-      totalMeetings: allTranscribes.length, totalDurationMinutes,
-      positiveSentimentPct: positivePct, latestMeeting,
+      success: true, cached: false,
+      amandaName,
+      totalMeetings: allTranscribes.length,
+      totalDurationMinutes: metrics.totalDurationMinutes,
+      positiveSentimentPct: positivePct,
+      latestMeeting: metrics.latestMeeting,
       chartsData: dashboard,
     };
 
+    // Cache
     await sb.from("elephant_insights_cache").upsert({
-      cache_key: CACHE_KEY, insights: rawContent, amanda_name: amandaName,
-      total_meetings: allTranscribes.length, total_duration_minutes: totalDurationMinutes,
-      positive_sentiment_pct: positivePct, latest_meeting: latestMeeting,
-      charts_data: dashboard, updated_at: new Date().toISOString(),
+      cache_key: CACHE_KEY,
+      insights: JSON.stringify(aiDashboard),
+      amanda_name: amandaName,
+      total_meetings: allTranscribes.length,
+      total_duration_minutes: metrics.totalDurationMinutes,
+      positive_sentiment_pct: positivePct,
+      latest_meeting: metrics.latestMeeting,
+      charts_data: dashboard,
+      updated_at: new Date().toISOString(),
     }, { onConflict: "cache_key" });
 
     return new Response(JSON.stringify(responseData), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
