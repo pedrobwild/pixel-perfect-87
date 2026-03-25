@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Flame, TrendingDown, AlertTriangle, Clock, CalendarRange } from "lucide-react";
 
 interface LeadScore {
@@ -63,72 +64,85 @@ export default function LeadRanking({ leads }: { leads: LeadScore[] }) {
           const TierIcon = tier.icon;
 
           return (
-            <div
-              key={i}
-              className="flex items-center gap-3 rounded-lg border border-border/60 p-3 transition-colors hover:bg-muted/30"
-            >
-              {/* Score */}
-              <div className="relative shrink-0 w-12 h-12 flex items-center justify-center">
-                <svg viewBox="0 0 36 36" className="w-12 h-12 -rotate-90">
-                  <circle
-                    cx="18" cy="18" r="15.5"
-                    fill="none"
-                    stroke="hsl(var(--border))"
-                    strokeWidth="3"
-                  />
-                  <circle
-                    cx="18" cy="18" r="15.5"
-                    fill="none"
-                    className={lead.score >= 75 ? "stroke-emerald-500" : lead.score >= 50 ? "stroke-amber-500" : "stroke-blue-400"}
-                    strokeWidth="3"
-                    strokeDasharray={`${lead.score * 0.974} 100`}
-                    strokeLinecap="round"
-                  />
-                </svg>
-                <span className="absolute text-xs font-bold tabular-nums text-foreground">{lead.score}</span>
-              </div>
-
-              {/* Info */}
-              <div className="flex-1 min-w-0 space-y-1">
-                <div className="flex items-center gap-2">
-                  <p className="text-sm font-medium text-foreground truncate">{lead.title}</p>
-                  <Badge variant="outline" className={`shrink-0 text-[10px] ${tier.bgLight} ${tier.textColor} border-transparent`}>
-                    <TierIcon className="h-2.5 w-2.5 mr-0.5" />
-                    {tier.label}
-                  </Badge>
-                </div>
-                <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
-                  {lead.date && (
-                    <span className="flex items-center gap-1">
-                      <CalendarRange className="h-3 w-3" />
-                      {new Date(lead.date).toLocaleDateString("pt-BR")}
-                    </span>
-                  )}
-                  <span>{lead.durationMinutes}min</span>
-                  {lead.sentiment && typeof lead.sentiment === "string" ? (
-                    <span>{sentimentLabel[lead.sentiment] || lead.sentiment}</span>
-                  ) : (
-                    <span className="text-muted-foreground/40 italic">N/A</span>
-                  )}
-                  {lead.objectionCount > 0 && (
-                    <span className="flex items-center gap-0.5 text-amber-600">
-                      <AlertTriangle className="h-2.5 w-2.5" />
-                      {lead.objectionCount} objeç{lead.objectionCount > 1 ? "ões" : "ão"}
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {/* Score bar */}
-              <div className="hidden sm:block w-24 shrink-0">
-                <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+            <TooltipProvider delayDuration={200}>
+              <Tooltip>
+                <TooltipTrigger asChild>
                   <div
-                    className={`h-full rounded-full transition-all ${tier.color}`}
-                    style={{ width: `${lead.score}%` }}
-                  />
-                </div>
-              </div>
-            </div>
+                    key={i}
+                    className="flex items-center gap-3 rounded-lg border border-border/60 p-3 transition-colors hover:bg-muted/30 cursor-default"
+                  >
+                    {/* Score */}
+                    <div className="relative shrink-0 w-12 h-12 flex items-center justify-center">
+                      <svg viewBox="0 0 36 36" className="w-12 h-12 -rotate-90">
+                        <circle
+                          cx="18" cy="18" r="15.5"
+                          fill="none"
+                          stroke="hsl(var(--border))"
+                          strokeWidth="3"
+                        />
+                        <circle
+                          cx="18" cy="18" r="15.5"
+                          fill="none"
+                          className={lead.score >= 75 ? "stroke-emerald-500" : lead.score >= 50 ? "stroke-amber-500" : "stroke-blue-400"}
+                          strokeWidth="3"
+                          strokeDasharray={`${lead.score * 0.974} 100`}
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                      <span className="absolute text-xs font-bold tabular-nums text-foreground">{lead.score}</span>
+                    </div>
+
+                    {/* Info */}
+                    <div className="flex-1 min-w-0 space-y-1">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium text-foreground truncate">{lead.title}</p>
+                        <Badge variant="outline" className={`shrink-0 text-[10px] ${tier.bgLight} ${tier.textColor} border-transparent`}>
+                          <TierIcon className="h-2.5 w-2.5 mr-0.5" />
+                          {tier.label}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+                        {lead.date && (
+                          <span className="flex items-center gap-1">
+                            <CalendarRange className="h-3 w-3" />
+                            {new Date(lead.date).toLocaleDateString("pt-BR")}
+                          </span>
+                        )}
+                        <span>{lead.durationMinutes}min</span>
+                        {lead.sentiment && typeof lead.sentiment === "string" ? (
+                          <span>{sentimentLabel[lead.sentiment] || lead.sentiment}</span>
+                        ) : (
+                          <span className="text-muted-foreground/40 italic">N/A</span>
+                        )}
+                        {lead.objectionCount > 0 && (
+                          <span className="flex items-center gap-0.5 text-amber-600">
+                            <AlertTriangle className="h-2.5 w-2.5" />
+                            {lead.objectionCount} objeç{lead.objectionCount > 1 ? "ões" : "ão"}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Score bar */}
+                    <div className="hidden sm:block w-24 shrink-0">
+                      <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all ${tier.color}`}
+                          style={{ width: `${lead.score}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-xs text-xs leading-relaxed p-3">
+                  {lead.summary ? (
+                    <p>{lead.summary}</p>
+                  ) : (
+                    <p className="italic text-muted-foreground">Sem resumo disponível para esta reunião.</p>
+                  )}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           );
         })}
       </CardContent>
