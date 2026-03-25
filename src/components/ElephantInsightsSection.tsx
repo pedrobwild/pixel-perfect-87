@@ -9,10 +9,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Users, RefreshCw, Sparkles, CalendarRange, Database, UserCircle } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Loader2, Users, RefreshCw, Sparkles, CalendarRange, Database, UserCircle, ArrowLeftRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import InsightsDashboard from "@/components/insights/InsightsDashboard";
+import CorretorComparison from "@/components/insights/CorretorComparison";
 
 interface InsightsData {
   amandaName: string;
@@ -38,6 +40,7 @@ export default function ElephantInsightsSection() {
   const [corretores, setCorretores] = useState<CorretorUser[]>([]);
   const [selectedCorretor, setSelectedCorretor] = useState<string>("");
   const [loadingUsers, setLoadingUsers] = useState(false);
+  const [viewMode, setViewMode] = useState<"individual" | "comparativo">("individual");
   const { toast } = useToast();
 
   // Load available corretores on mount
@@ -50,13 +53,12 @@ export default function ElephantInsightsSection() {
         );
         if (!error && res?.success && res.users) {
           setCorretores(res.users);
-          // Default to first user
           if (res.users.length > 0) {
             setSelectedCorretor(res.users[0].id);
           }
         }
       } catch {
-        // Silently fail - users can still generate without filter
+        // Silently fail
       } finally {
         setLoadingUsers(false);
       }
@@ -157,117 +159,145 @@ export default function ElephantInsightsSection() {
           </p>
         </div>
         <div className="flex flex-wrap items-end gap-3 shrink-0">
-          {/* Corretor Filter */}
-          <div className="space-y-1.5">
-            <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium flex items-center gap-1">
-              <UserCircle className="h-3 w-3" />
-              Corretor
-            </label>
-            <Select
-              value={selectedCorretor}
-              onValueChange={setSelectedCorretor}
-              disabled={loadingUsers || loading}
-            >
-              <SelectTrigger className="w-[200px] h-10">
-                <SelectValue placeholder={loadingUsers ? "Carregando…" : "Selecione"} />
-              </SelectTrigger>
-              <SelectContent>
-                {corretores.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {/* View Mode Toggle */}
+          <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as any)} className="shrink-0">
+            <TabsList className="h-10">
+              <TabsTrigger value="individual" className="text-xs gap-1.5 px-3">
+                <UserCircle className="h-3.5 w-3.5" />
+                Individual
+              </TabsTrigger>
+              <TabsTrigger value="comparativo" className="text-xs gap-1.5 px-3">
+                <ArrowLeftRight className="h-3.5 w-3.5" />
+                Comparativo
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
 
-          {data && (
-            <Button onClick={() => fetchInsights(true)} disabled={loading} variant="outline" size="lg" className="min-h-[48px]">
-              <RefreshCw className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-              Forçar atualização
-            </Button>
+          {viewMode === "individual" && (
+            <>
+              {/* Corretor Filter */}
+              <div className="space-y-1.5">
+                <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium flex items-center gap-1">
+                  <UserCircle className="h-3 w-3" />
+                  Corretor
+                </label>
+                <Select
+                  value={selectedCorretor}
+                  onValueChange={setSelectedCorretor}
+                  disabled={loadingUsers || loading}
+                >
+                  <SelectTrigger className="w-[200px] h-10">
+                    <SelectValue placeholder={loadingUsers ? "Carregando…" : "Selecione"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {corretores.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {data && (
+                <Button onClick={() => fetchInsights(true)} disabled={loading} variant="outline" size="lg" className="min-h-[48px]">
+                  <RefreshCw className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+                  Forçar atualização
+                </Button>
+              )}
+              <Button onClick={() => fetchInsights(false)} disabled={loading || !selectedCorretor} size="lg" className="min-h-[48px]">
+                {loading ? (
+                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Analisando…</>
+                ) : data ? (
+                  <><RefreshCw className="mr-2 h-4 w-4" />Atualizar</>
+                ) : (
+                  <><Users className="mr-2 h-4 w-4" />Gerar insights</>
+                )}
+              </Button>
+            </>
           )}
-          <Button onClick={() => fetchInsights(false)} disabled={loading || !selectedCorretor} size="lg" className="min-h-[48px]">
-            {loading ? (
-              <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Analisando…</>
-            ) : data ? (
-              <><RefreshCw className="mr-2 h-4 w-4" />Atualizar</>
-            ) : (
-              <><Users className="mr-2 h-4 w-4" />Gerar insights</>
-            )}
-          </Button>
         </div>
       </div>
 
-      {!data && !loading && !initialLoad && (
-        <Card className="border-dashed border-2 border-border/60">
-          <CardContent className="py-16 text-center">
-            <Users className="h-10 w-10 text-muted-foreground/40 mx-auto mb-4" />
-            <p className="text-muted-foreground font-medium mb-1">Nenhum insight carregado</p>
-            <p className="text-sm text-muted-foreground/70 max-w-md mx-auto">
-              Selecione um corretor e clique em "Gerar insights" para analisar as reuniões e gerar o dashboard comercial.
-            </p>
-          </CardContent>
-        </Card>
+      {/* Comparativo Mode */}
+      {viewMode === "comparativo" && (
+        <CorretorComparison corretores={corretores} loadingUsers={loadingUsers} />
       )}
 
-      {loading && !data && (
-        <Card className="border-border/60">
-          <CardContent className="py-16 text-center">
-            <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
-            <p className="text-muted-foreground font-medium">Processando reuniões de {selectedCorretorName}…</p>
-            <p className="text-sm text-muted-foreground/60 mt-1">Extraindo padrões e gerando dashboard. Pode levar até 30s.</p>
-          </CardContent>
-        </Card>
-      )}
-
-      {data && (
-        <div className="space-y-5">
-          <div className="flex items-center gap-3 flex-wrap">
-            <Badge className="bg-primary/10 text-primary border-primary/15 hover:bg-primary/10 text-sm py-1 px-3">
-              <UserCircle className="h-3.5 w-3.5 mr-1.5" />
-              {data.amandaName}
-            </Badge>
-            {data.cached && data.cacheAge !== undefined && (
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <Database className="h-3.5 w-3.5" />
-                <span>Cache de {data.cacheAge < 60 ? `${data.cacheAge}min` : `${Math.round(data.cacheAge / 60)}h`} atrás</span>
-              </div>
-            )}
-          </div>
-
-          {/* Summary KPIs */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            <Card className="border-border/60">
-              <CardContent className="p-4 text-center">
-                <p className="text-2xl font-bold text-primary tabular-nums">{data.totalMeetings}</p>
-                <p className="text-xs text-muted-foreground mt-1">reuniões analisadas</p>
-              </CardContent>
-            </Card>
-            <Card className="border-border/60">
-              <CardContent className="p-4 text-center">
-                <p className="text-2xl font-bold text-foreground tabular-nums">
-                  {data.totalDurationMinutes > 60 ? `${Math.round(data.totalDurationMinutes / 60)}h ${data.totalDurationMinutes % 60}m` : `${data.totalDurationMinutes}m`}
+      {/* Individual Mode */}
+      {viewMode === "individual" && (
+        <>
+          {!data && !loading && !initialLoad && (
+            <Card className="border-dashed border-2 border-border/60">
+              <CardContent className="py-16 text-center">
+                <Users className="h-10 w-10 text-muted-foreground/40 mx-auto mb-4" />
+                <p className="text-muted-foreground font-medium mb-1">Nenhum insight carregado</p>
+                <p className="text-sm text-muted-foreground/70 max-w-md mx-auto">
+                  Selecione um corretor e clique em "Gerar insights" para analisar as reuniões e gerar o dashboard comercial.
                 </p>
-                <p className="text-xs text-muted-foreground mt-1">tempo total gravado</p>
               </CardContent>
             </Card>
-            {data.latestMeeting && (
-              <Card className="border-border/60">
-                <CardContent className="p-4 text-center">
-                  <p className="text-sm font-semibold text-foreground flex items-center justify-center gap-1.5">
-                    <CalendarRange className="h-4 w-4 text-muted-foreground" />
-                    {new Date(data.latestMeeting).toLocaleDateString("pt-BR")}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">última reunião</p>
-                </CardContent>
-              </Card>
-            )}
-          </div>
+          )}
 
-          {/* Dashboard */}
-          {data.dashboard && <InsightsDashboard data={data.dashboard} />}
-        </div>
+          {loading && !data && (
+            <Card className="border-border/60">
+              <CardContent className="py-16 text-center">
+                <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
+                <p className="text-muted-foreground font-medium">Processando reuniões de {selectedCorretorName}…</p>
+                <p className="text-sm text-muted-foreground/60 mt-1">Extraindo padrões e gerando dashboard. Pode levar até 30s.</p>
+              </CardContent>
+            </Card>
+          )}
+
+          {data && (
+            <div className="space-y-5">
+              <div className="flex items-center gap-3 flex-wrap">
+                <Badge className="bg-primary/10 text-primary border-primary/15 hover:bg-primary/10 text-sm py-1 px-3">
+                  <UserCircle className="h-3.5 w-3.5 mr-1.5" />
+                  {data.amandaName}
+                </Badge>
+                {data.cached && data.cacheAge !== undefined && (
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Database className="h-3.5 w-3.5" />
+                    <span>Cache de {data.cacheAge < 60 ? `${data.cacheAge}min` : `${Math.round(data.cacheAge / 60)}h`} atrás</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Summary KPIs */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                <Card className="border-border/60">
+                  <CardContent className="p-4 text-center">
+                    <p className="text-2xl font-bold text-primary tabular-nums">{data.totalMeetings}</p>
+                    <p className="text-xs text-muted-foreground mt-1">reuniões analisadas</p>
+                  </CardContent>
+                </Card>
+                <Card className="border-border/60">
+                  <CardContent className="p-4 text-center">
+                    <p className="text-2xl font-bold text-foreground tabular-nums">
+                      {data.totalDurationMinutes > 60 ? `${Math.round(data.totalDurationMinutes / 60)}h ${data.totalDurationMinutes % 60}m` : `${data.totalDurationMinutes}m`}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">tempo total gravado</p>
+                  </CardContent>
+                </Card>
+                {data.latestMeeting && (
+                  <Card className="border-border/60">
+                    <CardContent className="p-4 text-center">
+                      <p className="text-sm font-semibold text-foreground flex items-center justify-center gap-1.5">
+                        <CalendarRange className="h-4 w-4 text-muted-foreground" />
+                        {new Date(data.latestMeeting).toLocaleDateString("pt-BR")}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">última reunião</p>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+
+              {/* Dashboard */}
+              {data.dashboard && <InsightsDashboard data={data.dashboard} />}
+            </div>
+          )}
+        </>
       )}
     </section>
   );
