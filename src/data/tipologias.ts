@@ -1,3 +1,10 @@
+export interface TipologiaVariant {
+  variantId: string;
+  label: string;
+  projetosFolder: string;
+  orcamentoUrl: string;
+}
+
 export interface Tipologia {
   id: string;
   name: string;
@@ -6,6 +13,7 @@ export interface Tipologia {
   bathrooms: string;
   highlights: string[];
   plantaFile: string; // filename in plantas/ folder
+  variants?: TipologiaVariant[]; // when multiple project lines exist
 }
 
 const STORAGE_BASE = `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/images`;
@@ -28,6 +36,20 @@ export const tipologias: Tipologia[] = [
     bathrooms: "1",
     highlights: ["Living amplo", "Piso chevron", "Cozinha completa"],
     plantaFile: "planta-38m2.png",
+    variants: [
+      {
+        variantId: "38-collection",
+        label: "Bwild Collection",
+        projetosFolder: "projetos3d/38-collection",
+        orcamentoUrl: "https://envision-build-guide.lovable.app/o/2aa034962039?tipologia=Studio%20Confort%20Collection",
+      },
+      {
+        variantId: "38",
+        label: "Bwild Signature",
+        projetosFolder: "projetos3d/38",
+        orcamentoUrl: "https://envision-build-guide.lovable.app/o/2aa034962039?tipologia=Studio%20Confort",
+      },
+    ],
   },
   {
     id: "40",
