@@ -8,7 +8,6 @@ const corsHeaders = {
 };
 
 const ELEPHAN_BASE = "https://api.elephan.dev/v1";
-const CACHE_KEY = "amanda_default";
 const CACHE_TTL_HOURS = 6;
 
 function getSupabaseAdmin() {
@@ -117,38 +116,32 @@ function computeLeadScore(t: any): number {
 }
 
 function processMeetings(transcribes: any[]) {
-  // Aggregate sentiment across all meetings
   const sentimentTotals: Record<string, number> = {};
   let totalDuration = 0;
   const allReasons: Record<string, any[]> = {};
   const allCompetitors: Record<string, number> = {};
   const scoreDistribution = { high: [] as any[], medium: [] as any[], low: [] as any[] };
-  const allAnswerScores: { question: string; scores: number[] }[] = [];
   const questionScoreMap: Record<string, number[]> = {};
 
   const leads = transcribes.map((t: any) => {
     totalDuration += t.duration || 0;
 
-    // Sentiment
     const breakdown = extractSentimentBreakdown(t.sentimentAnalysis?.totalSentiment);
     for (const [key, val] of Object.entries(breakdown)) {
       sentimentTotals[key] = (sentimentTotals[key] || 0) + val;
     }
 
-    // Reasons grouped by type
     const grouped = extractReasonsByType(t.reasons);
     for (const [type, items] of Object.entries(grouped)) {
       if (!allReasons[type]) allReasons[type] = [];
       allReasons[type].push(...items);
     }
 
-    // Competitors
     for (const c of t.competitors || []) {
       const name = c.word || c.name || "unknown";
       allCompetitors[name] = (allCompetitors[name] || 0) + (c.count || 1);
     }
 
-    // Answer scores
     const answers = extractAnswerMetrics(t.answers);
     for (const sq of answers.scoreQuestions) {
       if (!questionScoreMap[sq.question]) questionScoreMap[sq.question] = [];
@@ -183,19 +176,15 @@ function processMeetings(transcribes: any[]) {
     return lead;
   }).sort((a: any, b: any) => b.score - a.score);
 
-  // Normalize sentiment across meetings
   const meetingCount = transcribes.length;
   const avgSentiment: Record<string, number> = {};
   for (const [key, val] of Object.entries(sentimentTotals)) {
     avgSentiment[key] = Math.round(val / meetingCount);
   }
 
-  // Build aggregated answer scores
+  const allAnswerScores: { question: string; scores: number[] }[] = [];
   for (const [question, scores] of Object.entries(questionScoreMap)) {
-    allAnswerScores.push({
-      question,
-      scores,
-    });
+    allAnswerScores.push({ question, scores });
   }
 
   return {
@@ -273,12 +262,56 @@ serve(async (req) => {
 
   try {
     const url = new URL(req.url);
+    const action = url.searchParams.get("action");
     const forceRefresh = url.searchParams.get("refresh") === "true";
+    const userId = url.searchParams.get("userId");
     const sb = getSupabaseAdmin();
+
+    const apiKey = Deno.env.get("ASKELEPHANT_API_KEY");
+    if (!apiKey) return new Response(JSON.stringify({ success: false, error: "ASKELEPHANT_API_KEY not configured" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+    // ─── LIST USERS ENDPOINT ──────────────────────────────────────
+    if (action === "list-users") {
+      const usersResult = await elephanFetch("/users?limit=100", apiKey);
+      const users = (usersResult.data || []).map((u: any) => ({
+        id: u.id,
+        name: u.name || u.email || "Sem nome",
+        email: u.email || null,
+      }));
+      return new Response(JSON.stringify({ success: true, users }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    // ─── INSIGHTS ENDPOINT ────────────────────────────────────────
+    const lovableKey = Deno.env.get("LOVABLE_API_KEY");
+    if (!lovableKey) return new Response(JSON.stringify({ success: false, error: "LOVABLE_API_KEY not configured" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+    // Resolve target user
+    let targetUserId: string;
+    let targetUserName: string;
+
+    if (userId) {
+      // Specific user requested
+      const usersResult = await elephanFetch("/users?limit=100", apiKey);
+      const users = usersResult.data || [];
+      const found = users.find((u: any) => u.id === userId);
+      if (!found) return new Response(JSON.stringify({ success: false, error: "Usuário não encontrado." }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      targetUserId = found.id;
+      targetUserName = found.name || found.email || "Corretor";
+    } else {
+      // Default: find Amanda
+      const usersResult = await elephanFetch("/users?limit=100", apiKey);
+      const users = usersResult.data || [];
+      const amanda = users.find((u: any) => (u.name || "").toLowerCase().includes("amanda") || (u.email || "").toLowerCase().includes("amanda"));
+      if (!amanda) return new Response(JSON.stringify({ success: false, error: "Usuário 'Amanda' não encontrado." }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      targetUserId = amanda.id;
+      targetUserName = amanda.name || "Amanda";
+    }
+
+    const cacheKey = `user_${targetUserId}`;
 
     // Check cache
     if (!forceRefresh) {
-      const { data: cached } = await sb.from("elephant_insights_cache").select("*").eq("cache_key", CACHE_KEY).single();
+      const { data: cached } = await sb.from("elephant_insights_cache").select("*").eq("cache_key", cacheKey).single();
       if (cached) {
         const ageHours = (Date.now() - new Date(cached.updated_at).getTime()) / 3600000;
         if (ageHours < CACHE_TTL_HOURS) {
@@ -295,25 +328,11 @@ serve(async (req) => {
       }
     }
 
-    const apiKey = Deno.env.get("ASKELEPHANT_API_KEY");
-    if (!apiKey) return new Response(JSON.stringify({ success: false, error: "ASKELEPHANT_API_KEY not configured" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    const lovableKey = Deno.env.get("LOVABLE_API_KEY");
-    if (!lovableKey) return new Response(JSON.stringify({ success: false, error: "LOVABLE_API_KEY not configured" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-
-    // Find Amanda
-    const usersResult = await elephanFetch("/users?limit=100", apiKey);
-    const users = usersResult.data || [];
-    const amanda = users.find((u: any) => (u.name || "").toLowerCase().includes("amanda") || (u.email || "").toLowerCase().includes("amanda"));
-    if (!amanda) return new Response(JSON.stringify({ success: false, error: "Usuário 'Amanda' não encontrado." }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-
-    const amandaId = amanda.id;
-    const amandaName = amanda.name || "Amanda";
-
-    // Fetch all transcribes
+    // Fetch all transcribes for target user
     const allTranscribes: any[] = [];
     let page = 1, hasNext = true;
     while (hasNext) {
-      const result = await elephanFetch(`/transcribes?userId=${amandaId}&limit=100&page=${page}`, apiKey);
+      const result = await elephanFetch(`/transcribes?userId=${targetUserId}&limit=100&page=${page}`, apiKey);
       allTranscribes.push(...(result.data || []));
       hasNext = result.pagination?.hasNext === true;
       page++;
@@ -330,7 +349,7 @@ serve(async (req) => {
     });
 
     if (filteredTranscribes.length === 0) {
-      return new Response(JSON.stringify({ success: true, amandaName, totalMeetings: 0, chartsData: null }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ success: true, amandaName: targetUserName, totalMeetings: 0, chartsData: null }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     // ─── EXTRACT REAL METRICS ─────────────────────────────────────────
@@ -352,7 +371,7 @@ serve(async (req) => {
           model: "google/gemini-2.5-flash",
           messages: [
             { role: "system", content: STRUCTURED_PROMPT },
-            { role: "user", content: `${filteredTranscribes.length} transcrições da ${amandaName}:\n\n${meetingSummaries}` },
+            { role: "user", content: `${filteredTranscribes.length} transcrições da ${targetUserName}:\n\n${meetingSummaries}` },
           ],
         }),
       });
@@ -373,7 +392,6 @@ serve(async (req) => {
 
     // ─── BUILD COMBINED DASHBOARD ─────────────────────────────────────
     const dashboard = {
-      // Real data from Elephan API
       metrics: {
         avgSentiment: metrics.avgSentiment,
         reasonsByType: metrics.reasonsByType,
@@ -382,7 +400,6 @@ serve(async (req) => {
         answerScores: metrics.answerScores,
       },
       leadScores: metrics.leads,
-      // AI-generated qualitative analysis (may be null if AI failed)
       ...(aiDashboard || {}),
     };
 
@@ -390,7 +407,7 @@ serve(async (req) => {
 
     const responseData = {
       success: true, cached: false,
-      amandaName,
+      amandaName: targetUserName,
       totalMeetings: filteredTranscribes.length,
       totalDurationMinutes: metrics.totalDurationMinutes,
       positiveSentimentPct: positivePct,
@@ -398,11 +415,11 @@ serve(async (req) => {
       chartsData: dashboard,
     };
 
-    // Cache
+    // Cache per user
     await sb.from("elephant_insights_cache").upsert({
-      cache_key: CACHE_KEY,
+      cache_key: cacheKey,
       insights: JSON.stringify(aiDashboard),
-      amanda_name: amandaName,
+      amanda_name: targetUserName,
       total_meetings: filteredTranscribes.length,
       total_duration_minutes: metrics.totalDurationMinutes,
       positive_sentiment_pct: positivePct,
