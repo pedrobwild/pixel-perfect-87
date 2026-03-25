@@ -20,13 +20,39 @@ type DestType = "plantas" | "projetos3d";
 const BUCKET = "images";
 const MAX_SIZE = 500 * 1024 * 1024;
 
-export default function AdminUpload() {
-  const [uploads, setUploads] = useState<UploadItem[]>([]);
-  const [destType, setDestType] = useState<DestType>("projetos3d");
-  const [selectedTipologia, setSelectedTipologia] = useState(tipologias[0].id);
-  const [isDragging, setIsDragging] = useState(false);
+// Build upload targets: each tipologia + its variants as separate targets
+interface UploadTarget {
+  id: string;
+  label: string;
+  sublabel: string;
+  folder: string;
+}
 
-  const folder = destType === "plantas" ? "plantas" : getProjetosFolder(selectedTipologia);
+function buildUploadTargets() {
+  const targets: UploadTarget[] = [];
+  for (const t of tipologias) {
+    if (t.variants && t.variants.length > 0) {
+      for (const v of t.variants) {
+        targets.push({
+          id: v.variantId,
+          label: `${t.name} — ${v.label}`,
+          sublabel: t.area,
+          folder: v.projetosFolder,
+        });
+      }
+    } else {
+      targets.push({
+        id: t.id,
+        label: t.name,
+        sublabel: t.area,
+        folder: getProjetosFolder(t.id),
+      });
+    }
+  }
+  return targets;
+}
+
+const uploadTargets = buildUploadTargets();
   const selectedTip = tipologias.find((t) => t.id === selectedTipologia)!;
 
   const addFiles = useCallback((files: FileList | File[]) => {
