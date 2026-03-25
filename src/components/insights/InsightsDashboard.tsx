@@ -4,80 +4,17 @@ import {
   UserCheck, ShieldAlert, Target, Eye, Swords, Zap,
   ArrowRight, AlertTriangle, CheckCircle2, TrendingUp,
   HelpCircle, EyeOff, Brain, Ban, MessageCircleQuestion,
+  BarChart3, ThumbsUp, ThumbsDown, Minus, Activity,
 } from "lucide-react";
 import ScriptBuilder from "./ScriptBuilder";
 import LeadRanking from "./LeadRanking";
 
-/** Safely convert any value to a renderable string — prevents React error #31 */
+/** Safely convert any value to a renderable string */
 function safeText(value: unknown): string {
   if (value === null || value === undefined) return "";
   if (typeof value === "string") return value;
   if (typeof value === "number" || typeof value === "boolean") return String(value);
   return JSON.stringify(value);
-}
-
-interface DashboardData {
-  buyerPersona: {
-    summary: string;
-    ageRange: string;
-    professions: string[];
-    motivations: string[];
-    avgTicket: string;
-  };
-  personalityProfiles?: {
-    type: string;
-    description: string;
-    frequency: string;
-    approachStrategy: string;
-    pitfalls: string;
-  }[];
-  topQuestions?: {
-    question: string;
-    frequency: string;
-    idealAnswer: string;
-    context: string;
-  }[];
-  objections: {
-    objection: string;
-    frequency: string;
-    rebuttal: string;
-  }[];
-  hiddenObjections?: {
-    objection: string;
-    signals: string;
-    approach: string;
-  }[];
-  closingArguments: {
-    argument: string;
-    effectiveness: string;
-    context: string;
-  }[];
-  buyingSignals: {
-    signal: string;
-    action: string;
-  }[];
-  competitors: {
-    name: string;
-    mentions: number;
-    positioning: string;
-    weakness: string;
-  }[];
-  actionItems: {
-    action: string;
-    priority: string;
-    impact: string;
-  }[];
-  sentimentSummary: string | Record<string, unknown>;
-  leadScores?: {
-    title: string;
-    date: string | null;
-    durationMinutes: number;
-    sentiment: string | null;
-    score: number;
-    objectionCount: number;
-    competitorMentions: number;
-    summary: string | null;
-  }[];
 }
 
 const freqColor: Record<string, string> = {
@@ -92,11 +29,169 @@ const priorityColor: Record<string, string> = {
   baixa: "bg-muted text-muted-foreground border-border",
 };
 
+const sentimentConfig: Record<string, { label: string; color: string; icon: typeof ThumbsUp }> = {
+  positive: { label: "Positivo", color: "text-emerald-600", icon: ThumbsUp },
+  neutral: { label: "Neutro", color: "text-muted-foreground", icon: Minus },
+  negative: { label: "Negativo", color: "text-red-600", icon: ThumbsDown },
+  mixed: { label: "Misto", color: "text-amber-600", icon: Activity },
+};
+
+const reasonTypeLabels: Record<string, { label: string; color: string }> = {
+  objection: { label: "Objeções", color: "bg-red-500" },
+  positive_point: { label: "Pontos Positivos", color: "bg-emerald-500" },
+  objection_handling: { label: "Contornos", color: "bg-blue-500" },
+  potential_loss: { label: "Riscos de Perda", color: "bg-amber-500" },
+  future_promise: { label: "Próximos Passos", color: "bg-violet-500" },
+  score_conversion: { label: "Score de Conversão", color: "bg-primary" },
+};
+
 export default function InsightsDashboard({ data }: { data: any }) {
   if (!data) return null;
 
+  const metrics = data.metrics;
+
   return (
     <div className="space-y-6">
+      {/* ─── REAL METRICS FROM API ─────────────────────────────────── */}
+
+      {/* Sentiment Breakdown */}
+      {metrics?.avgSentiment && Object.keys(metrics.avgSentiment).length > 0 && (
+        <Card className="border-border/60 overflow-hidden">
+          <CardHeader className="pb-3 bg-muted/30">
+            <CardTitle className="text-base flex items-center gap-2">
+              <BarChart3 className="h-4.5 w-4.5 text-primary" />
+              Sentimento Médio das Reuniões
+              <Badge variant="outline" className="ml-auto text-xs font-normal">dados reais</Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-4">
+            <div className="space-y-2.5">
+              {Object.entries(metrics.avgSentiment)
+                .sort(([, a]: any, [, b]: any) => b - a)
+                .map(([key, pct]: [string, any]) => {
+                  const config = sentimentConfig[key] || { label: key, color: "text-muted-foreground", icon: Minus };
+                  const Icon = config.icon;
+                  return (
+                    <div key={key} className="flex items-center gap-3">
+                      <div className="flex items-center gap-1.5 w-24 shrink-0">
+                        <Icon className={`h-3.5 w-3.5 ${config.color}`} />
+                        <span className="text-xs font-medium text-foreground">{config.label}</span>
+                      </div>
+                      <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all ${key === "positive" ? "bg-emerald-500" : key === "negative" ? "bg-red-400" : key === "mixed" ? "bg-amber-400" : "bg-muted-foreground/30"}`}
+                          style={{ width: `${Math.min(pct, 100)}%` }}
+                        />
+                      </div>
+                      <span className="text-xs font-bold tabular-nums text-foreground w-10 text-right">{pct}%</span>
+                    </div>
+                  );
+                })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Reasons by Type */}
+      {metrics?.reasonsByType && Object.keys(metrics.reasonsByType).length > 0 && (
+        <Card className="border-border/60 overflow-hidden">
+          <CardHeader className="pb-3 bg-muted/30">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Activity className="h-4.5 w-4.5 text-primary" />
+              Análise de Interações
+              <Badge variant="outline" className="ml-auto text-xs font-normal">dados reais</Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
+              {Object.entries(metrics.reasonsByType)
+                .sort(([, a]: any, [, b]: any) => b.count - a.count)
+                .map(([type, data]: [string, any]) => {
+                  const config = reasonTypeLabels[type] || { label: type, color: "bg-muted-foreground" };
+                  return (
+                    <div key={type} className="rounded-lg border border-border/60 p-3 text-center">
+                      <div className={`inline-block h-2 w-2 rounded-full ${config.color} mb-1.5`} />
+                      <p className="text-xl font-bold tabular-nums text-foreground">{data.count}</p>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{config.label}</p>
+                    </div>
+                  );
+                })}
+            </div>
+            {/* Show top examples from objections */}
+            {metrics.reasonsByType.objection?.examples?.length > 0 && (
+              <div className="space-y-2 pt-2 border-t border-border/40">
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground/70 font-medium">Top objeções reais</p>
+                {metrics.reasonsByType.objection.examples.map((ex: any, i: number) => (
+                  <div key={i} className="flex items-start gap-2">
+                    <AlertTriangle className="h-3.5 w-3.5 text-amber-500 mt-0.5 shrink-0" />
+                    <p className="text-xs text-muted-foreground leading-relaxed">{safeText(ex.description)}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Answer Score Averages */}
+      {metrics?.answerScores?.length > 0 && (
+        <Card className="border-border/60 overflow-hidden">
+          <CardHeader className="pb-3 bg-muted/30">
+            <CardTitle className="text-base flex items-center gap-2">
+              <BarChart3 className="h-4.5 w-4.5 text-primary" />
+              Performance por Critério
+              <Badge variant="outline" className="ml-auto text-xs font-normal">média das reuniões</Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-4 space-y-3">
+            {metrics.answerScores.map((item: any, i: number) => (
+              <div key={i} className="space-y-1">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-xs text-muted-foreground leading-snug flex-1 min-w-0 truncate">{safeText(item.question)}</p>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-[10px] text-muted-foreground/60">{item.count}x</span>
+                    <span className={`text-sm font-bold tabular-nums ${item.avg >= 7 ? "text-emerald-600" : item.avg >= 5 ? "text-amber-600" : "text-red-600"}`}>
+                      {item.avg}/10
+                    </span>
+                  </div>
+                </div>
+                <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                  <div
+                    className={`h-full rounded-full ${item.avg >= 7 ? "bg-emerald-500" : item.avg >= 5 ? "bg-amber-400" : "bg-red-400"}`}
+                    style={{ width: `${item.avg * 10}%` }}
+                  />
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Competitors from real data */}
+      {metrics?.competitors?.length > 0 && (
+        <Card className="border-border/60 overflow-hidden">
+          <CardHeader className="pb-3 bg-muted/30">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Swords className="h-4.5 w-4.5 text-primary" />
+              Concorrentes Mencionados
+              <Badge variant="outline" className="ml-auto text-xs font-normal">dados reais</Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-4">
+            <div className="flex flex-wrap gap-2">
+              {metrics.competitors.map((c: any, i: number) => (
+                <Badge key={i} variant="secondary" className="text-xs gap-1.5 py-1.5 px-3">
+                  {safeText(c.name)}
+                  <span className="text-[10px] font-bold text-muted-foreground">{c.mentions}x</span>
+                </Badge>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* ─── AI-GENERATED QUALITATIVE ANALYSIS ────────────────────── */}
+
       {/* Buyer Persona */}
       {data.buyerPersona && (
         <Card className="border-border/60 overflow-hidden">
@@ -104,6 +199,7 @@ export default function InsightsDashboard({ data }: { data: any }) {
             <CardTitle className="text-base flex items-center gap-2">
               <UserCheck className="h-4.5 w-4.5 text-primary" />
               Perfil do Comprador Ideal
+              <Badge variant="outline" className="ml-auto text-xs font-normal">análise IA</Badge>
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-4 space-y-4">
@@ -148,7 +244,7 @@ export default function InsightsDashboard({ data }: { data: any }) {
           <CardHeader className="pb-3 bg-muted/30">
             <CardTitle className="text-base flex items-center gap-2">
               <Brain className="h-4.5 w-4.5 text-primary" />
-              Perfis de Personalidade Identificados
+              Perfis de Personalidade
               <Badge variant="outline" className="ml-auto text-xs font-normal">{data.personalityProfiles.length} perfis</Badge>
             </CardTitle>
           </CardHeader>
@@ -197,7 +293,7 @@ export default function InsightsDashboard({ data }: { data: any }) {
           <CardHeader className="pb-3 bg-muted/30">
             <CardTitle className="text-base flex items-center gap-2">
               <MessageCircleQuestion className="h-4.5 w-4.5 text-primary" />
-              Perguntas Mais Frequentes dos Investidores
+              Perguntas Frequentes
               <Badge variant="outline" className="ml-auto text-xs font-normal">{data.topQuestions.length} perguntas</Badge>
             </CardTitle>
           </CardHeader>
@@ -228,13 +324,13 @@ export default function InsightsDashboard({ data }: { data: any }) {
         </Card>
       )}
 
-      {/* Objections + Rebuttals */}
+      {/* Objections */}
       {Array.isArray(data.objections) && data.objections.length > 0 && (
         <Card className="border-border/60 overflow-hidden">
           <CardHeader className="pb-3 bg-muted/30">
             <CardTitle className="text-base flex items-center gap-2">
               <ShieldAlert className="h-4.5 w-4.5 text-primary" />
-              Objeções Explícitas e Como Contornar
+              Objeções e Contornos
               <Badge variant="outline" className="ml-auto text-xs font-normal">{data.objections.length} objeções</Badge>
             </CardTitle>
           </CardHeader>
@@ -345,39 +441,6 @@ export default function InsightsDashboard({ data }: { data: any }) {
           </Card>
         )}
       </div>
-
-      {/* Competitors */}
-      {Array.isArray(data.competitors) && data.competitors.length > 0 && (
-        <Card className="border-border/60 overflow-hidden">
-          <CardHeader className="pb-3 bg-muted/30">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Swords className="h-4.5 w-4.5 text-primary" />
-              Mapa Competitivo
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {data.competitors.map((c: any, i: number) => (
-                <div key={i} className="rounded-lg border border-border/60 p-3.5 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm font-semibold text-foreground">{safeText(c.name)}</p>
-                    {c.mentions > 0 && (
-                      <Badge variant="secondary" className="text-[10px]">{c.mentions}x mencionado</Badge>
-                    )}
-                  </div>
-                  <p className="text-xs text-muted-foreground leading-relaxed">{safeText(c.positioning)}</p>
-                  {c.weakness && (
-                    <p className="text-xs leading-relaxed">
-                      <span className="font-medium text-primary">Ponto fraco:</span>{" "}
-                      <span className="text-muted-foreground">{safeText(c.weakness)}</span>
-                    </p>
-                  )}
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Action Items */}
       {Array.isArray(data.actionItems) && data.actionItems.length > 0 && (
