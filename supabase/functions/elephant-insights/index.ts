@@ -319,15 +319,25 @@ serve(async (req) => {
       page++;
     }
 
-    if (allTranscribes.length === 0) {
+    // Filter out meetings with 0 duration (didn't happen) and specific exclusions
+    const filteredTranscribes = allTranscribes.filter((t: any) => {
+      const durationSec = t.duration || 0;
+      if (durationSec === 0) return false;
+      const title = (t.title || "").toLowerCase();
+      if (title.includes("incorp") && title.includes("joao pedro")) return false;
+      if (title.includes("incorp") && title.includes("joão pedro")) return false;
+      return true;
+    });
+
+    if (filteredTranscribes.length === 0) {
       return new Response(JSON.stringify({ success: true, amandaName, totalMeetings: 0, chartsData: null }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     // ─── EXTRACT REAL METRICS ─────────────────────────────────────────
-    const metrics = processMeetings(allTranscribes);
+    const metrics = processMeetings(filteredTranscribes);
 
     // ─── AI ANALYSIS (qualitative layer) ──────────────────────────────
-    const meetingSummaries = allTranscribes.slice(0, 50).map((t: any) => {
+    const meetingSummaries = filteredTranscribes.slice(0, 50).map((t: any) => {
       const reasons = (t.reasons || []).map((r: any) => `[${r.type}] ${r.description}`).join("; ");
       const dominant = extractDominantSentiment(t.sentimentAnalysis?.totalSentiment);
       return `[${t.dateIncluded || "?"}] ${t.title || "?"} | ${Math.round((t.duration || 0) / 60)}min | Sent:${dominant}\nResumo: ${(t.summary || "").replace(/<[^>]*>/g, "").substring(0, 400)}\nObjeções/Pontos: ${reasons || "—"}`;
@@ -342,7 +352,7 @@ serve(async (req) => {
           model: "google/gemini-2.5-flash",
           messages: [
             { role: "system", content: STRUCTURED_PROMPT },
-            { role: "user", content: `${allTranscribes.length} transcrições da ${amandaName}:\n\n${meetingSummaries}` },
+            { role: "user", content: `${filteredTranscribes.length} transcrições da ${amandaName}:\n\n${meetingSummaries}` },
           ],
         }),
       });
@@ -381,7 +391,7 @@ serve(async (req) => {
     const responseData = {
       success: true, cached: false,
       amandaName,
-      totalMeetings: allTranscribes.length,
+      totalMeetings: filteredTranscribes.length,
       totalDurationMinutes: metrics.totalDurationMinutes,
       positiveSentimentPct: positivePct,
       latestMeeting: metrics.latestMeeting,
@@ -393,7 +403,7 @@ serve(async (req) => {
       cache_key: CACHE_KEY,
       insights: JSON.stringify(aiDashboard),
       amanda_name: amandaName,
-      total_meetings: allTranscribes.length,
+      total_meetings: filteredTranscribes.length,
       total_duration_minutes: metrics.totalDurationMinutes,
       positive_sentiment_pct: positivePct,
       latest_meeting: metrics.latestMeeting,
