@@ -6,6 +6,7 @@ import {
   CalendarCheck, MessageSquare, Trophy, Package, BadgeCheck, Users, Clock, Phone,
   Calculator, Building2, PieChart, Megaphone,
 } from "lucide-react";
+import { DISTRICTS_MOCK, type DistrictRow } from "@/data/districtMetrics";
 
 /* ─── Phases (4 macro-blocks) ─── */
 export const PHASES = [
@@ -15,19 +16,33 @@ export const PHASES = [
   { number: 4, label: "Como agir com confiança", description: "Anúncio, precificação, evidências e próximo passo" },
 ] as const;
 
-/* ─── Bairro fallback data ─── */
-export const BAIRRO_DATA = [
-  { name: "Vila Mariana", dailyMin: 280, dailyMax: 420, avgOccupancy: 80, perSqm: 9.5, avgBySize: { "20–25 m²": 260, "26–35 m²": 330, "36–50 m²": 410 } },
-  { name: "Pinheiros", dailyMin: 320, dailyMax: 480, avgOccupancy: 82, perSqm: 11, avgBySize: { "20–25 m²": 300, "26–35 m²": 380, "36–50 m²": 470 } },
-  { name: "Consolação", dailyMin: 260, dailyMax: 390, avgOccupancy: 76, perSqm: 8.8, avgBySize: { "20–25 m²": 240, "26–35 m²": 310, "36–50 m²": 380 } },
-  { name: "Bela Vista", dailyMin: 240, dailyMax: 370, avgOccupancy: 74, perSqm: 8.2, avgBySize: { "20–25 m²": 220, "26–35 m²": 290, "36–50 m²": 360 } },
-  { name: "Itaim Bibi", dailyMin: 350, dailyMax: 520, avgOccupancy: 78, perSqm: 12, avgBySize: { "20–25 m²": 330, "26–35 m²": 420, "36–50 m²": 510 } },
-  { name: "Moema", dailyMin: 300, dailyMax: 450, avgOccupancy: 77, perSqm: 10.5, avgBySize: { "20–25 m²": 280, "26–35 m²": 360, "36–50 m²": 440 } },
-  { name: "Brooklin", dailyMin: 290, dailyMax: 430, avgOccupancy: 75, perSqm: 9.8, avgBySize: { "20–25 m²": 270, "26–35 m²": 350, "36–50 m²": 420 } },
-  { name: "República", dailyMin: 200, dailyMax: 310, avgOccupancy: 72, perSqm: 7.2, avgBySize: { "20–25 m²": 185, "26–35 m²": 245, "36–50 m²": 300 } },
-  { name: "Liberdade", dailyMin: 220, dailyMax: 340, avgOccupancy: 73, perSqm: 7.8, avgBySize: { "20–25 m²": 200, "26–35 m²": 270, "36–50 m²": 330 } },
-  { name: "Vila Olímpia", dailyMin: 330, dailyMax: 500, avgOccupancy: 79, perSqm: 11.5, avgBySize: { "20–25 m²": 310, "26–35 m²": 400, "36–50 m²": 490 } },
-] as const;
+/* ─── Bairro data — derived from districtMetrics (single source of truth) ─── */
+
+// Extra per-bairro fields not in districtMetrics
+const EXTRA_BAIRRO: Record<string, { perSqm: number }> = {
+  "Vila Mariana": { perSqm: 9.5 },
+  "Pinheiros": { perSqm: 11 },
+  "Consolação": { perSqm: 8.8 },
+  "Bela Vista": { perSqm: 8.2 },
+  "Itaim Bibi": { perSqm: 12 },
+  "Moema": { perSqm: 10.5 },
+  "Brooklin": { perSqm: 9.8 },
+  "República": { perSqm: 7.2 },
+  "Jardim Paulista": { perSqm: 11.5 },
+  "Barra Funda": { perSqm: 7.0 },
+  "Campo Belo": { perSqm: 10.0 },
+  "Santana": { perSqm: 7.5 },
+  "Itaquera": { perSqm: 5.5 },
+};
+
+function deriveAvgBySize(adrMin: number, adrMax: number) {
+  const mid = (adrMin + adrMax) / 2;
+  return {
+    "20–25 m²": Math.round(adrMin * 0.95),
+    "26–35 m²": Math.round(mid),
+    "36–50 m²": Math.round(adrMax * 0.95),
+  };
+}
 
 export type BairroItem = {
   name: string;
@@ -37,6 +52,25 @@ export type BairroItem = {
   perSqm: number;
   avgBySize: { "20–25 m²": number; "26–35 m²": number; "36–50 m²": number };
 };
+
+function parseRange(label: string): [number, number] {
+  const nums = label.match(/[\d.]+/g);
+  if (nums && nums.length >= 2) return [Number(nums[0]), Number(nums[1])];
+  return [0, 0];
+}
+
+export const BAIRRO_DATA: BairroItem[] = DISTRICTS_MOCK.map((d) => {
+  const [adrMin, adrMax] = parseRange(d.adrRangeLabel);
+  const extra = EXTRA_BAIRRO[d.districtName];
+  return {
+    name: d.districtName,
+    dailyMin: adrMin,
+    dailyMax: adrMax,
+    avgOccupancy: d.occupancyPercent,
+    perSqm: extra?.perSqm ?? 8.0,
+    avgBySize: deriveAvgBySize(adrMin, adrMax),
+  };
+});
 
 export const DECORATION_LEVELS = [
   { value: "basico", label: "Básico", multiplier: 1.0 },
