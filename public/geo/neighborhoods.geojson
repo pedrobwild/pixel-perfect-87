@@ -55,6 +55,26 @@
       "type": "Feature",
       "properties": { "id": "brooklin", "name": "Brooklin", "score": 80, "nightlyRate": 290, "occupancy": 60, "estimatedROI": 12.1, "revenueMonth": 5292, "listingsCount": 2800, "adrMin": 240, "adrMax": 350 },
       "geometry": { "type": "Polygon", "coordinates": [[[-46.7050,-23.6050],[-46.6960,-23.6030],[-46.6870,-23.6080],[-46.6860,-23.6180],[-46.6920,-23.6230],[-46.7020,-23.6200],[-46.7070,-23.6130],[-46.7050,-23.6050]]] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": "vila-olimpia", "name": "Vila Olímpia", "score": 89, "nightlyRate": 410, "occupancy": 74, "estimatedROI": 17.0, "revenueMonth": 9102, "listingsCount": 2200, "adrMin": 340, "adrMax": 480 },
+      "geometry": { "type": "Polygon", "coordinates": [[[-46.6860,-23.5920],[-46.6780,-23.5910],[-46.6700,-23.5940],[-46.6690,-23.6020],[-46.6740,-23.6050],[-46.6830,-23.6030],[-46.6870,-23.5980],[-46.6860,-23.5920]]] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": "vila-madalena", "name": "Vila Madalena", "score": 88, "nightlyRate": 390, "occupancy": 72, "estimatedROI": 16.5, "revenueMonth": 8424, "listingsCount": 1800, "adrMin": 320, "adrMax": 460 },
+      "geometry": { "type": "Polygon", "coordinates": [[[-46.7000,-23.5390],[-46.6920,-23.5380],[-46.6860,-23.5430],[-46.6870,-23.5520],[-46.6940,-23.5540],[-46.7010,-23.5500],[-46.7030,-23.5440],[-46.7000,-23.5390]]] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": "liberdade", "name": "Liberdade", "score": 84, "nightlyRate": 340, "occupancy": 70, "estimatedROI": 15.0, "revenueMonth": 7140, "listingsCount": 1400, "adrMin": 270, "adrMax": 410 },
+      "geometry": { "type": "Polygon", "coordinates": [[[-46.6380,-23.5580],[-46.6310,-23.5560],[-46.6250,-23.5610],[-46.6240,-23.5700],[-46.6290,-23.5740],[-46.6370,-23.5720],[-46.6400,-23.5650],[-46.6380,-23.5580]]] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": "vila-clementino", "name": "Vila Clementino", "score": 83, "nightlyRate": 350, "occupancy": 71, "estimatedROI": 15.2, "revenueMonth": 7455, "listingsCount": 850, "adrMin": 280, "adrMax": 420 },
+      "geometry": { "type": "Polygon", "coordinates": [[[-46.6470,-23.5950],[-46.6380,-23.5930],[-46.6300,-23.5990],[-46.6290,-23.6090],[-46.6350,-23.6140],[-46.6450,-23.6110],[-46.6490,-23.6030],[-46.6470,-23.5950]]] }
     }
   ]
 }
