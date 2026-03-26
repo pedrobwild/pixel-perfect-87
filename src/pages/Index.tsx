@@ -33,6 +33,12 @@ function FadeIn({ children, delay = 0, className = "" }: { children: React.React
 }
 
 export default function Index() {
+  // Derive hero stats from districtMetrics (single source of truth)
+  const heroStats = useMemo(() => {
+    const avgDaily = Math.round(DISTRICTS_MOCK.reduce((s, d) => s + d.nightlyRateBRL, 0) / DISTRICTS_MOCK.length);
+    const avgOcc = Math.round(DISTRICTS_MOCK.reduce((s, d) => s + d.occupancyPercent, 0) / DISTRICTS_MOCK.length);
+    return { avgDaily, avgOcc, count: DISTRICTS_MOCK.length };
+  }, []);
   useEffect(() => {
     document.title = "Bwild · Investimento imobiliário inteligente em short stay";
     const meta = document.querySelector('meta[name="description"]');
@@ -87,9 +93,9 @@ export default function Index() {
           <FadeIn delay={0.32}>
             <div className="mt-14 flex flex-wrap gap-8 md:gap-12">
               {[
-                { value: "12+", label: "Bairros analisados" },
-                { value: "R$ 350", label: "Diária média (studios)" },
-                { value: "78%", label: "Ocupação média SP" },
+                { value: `${heroStats.count}+`, label: "Bairros analisados" },
+                { value: `R$ ${heroStats.avgDaily}`, label: "Diária média (studios)" },
+                { value: `${heroStats.avgOcc}%`, label: "Ocupação média SP" },
               ].map((s) => (
                 <div key={s.label}>
                   <p className="font-display text-2xl md:text-3xl font-bold" style={{ color: "hsl(var(--primary-foreground))" }}>{s.value}</p>
