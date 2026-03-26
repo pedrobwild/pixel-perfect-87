@@ -33,6 +33,10 @@ const EXTRA_BAIRRO: Record<string, { perSqm: number }> = {
   "Campo Belo": { perSqm: 10.0 },
   "Santana": { perSqm: 7.5 },
   "Itaquera": { perSqm: 5.5 },
+  "Vila Olímpia": { perSqm: 11.8 },
+  "Vila Madalena": { perSqm: 10.2 },
+  "Liberdade": { perSqm: 7.8 },
+  "Vila Clementino": { perSqm: 9.0 },
 };
 
 function deriveAvgBySize(adrMin: number, adrMax: number) {
