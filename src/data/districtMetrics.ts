@@ -48,6 +48,7 @@ export const DISTRICTS_MOCK: DistrictRow[] = [
     revenueMonthBRL: 9225,
     adrRangeLabel: "R$340–R$480",
     listingsCount: 3200,
+    priceSqm: 14000,
     competition: "Alta",
     sourceLabel: "Bwild/AirDNA 2025",
     recommendation: {
@@ -75,6 +76,7 @@ export const DISTRICTS_MOCK: DistrictRow[] = [
     revenueMonthBRL: 9636,
     adrRangeLabel: "R$360–R$520",
     listingsCount: 2600,
+    priceSqm: 16000,
     competition: "Alta",
     sourceLabel: "Bwild/AirDNA 2025",
     recommendation: {
@@ -102,6 +104,7 @@ export const DISTRICTS_MOCK: DistrictRow[] = [
     revenueMonthBRL: 9240,
     adrRangeLabel: "R$360–R$520",
     listingsCount: 2800,
+    priceSqm: 15000,
     competition: "Alta",
     sourceLabel: "Bwild/AirDNA 2025",
     recommendation: {
@@ -129,6 +132,7 @@ export const DISTRICTS_MOCK: DistrictRow[] = [
     revenueMonthBRL: 8660,
     adrRangeLabel: "R$320–R$470",
     listingsCount: 2400,
+    priceSqm: 10500,
     competition: "Alta",
     sourceLabel: "Seed (substituir por dados reais)",
     recommendation: {
@@ -148,6 +152,7 @@ export const DISTRICTS_MOCK: DistrictRow[] = [
     revenueMonthBRL: 7776,
     adrRangeLabel: "R$290–R$430",
     listingsCount: 2100,
+    priceSqm: 9500,
     competition: "Alta",
     sourceLabel: "Seed (substituir por dados reais)",
     recommendation: {
@@ -167,6 +172,7 @@ export const DISTRICTS_MOCK: DistrictRow[] = [
     revenueMonthBRL: 7980,
     adrRangeLabel: "R$310–R$460",
     listingsCount: 1800,
+    priceSqm: 14500,
     competition: "Média",
     sourceLabel: "Seed (substituir por dados reais)",
     recommendation: {
@@ -186,6 +192,7 @@ export const DISTRICTS_MOCK: DistrictRow[] = [
     revenueMonthBRL: 7455,
     adrRangeLabel: "R$280–R$420",
     listingsCount: 1600,
+    priceSqm: 12500,
     competition: "Média",
     sourceLabel: "Seed (substituir por dados reais)",
     recommendation: {
@@ -205,6 +212,7 @@ export const DISTRICTS_MOCK: DistrictRow[] = [
     revenueMonthBRL: 6936,
     adrRangeLabel: "R$260–R$420",
     listingsCount: 1200,
+    priceSqm: 8500,
     competition: "Média",
     sourceLabel: "Seed (substituir por dados reais)",
     recommendation: {
@@ -224,6 +232,7 @@ export const DISTRICTS_MOCK: DistrictRow[] = [
     revenueMonthBRL: 7659,
     adrRangeLabel: "R$300–R$460",
     listingsCount: 1100,
+    priceSqm: 13000,
     competition: "Média",
     sourceLabel: "Seed (substituir por dados reais)",
     recommendation: {
@@ -243,6 +252,7 @@ export const DISTRICTS_MOCK: DistrictRow[] = [
     revenueMonthBRL: 6030,
     adrRangeLabel: "R$230–R$380",
     listingsCount: 1900,
+    priceSqm: 8200,
     competition: "Alta",
     sourceLabel: "Seed (substituir por dados reais)",
     recommendation: {
@@ -262,6 +272,7 @@ export const DISTRICTS_MOCK: DistrictRow[] = [
     revenueMonthBRL: 6138,
     adrRangeLabel: "R$240–R$390",
     listingsCount: 900,
+    priceSqm: 9000,
     competition: "Média",
     sourceLabel: "Seed (substituir por dados reais)",
     recommendation: {
@@ -281,6 +292,7 @@ export const DISTRICTS_MOCK: DistrictRow[] = [
     revenueMonthBRL: 9102,
     adrRangeLabel: "R$340–R$480",
     listingsCount: 2200,
+    priceSqm: 15500,
     competition: "Alta",
     sourceLabel: "Bwild/AirDNA 2025",
     recommendation: {
@@ -308,6 +320,7 @@ export const DISTRICTS_MOCK: DistrictRow[] = [
     revenueMonthBRL: 8424,
     adrRangeLabel: "R$320–R$460",
     listingsCount: 1800,
+    priceSqm: 13000,
     competition: "Média",
     sourceLabel: "Bwild/AirDNA 2025",
     recommendation: {
@@ -335,6 +348,7 @@ export const DISTRICTS_MOCK: DistrictRow[] = [
     revenueMonthBRL: 7140,
     adrRangeLabel: "R$270–R$410",
     listingsCount: 1400,
+    priceSqm: 9800,
     competition: "Média",
     sourceLabel: "Bwild/AirDNA 2025",
     recommendation: {
@@ -362,6 +376,7 @@ export const DISTRICTS_MOCK: DistrictRow[] = [
     revenueMonthBRL: 7455,
     adrRangeLabel: "R$280–R$420",
     listingsCount: 850,
+    priceSqm: 11500,
     competition: "Baixa",
     sourceLabel: "Bwild/AirDNA 2025",
     recommendation: {
@@ -389,6 +404,7 @@ export const DISTRICTS_MOCK: DistrictRow[] = [
     revenueMonthBRL: 5292,
     adrRangeLabel: "R$240–R$350",
     listingsCount: 2800,
+    priceSqm: 12500,
     competition: "Média",
     sourceLabel: "Bwild/AirDNA 2025",
     recommendation: {
@@ -416,6 +432,7 @@ export const DISTRICTS_MOCK: DistrictRow[] = [
     revenueMonthBRL: 4836,
     adrRangeLabel: "R$190–R$320",
     listingsCount: 450,
+    priceSqm: 6500,
     competition: "Baixa",
     sourceLabel: "Seed (substituir por dados reais)",
     recommendation: {
