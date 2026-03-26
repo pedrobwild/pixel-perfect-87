@@ -232,69 +232,98 @@ export default function Index() {
 
           {/* Comparative table */}
           <FadeIn className="mt-14">
-            <h3 className="font-display text-xl md:text-2xl font-bold text-foreground mb-2">
-              Consolação vs. outros bairros
-            </h3>
-            <p className="text-sm text-muted-foreground mb-6">
-              Yield estimado considera diária média, ocupação e preço de aquisição por m². Quanto menor o ticket e maior a receita, melhor o retorno.
-            </p>
-            <div className="overflow-x-auto rounded-xl border border-border/60 bg-background">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border/40 bg-muted/30">
-                    <th className="text-left py-3 px-4 font-semibold text-foreground">Bairro</th>
-                    <th className="text-center py-3 px-4 font-semibold text-foreground">Diária média</th>
-                    <th className="text-center py-3 px-4 font-semibold text-foreground">Ocupação</th>
-                    <th className="text-center py-3 px-4 font-semibold text-foreground">Preço/m²</th>
-                    <th className="text-center py-3 px-4 font-semibold text-foreground">Yield bruto est.</th>
-                    <th className="text-center py-3 px-4 font-semibold text-foreground">Veredito</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {[
-                    { name: "Consolação", daily: "R$ 310", occ: "76%", price: "R$ 10.500", yield: "11,8%", highlight: true, verdict: "Melhor custo-benefício" },
-                    { name: "Pinheiros", daily: "R$ 380", occ: "82%", price: "R$ 14.000", yield: "8,1%", highlight: false, verdict: "Diária alta, ticket elevado" },
-                    { name: "Itaim Bibi", daily: "R$ 420", occ: "78%", price: "R$ 16.000", yield: "7,2%", highlight: false, verdict: "Premium, mas yield menor" },
-                    { name: "Vila Mariana", daily: "R$ 330", occ: "80%", price: "R$ 12.500", yield: "7,7%", highlight: false, verdict: "Boa ocupação, ticket médio" },
-                    { name: "Moema", daily: "R$ 360", occ: "77%", price: "R$ 14.500", yield: "7,0%", highlight: false, verdict: "Diária boa, preço alto" },
-                    { name: "República", daily: "R$ 245", occ: "72%", price: "R$ 8.200", yield: "7,8%", highlight: false, verdict: "Ticket baixo, risco maior" },
-                  ].map((row) => (
-                    <tr
-                      key={row.name}
-                      className={`border-b border-border/20 last:border-0 ${row.highlight ? "bg-primary/5" : ""}`}
-                    >
-                      <td className={`py-3 px-4 font-medium ${row.highlight ? "text-primary font-bold" : "text-foreground"}`}>
-                        {row.highlight && <span className="inline-block w-2 h-2 rounded-full bg-primary mr-2 align-middle" />}
-                        {row.name}
-                      </td>
-                      <td className="text-center py-3 px-4 text-muted-foreground">{row.daily}</td>
-                      <td className="text-center py-3 px-4 text-muted-foreground">{row.occ}</td>
-                      <td className="text-center py-3 px-4 text-muted-foreground">{row.price}</td>
-                      <td className={`text-center py-3 px-4 font-bold ${row.highlight ? "text-primary" : "text-foreground"}`}>
-                        {row.yield}
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className={`text-xs px-2 py-1 rounded-full ${row.highlight ? "bg-primary/10 text-primary font-semibold" : "bg-muted text-muted-foreground"}`}>
-                          {row.verdict}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <div className="mt-6 rounded-xl border border-border/60 bg-muted/30 p-5 space-y-3">
-              <h4 className="text-sm font-semibold text-foreground">O que é Yield bruto estimado?</h4>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                O <strong className="text-foreground">yield bruto</strong> é a relação entre a receita anual de aluguel e o valor investido no imóvel — quanto maior, mais rápido o imóvel "se paga". O cálculo simplificado é: <span className="font-mono text-xs bg-background px-1.5 py-0.5 rounded border border-border/60">(diária média × ocupação × 365) ÷ custo total do imóvel</span>.
-              </p>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                A Consolação lidera com <strong className="text-primary">11,8%</strong> porque combina dois fatores difíceis de encontrar juntos: <strong className="text-foreground">diária competitiva</strong> (R$ 310) com um <strong className="text-foreground">preço de aquisição por m² significativamente menor</strong> que bairros vizinhos como Pinheiros (R$ 14k) e Itaim (R$ 16k). Mesmo com ocupação ligeiramente inferior, o ticket de entrada mais baixo faz o retorno percentual ser até 64% maior do que no Itaim Bibi.
-              </p>
-            </div>
-            <p className="text-[11px] text-muted-foreground/70 mt-3">
-              Fonte: AirDNA, pesquisa Bwild 2025. Valores médios para studios 20–35 m².
-            </p>
+          {(() => {
+            const PRICE_SQM: Record<string, number> = {
+              "Consolação": 10500, "Pinheiros": 14000, "Itaim Bibi": 16000,
+              "Vila Mariana": 12500, "Moema": 14500, "República": 8200,
+            };
+            const VERDICTS: Record<string, string> = {
+              "Consolação": "Melhor custo-benefício", "Pinheiros": "Diária alta, ticket elevado",
+              "Itaim Bibi": "Premium, mas yield menor", "Vila Mariana": "Boa ocupação, ticket médio",
+              "Moema": "Diária boa, preço alto", "República": "Ticket baixo, risco maior",
+            };
+            const names = ["Consolação", "Pinheiros", "Itaim Bibi", "Vila Mariana", "Moema", "República"];
+            const rows = names.map((n) => {
+              const d = districtByName.get(n);
+              if (!d) return null;
+              const priceSqm = PRICE_SQM[n] || 10000;
+              // Simplified yield: (dailyRate × occupancy/100 × 365) / (priceSqm × 30m² avg)
+              const yieldEst = ((d.nightlyRateBRL * (d.occupancyPercent / 100) * 365) / (priceSqm * 30)) * 100;
+              return {
+                name: n,
+                daily: formatBRL(d.nightlyRateBRL),
+                occ: `${d.occupancyPercent}%`,
+                price: `R$ ${priceSqm.toLocaleString("pt-BR")}`,
+                yield: yieldEst.toFixed(1).replace(".", ",") + "%",
+                yieldNum: yieldEst,
+                highlight: n === "Consolação",
+                verdict: VERDICTS[n] || "",
+              };
+            }).filter(Boolean) as Array<{ name: string; daily: string; occ: string; price: string; yield: string; yieldNum: number; highlight: boolean; verdict: string }>;
+
+            const consYield = rows.find(r => r.name === "Consolação")?.yield || "";
+
+            return (
+              <FadeIn className="mt-14">
+                <h3 className="font-display text-xl md:text-2xl font-bold text-foreground mb-2">
+                  Consolação vs. outros bairros
+                </h3>
+                <p className="text-sm text-muted-foreground mb-6">
+                  Yield estimado considera diária média, ocupação e preço de aquisição por m². Quanto menor o ticket e maior a receita, melhor o retorno.
+                </p>
+                <div className="overflow-x-auto rounded-xl border border-border/60 bg-background">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-border/40 bg-muted/30">
+                        <th className="text-left py-3 px-4 font-semibold text-foreground">Bairro</th>
+                        <th className="text-center py-3 px-4 font-semibold text-foreground">Diária média</th>
+                        <th className="text-center py-3 px-4 font-semibold text-foreground">Ocupação</th>
+                        <th className="text-center py-3 px-4 font-semibold text-foreground">Preço/m²</th>
+                        <th className="text-center py-3 px-4 font-semibold text-foreground">Yield bruto est.</th>
+                        <th className="text-center py-3 px-4 font-semibold text-foreground">Veredito</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rows.map((row) => (
+                        <tr
+                          key={row.name}
+                          className={`border-b border-border/20 last:border-0 ${row.highlight ? "bg-primary/5" : ""}`}
+                        >
+                          <td className={`py-3 px-4 font-medium ${row.highlight ? "text-primary font-bold" : "text-foreground"}`}>
+                            {row.highlight && <span className="inline-block w-2 h-2 rounded-full bg-primary mr-2 align-middle" />}
+                            {row.name}
+                          </td>
+                          <td className="text-center py-3 px-4 text-muted-foreground">{row.daily}</td>
+                          <td className="text-center py-3 px-4 text-muted-foreground">{row.occ}</td>
+                          <td className="text-center py-3 px-4 text-muted-foreground">{row.price}</td>
+                          <td className={`text-center py-3 px-4 font-bold ${row.highlight ? "text-primary" : "text-foreground"}`}>
+                            {row.yield}
+                          </td>
+                          <td className="py-3 px-4">
+                            <span className={`text-xs px-2 py-1 rounded-full ${row.highlight ? "bg-primary/10 text-primary font-semibold" : "bg-muted text-muted-foreground"}`}>
+                              {row.verdict}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="mt-6 rounded-xl border border-border/60 bg-muted/30 p-5 space-y-3">
+                  <h4 className="text-sm font-semibold text-foreground">O que é Yield bruto estimado?</h4>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    O <strong className="text-foreground">yield bruto</strong> é a relação entre a receita anual de aluguel e o valor investido no imóvel — quanto maior, mais rápido o imóvel "se paga". O cálculo simplificado é: <span className="font-mono text-xs bg-background px-1.5 py-0.5 rounded border border-border/60">(diária média × ocupação × 365) ÷ custo total do imóvel</span>.
+                  </p>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    A Consolação lidera com <strong className="text-primary">{consYield}</strong> porque combina dois fatores difíceis de encontrar juntos: <strong className="text-foreground">diária competitiva</strong> com um <strong className="text-foreground">preço de aquisição por m² significativamente menor</strong> que bairros vizinhos como Pinheiros e Itaim.
+                  </p>
+                </div>
+                <p className="text-[11px] text-muted-foreground/70 mt-3">
+                  Fonte: AirDNA, pesquisa Bwild 2025. Valores médios para studios 20–35 m².
+                </p>
+              </FadeIn>
+            );
+          })()}
           </FadeIn>
         </div>
       </section>
