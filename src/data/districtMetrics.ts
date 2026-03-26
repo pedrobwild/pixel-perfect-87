@@ -26,6 +26,7 @@ export type DistrictRow = {
   revenueMonthBRL: number;
   adrRangeLabel: string;
   listingsCount: number;
+  priceSqm: number;
   competition: CompetitionChip;
   sourceLabel: string;
   recommendation: {
