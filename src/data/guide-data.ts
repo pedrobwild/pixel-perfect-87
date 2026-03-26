@@ -16,28 +16,7 @@ export const PHASES = [
   { number: 4, label: "Como agir com confiança", description: "Anúncio, precificação, evidências e próximo passo" },
 ] as const;
 
-/* ─── Bairro data — derived from districtMetrics (single source of truth) ─── */
-
-// Extra per-bairro fields not in districtMetrics
-const EXTRA_BAIRRO: Record<string, { perSqm: number }> = {
-  "Vila Mariana": { perSqm: 9.5 },
-  "Pinheiros": { perSqm: 11 },
-  "Consolação": { perSqm: 8.8 },
-  "Bela Vista": { perSqm: 8.2 },
-  "Itaim Bibi": { perSqm: 12 },
-  "Moema": { perSqm: 10.5 },
-  "Brooklin": { perSqm: 9.8 },
-  "República": { perSqm: 7.2 },
-  "Jardim Paulista": { perSqm: 11.5 },
-  "Barra Funda": { perSqm: 7.0 },
-  "Campo Belo": { perSqm: 10.0 },
-  "Santana": { perSqm: 7.5 },
-  "Itaquera": { perSqm: 5.5 },
-  "Vila Olímpia": { perSqm: 11.8 },
-  "Vila Madalena": { perSqm: 10.2 },
-  "Liberdade": { perSqm: 7.8 },
-  "Vila Clementino": { perSqm: 9.0 },
-};
+/* ─── Bairro data — fully derived from districtMetrics (single source of truth) ─── */
 
 function deriveAvgBySize(adrMin: number, adrMax: number) {
   const mid = (adrMin + adrMax) / 2;
@@ -58,20 +37,18 @@ export type BairroItem = {
 };
 
 function parseRange(label: string): [number, number] {
-  const nums = label.match(/[\d.]+/g);
-  if (nums && nums.length >= 2) return [Number(nums[0]), Number(nums[1])];
-  return [0, 0];
+  const nums = label.replace(/[R$.\s]/g, "").split("–").map(Number);
+  return [nums[0] || 0, nums[1] || 0];
 }
 
 export const BAIRRO_DATA: BairroItem[] = DISTRICTS_MOCK.map((d) => {
   const [adrMin, adrMax] = parseRange(d.adrRangeLabel);
-  const extra = EXTRA_BAIRRO[d.districtName];
   return {
     name: d.districtName,
     dailyMin: adrMin,
     dailyMax: adrMax,
     avgOccupancy: d.occupancyPercent,
-    perSqm: extra?.perSqm ?? 8.0,
+    perSqm: d.priceSqm / 1000,
     avgBySize: deriveAvgBySize(adrMin, adrMax),
   };
 });
