@@ -233,10 +233,6 @@ export default function Index() {
           {/* Comparative table */}
           <FadeIn className="mt-14">
           {(() => {
-            const PRICE_SQM: Record<string, number> = {
-              "Consolação": 10500, "Pinheiros": 14000, "Itaim Bibi": 16000,
-              "Vila Mariana": 12500, "Moema": 14500, "República": 8200,
-            };
             const VERDICTS: Record<string, string> = {
               "Consolação": "Melhor custo-benefício", "Pinheiros": "Diária alta, ticket elevado",
               "Itaim Bibi": "Premium, mas yield menor", "Vila Mariana": "Boa ocupação, ticket médio",
@@ -246,8 +242,7 @@ export default function Index() {
             const rows = names.map((n) => {
               const d = districtByName.get(n);
               if (!d) return null;
-              const priceSqm = PRICE_SQM[n] || 10000;
-              // Simplified yield: (dailyRate × occupancy/100 × 365) / (priceSqm × 30m² avg)
+              const priceSqm = d.priceSqm;
               const yieldEst = ((d.nightlyRateBRL * (d.occupancyPercent / 100) * 365) / (priceSqm * 30)) * 100;
               return {
                 name: n,
