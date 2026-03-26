@@ -176,22 +176,29 @@ export default function Index() {
             </p>
           </FadeIn>
 
-          <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {[
-              { value: "R$ 260–390", label: "Diária média (studios)", detail: "Airbnb / Booking · 2025" },
-              { value: "76%", label: "Ocupação média anual", detail: "Acima da média de SP" },
-              { value: "350+", label: "Listings ativos na região", detail: "Mercado validado e líquido" },
+          {(() => {
+            const cons = districtByName.get("Consolação");
+            if (!cons) return null;
+            const statsData = [
+              { value: cons.adrRangeLabel, label: "Diária média (studios)", detail: cons.sourceLabel },
+              { value: `${cons.occupancyPercent}%`, label: "Ocupação média anual", detail: "Acima da média de SP" },
+              { value: `${cons.listingsCount.toLocaleString("pt-BR")}+`, label: "Listings ativos na região", detail: "Mercado validado e líquido" },
               { value: "R$ 10.500/m²", label: "Preço médio residencial", detail: "Abaixo de Pinheiros e Itaim" },
-            ].map((stat, i) => (
-              <FadeIn key={stat.label} delay={i * 0.06}>
-                <div className="rounded-xl border border-border/60 bg-background p-5 h-full">
-                  <p className="font-display text-xl md:text-2xl font-bold text-primary">{stat.value}</p>
-                  <p className="text-sm font-medium text-foreground mt-2">{stat.label}</p>
-                  <p className="text-[11px] text-muted-foreground mt-1">{stat.detail}</p>
-                </div>
-              </FadeIn>
-            ))}
-          </div>
+            ];
+            return (
+              <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                {statsData.map((stat, i) => (
+                  <FadeIn key={stat.label} delay={i * 0.06}>
+                    <div className="rounded-xl border border-border/60 bg-background p-5 h-full">
+                      <p className="font-display text-xl md:text-2xl font-bold text-primary">{stat.value}</p>
+                      <p className="text-sm font-medium text-foreground mt-2">{stat.label}</p>
+                      <p className="text-[11px] text-muted-foreground mt-1">{stat.detail}</p>
+                    </div>
+                  </FadeIn>
+                ))}
+              </div>
+            );
+          })()}
 
           <div className="mt-10 grid gap-4 md:grid-cols-3">
             {[
