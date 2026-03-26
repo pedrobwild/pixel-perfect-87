@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { motion, useInView } from "framer-motion";
 import {
@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import AppNavbar from "@/components/AppNavbar";
 import PlantasSection from "@/components/PlantasSection";
 import heroImg from "@/assets/uf-fachada.jpeg";
+import { DISTRICTS_MOCK, districtByName, formatBRL } from "@/data/districtMetrics";
 
 const whatsappLink =
   "https://wa.me/5591984804821?text=Olá!%20Vi%20o%20site%20da%20Bwild%20e%20quero%20saber%20mais%20sobre%20os%20empreendimentos.";
