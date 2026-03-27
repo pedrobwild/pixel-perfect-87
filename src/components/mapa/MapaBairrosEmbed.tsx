@@ -184,7 +184,7 @@ function InteractiveMap({
 }) {
   const mapRef = useRef<MapRef>(null);
   const [hoveredN, setHoveredN] = useState<Neighborhood | null>(null);
-  const [hoveredPoly, setHoveredPoly] = useState<{ name: string; roi: number; rate: number; occ: number; rev: number; lng: number; lat: number } | null>(null);
+  const [hoveredPoly, setHoveredPoly] = useState<{ name: string; roi: number; rate: number; occ: number; rev: number; priceSqm: number; lng: number; lat: number } | null>(null);
   const [hoveredStation, setHoveredStation] = useState<{ name: string; line: string; lng: number; lat: number } | null>(null);
   const [poisGeoJSON, setPoisGeoJSON] = useState<GeoJSON.FeatureCollection | null>(null);
   const [hoveredPOI, setHoveredPOI] = useState<{ name: string; category: string; neighborhood: string; lng: number; lat: number } | null>(null);
@@ -209,7 +209,7 @@ function InteractiveMap({
       const p = f.properties;
       setHoveredPoly({
         name: p?.name || "", roi: p?.estimatedROI || 0, rate: p?.nightlyRate || 0,
-        occ: p?.occupancy || 0, rev: p?.revenueMonth || 0, lng: e.lngLat.lng, lat: e.lngLat.lat,
+        occ: p?.occupancy || 0, rev: p?.revenueMonth || 0, priceSqm: p?.priceSqm || 0, lng: e.lngLat.lng, lat: e.lngLat.lat,
       });
       if (mapRef.current) mapRef.current.getCanvas().style.cursor = "pointer";
     }
@@ -366,6 +366,7 @@ function InteractiveMap({
               <span>Diária</span><span className="font-semibold text-foreground">R${hoveredPoly.rate}</span>
               <span>Ocupação</span><span className="font-semibold text-foreground">{hoveredPoly.occ}%</span>
               <span>Receita/mês</span><span className="font-semibold text-foreground">R${fmt(hoveredPoly.rev)}</span>
+              {hoveredPoly.priceSqm > 0 && <><span>Preço/m²</span><span className="font-semibold text-foreground">R${fmt(hoveredPoly.priceSqm)}</span></>}
             </div>
           </Popup>
         )}
