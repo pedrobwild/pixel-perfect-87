@@ -47,6 +47,19 @@ export default function ConsolidatedInsights() {
 
       const merged = mergeCacheEntries(caches);
       setData(merged);
+
+      // Auto-refresh if qualitative data is missing (AI failed on previous run)
+      const d = merged.dashboard;
+      const hasQualitative = d && (
+        (Array.isArray(d.personalityProfiles) && d.personalityProfiles.length > 0) ||
+        (Array.isArray(d.objections) && d.objections.length > 0) ||
+        (Array.isArray(d.topQuestions) && d.topQuestions.length > 0)
+      );
+      if (!hasQualitative && merged.totalMeetings > 0) {
+        console.log("Qualitative data missing from cache, auto-refreshing...");
+        // Don't await — let it run in background while showing metrics
+        fetchFresh();
+      }
     } catch {
       setData(null);
     } finally {
