@@ -100,19 +100,28 @@ export default function CorretorPerformance() {
       const { data: res, error } = await supabase.functions.invoke("elephant-insights", { body });
       if (error) throw error;
       if (!res?.success) throw new Error(res?.error || "Erro ao buscar insights");
-      setData({
-        amandaName: res.amandaName,
-        totalMeetings: res.totalMeetings,
-        totalDurationMinutes: res.totalDurationMinutes || 0,
-        positiveSentimentPct: res.positiveSentimentPct,
-        latestMeeting: res.latestMeeting,
-        cached: res.cached || false, cacheAge: res.cacheAge,
-        dashboard: res.chartsData,
-      });
-      toast({
-        title: res.cached ? "Dados carregados do cache" : "Insights atualizados",
-        description: res.cached ? `Atualizado há ${res.cacheAge} minutos.` : "Dados processados com sucesso.",
-      });
+      if (res.totalMeetings === 0) {
+        setData(null);
+        toast({
+          title: "Nenhuma reunião encontrada",
+          description: `${res.amandaName} não possui reuniões válidas registradas (reuniões sem duração são ignoradas).`,
+          variant: "destructive",
+        });
+      } else {
+        setData({
+          amandaName: res.amandaName,
+          totalMeetings: res.totalMeetings,
+          totalDurationMinutes: res.totalDurationMinutes || 0,
+          positiveSentimentPct: res.positiveSentimentPct,
+          latestMeeting: res.latestMeeting,
+          cached: res.cached || false, cacheAge: res.cacheAge,
+          dashboard: res.chartsData,
+        });
+        toast({
+          title: res.cached ? "Dados carregados do cache" : "Insights atualizados",
+          description: res.cached ? `Atualizado há ${res.cacheAge} minutos.` : "Dados processados com sucesso.",
+        });
+      }
     } catch (err: any) {
       toast({ title: "Erro ao buscar insights", description: err.message || "Tente novamente.", variant: "destructive" });
     } finally { setLoading(false); }
