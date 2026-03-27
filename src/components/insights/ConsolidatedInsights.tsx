@@ -45,7 +45,20 @@ export default function ConsolidatedInsights() {
         return;
       }
 
-      const merged = mergeCacheEntries(caches);
+      // Filter only Amanda and Juliana
+      const ALLOWED_NAMES = ["amanda", "juliana"];
+      const filteredCaches = caches.filter((c: any) => {
+        const name = (c.amanda_name || "").toLowerCase();
+        return ALLOWED_NAMES.some((n) => name.includes(n));
+      });
+
+      if (!filteredCaches.length) {
+        setData(null);
+        setInitialLoad(false);
+        return;
+      }
+
+      const merged = mergeCacheEntries(filteredCaches);
       setData(merged);
 
       // Auto-refresh if qualitative data is missing (AI failed on previous run)
@@ -76,17 +89,22 @@ export default function ConsolidatedInsights() {
       );
       if (usersErr || !usersRes?.success) throw new Error("Erro ao listar corretores");
 
-      const users = usersRes.users || [];
-      if (!users.length) throw new Error("Nenhum corretor encontrado");
+      const allUsers = usersRes.users || [];
+      const ALLOWED_NAMES = ["amanda", "juliana"];
+      const filteredUsers = allUsers.filter((u: any) => {
+        const name = (u.name || "").toLowerCase();
+        return ALLOWED_NAMES.some((n) => name.includes(n));
+      });
+      if (!filteredUsers.length) throw new Error("Nenhum corretor autorizado encontrado");
 
-      for (const user of users) {
+      for (const user of filteredUsers) {
         await supabase.functions.invoke("elephant-insights", {
           body: { userId: user.id, refresh: "true" },
         });
       }
 
       await loadFromCache();
-      toast({ title: "Insights consolidados atualizados", description: `${users.length} corretores processados.` });
+      toast({ title: "Insights consolidados atualizados", description: `${filteredUsers.length} corretores processados.` });
     } catch (err: any) {
       console.error("Consolidated fetch error:", err);
       toast({ title: "Erro ao atualizar", description: err.message, variant: "destructive" });
