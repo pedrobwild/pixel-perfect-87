@@ -13,6 +13,7 @@ import { trackGlobal } from "@/hooks/useGuideAnalytics";
 import SectionBlock from "@/components/guide/SectionBlock";
 import { fmt } from "@/data/guide-data";
 import { PROPERTY, TYPOLOGIES, calcFinancials } from "@/data/propertyData";
+import YieldComparisonChart from "./YieldComparisonChart";
 
 export default function PropertySimuladorSection() {
   const [selectedTypo, setSelectedTypo] = useState(1);
@@ -210,6 +211,13 @@ export default function PropertySimuladorSection() {
               <p className="text-[10px] text-muted-foreground">Diária {rateBoost > 0 ? `(+${rateBoost}%)` : ""}</p>
             </div>
           </div>
+
+          {/* Yield comparison chart */}
+          <YieldComparisonChart
+            occupancy={simOcupacao[0]}
+            rateBoost={rateBoost}
+            selectedTypoId={typo.id}
+          />
 
           {rateBoost > 0 && (
             <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 flex items-start gap-3">
