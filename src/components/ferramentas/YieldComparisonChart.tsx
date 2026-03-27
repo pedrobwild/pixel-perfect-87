@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, ReferenceLine } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, Legend } from "recharts";
 import { TYPOLOGIES, calcFinancials, PROPERTY } from "@/data/propertyData";
 
 interface Props {
