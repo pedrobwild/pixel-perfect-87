@@ -2,10 +2,14 @@ import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Loader2, Users, RefreshCw, Sparkles, CalendarRange, Database } from "lucide-react";
+import {
+  Loader2, Users, RefreshCw, Sparkles, CalendarRange, Database,
+  Brain, ShieldAlert, MessageCircleQuestion, Eye, Target
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import InsightsDashboard from "./InsightsDashboard";
+import QualitativeHighlights from "./QualitativeHighlights";
 
 interface ConsolidatedData {
   totalMeetings: number;
@@ -23,7 +27,6 @@ export default function ConsolidatedInsights() {
   const [initialLoad, setInitialLoad] = useState(true);
   const { toast } = useToast();
 
-  // Load consolidated data from all caches on mount
   useEffect(() => {
     loadFromCache();
   }, []);
@@ -53,7 +56,6 @@ export default function ConsolidatedInsights() {
   const fetchFresh = async () => {
     setLoading(true);
     try {
-      // First get all users
       const { data: usersRes, error: usersErr } = await supabase.functions.invoke(
         "elephant-insights",
         { body: { action: "list-users" } }
@@ -63,14 +65,12 @@ export default function ConsolidatedInsights() {
       const users = usersRes.users || [];
       if (!users.length) throw new Error("Nenhum corretor encontrado");
 
-      // Fetch insights for each user (will populate cache)
       for (const user of users) {
         await supabase.functions.invoke("elephant-insights", {
           body: { userId: user.id, refresh: "true" },
         });
       }
 
-      // Reload from cache
       await loadFromCache();
       toast({ title: "Insights consolidados atualizados", description: `${users.length} corretores processados.` });
     } catch (err: any) {
@@ -139,7 +139,7 @@ export default function ConsolidatedInsights() {
       )}
 
       {data && (
-        <div className="space-y-5">
+        <div className="space-y-6">
           {/* Summary KPIs */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <Card className="border-border/60">
@@ -177,12 +177,26 @@ export default function ConsolidatedInsights() {
             )}
           </div>
 
-          {/* Full Dashboard */}
+          {/* Qualitative Intelligence Highlights */}
+          {data.dashboard && <QualitativeHighlights data={data.dashboard} />}
+
+          {/* Full Detailed Dashboard */}
           {data.dashboard && <InsightsDashboard data={data.dashboard} />}
         </div>
       )}
     </div>
   );
+}
+
+/** Deduplicate items by a key, keeping the first occurrence */
+function deduplicateByKey<T>(items: T[], keyFn: (item: T) => string): T[] {
+  const seen = new Set<string>();
+  return items.filter((item) => {
+    const key = keyFn(item).toLowerCase().trim();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 /** Merge multiple cache entries into a consolidated view */
@@ -192,16 +206,22 @@ function mergeCacheEntries(caches: any[]): ConsolidatedData {
   let latestMeeting: string | null = null;
   let oldestUpdate: Date | null = null;
 
-  // Collect all dashboard data for merging
   const allLeads: any[] = [];
   const sentimentTotals: Record<string, number[]> = {};
   const allReasonsByType: Record<string, { count: number; examples: any[] }> = {};
   const allCompetitors: Record<string, number> = {};
   const allAnswerScores: Record<string, { scores: number[]; count: number }> = {};
 
-  // AI-generated content: merge from the most recent/complete cache
-  let bestAiData: any = null;
-  let bestAiMeetings = 0;
+  // Qualitative data collectors
+  const allProfiles: any[] = [];
+  const allObjections: any[] = [];
+  const allHiddenObjections: any[] = [];
+  const allQuestions: any[] = [];
+  const allBuyingSignals: any[] = [];
+  const allClosingArguments: any[] = [];
+  const allActionItems: any[] = [];
+  const buyerPersonas: any[] = [];
+  const sentimentSummaries: string[] = [];
 
   for (const cache of caches) {
     totalMeetings += cache.total_meetings;
@@ -217,18 +237,14 @@ function mergeCacheEntries(caches: any[]): ConsolidatedData {
     const d = cache.charts_data;
     if (!d) continue;
 
-    // Merge leads
+    // Quantitative
     if (Array.isArray(d.leadScores)) allLeads.push(...d.leadScores);
-
-    // Merge sentiment
     if (d.metrics?.avgSentiment) {
       for (const [key, val] of Object.entries(d.metrics.avgSentiment)) {
         if (!sentimentTotals[key]) sentimentTotals[key] = [];
         sentimentTotals[key].push(val as number);
       }
     }
-
-    // Merge reasons
     if (d.metrics?.reasonsByType) {
       for (const [type, data] of Object.entries(d.metrics.reasonsByType) as any) {
         if (!allReasonsByType[type]) allReasonsByType[type] = { count: 0, examples: [] };
@@ -236,15 +252,11 @@ function mergeCacheEntries(caches: any[]): ConsolidatedData {
         if (data.examples) allReasonsByType[type].examples.push(...data.examples);
       }
     }
-
-    // Merge competitors
     if (Array.isArray(d.metrics?.competitors)) {
       for (const c of d.metrics.competitors) {
         allCompetitors[c.name] = (allCompetitors[c.name] || 0) + c.mentions;
       }
     }
-
-    // Merge answer scores
     if (Array.isArray(d.metrics?.answerScores)) {
       for (const s of d.metrics.answerScores) {
         if (!allAnswerScores[s.question]) allAnswerScores[s.question] = { scores: [], count: 0 };
@@ -253,11 +265,16 @@ function mergeCacheEntries(caches: any[]): ConsolidatedData {
       }
     }
 
-    // Pick AI data from the cache with most meetings (most representative)
-    if (cache.total_meetings > bestAiMeetings) {
-      bestAiMeetings = cache.total_meetings;
-      bestAiData = d;
-    }
+    // Qualitative - collect from ALL caches
+    if (Array.isArray(d.personalityProfiles)) allProfiles.push(...d.personalityProfiles);
+    if (Array.isArray(d.objections)) allObjections.push(...d.objections);
+    if (Array.isArray(d.hiddenObjections)) allHiddenObjections.push(...d.hiddenObjections);
+    if (Array.isArray(d.topQuestions)) allQuestions.push(...d.topQuestions);
+    if (Array.isArray(d.buyingSignals)) allBuyingSignals.push(...d.buyingSignals);
+    if (Array.isArray(d.closingArguments)) allClosingArguments.push(...d.closingArguments);
+    if (Array.isArray(d.actionItems)) allActionItems.push(...d.actionItems);
+    if (d.buyerPersona) buyerPersonas.push(d.buyerPersona);
+    if (d.sentimentSummary) sentimentSummaries.push(d.sentimentSummary);
   }
 
   // Build merged metrics
@@ -279,22 +296,36 @@ function mergeCacheEntries(caches: any[]): ConsolidatedData {
     .sort((a, b) => b.count - a.count)
     .slice(0, 10);
 
-  // Trim examples
   for (const type of Object.values(allReasonsByType)) {
     type.examples = type.examples.slice(0, 5);
   }
 
+  // Deduplicate qualitative data
+  const personalityProfiles = deduplicateByKey(allProfiles, (p) => p.type || "");
+  const objections = deduplicateByKey(allObjections, (o) => o.objection || "");
+  const hiddenObjections = deduplicateByKey(allHiddenObjections, (h) => h.objection || "");
+  const topQuestions = deduplicateByKey(allQuestions, (q) => q.question || "");
+  const buyingSignals = deduplicateByKey(allBuyingSignals, (s) => s.signal || "");
+  const closingArguments = deduplicateByKey(allClosingArguments, (a) => a.argument || "");
+  const actionItems = deduplicateByKey(allActionItems, (a) => a.action || "");
+
+  // Pick the richest buyer persona
+  const buyerPersona = buyerPersonas.sort((a, b) =>
+    (Array.isArray(b.motivations) ? b.motivations.length : 0) -
+    (Array.isArray(a.motivations) ? a.motivations.length : 0)
+  )[0] || null;
+
   const mergedDashboard = {
-    // AI-generated qualitative data from best source
-    ...(bestAiData || {}),
-    // Override metrics with merged quantitative data
-    metrics: {
-      avgSentiment,
-      reasonsByType: allReasonsByType,
-      competitors,
-      answerScores,
-    },
-    // Merged leads
+    personalityProfiles,
+    objections,
+    hiddenObjections,
+    topQuestions,
+    buyingSignals,
+    closingArguments,
+    actionItems,
+    buyerPersona,
+    sentimentSummary: sentimentSummaries[0] || null,
+    metrics: { avgSentiment, reasonsByType: allReasonsByType, competitors, answerScores },
     leadScores: allLeads.sort((a, b) => b.score - a.score),
   };
 
