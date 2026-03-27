@@ -45,6 +45,19 @@ export default function ConsolidatedInsights() {
         return;
       }
 
+      // Filter only Amanda and Juliana
+      const ALLOWED_NAMES = ["amanda", "juliana"];
+      const filteredCaches = caches.filter((c: any) => {
+        const name = (c.amanda_name || "").toLowerCase();
+        return ALLOWED_NAMES.some((n) => name.includes(n));
+      });
+
+      if (!filteredCaches.length) {
+        setData(null);
+        setInitialLoad(false);
+        return;
+      }
+
       const merged = mergeCacheEntries(caches);
       setData(merged);
 
