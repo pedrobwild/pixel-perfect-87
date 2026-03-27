@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, ReferenceLine } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, Legend } from "recharts";
 import { TYPOLOGIES, calcFinancials, PROPERTY } from "@/data/propertyData";
 
 interface Props {
@@ -41,6 +41,13 @@ export default function YieldComparisonChart({ occupancy, rateBoost, selectedTyp
             tick={{ fontSize: 11 }}
             tickFormatter={(v) => `${v}%`}
             className="fill-muted-foreground"
+          />
+          <Legend
+            verticalAlign="top"
+            height={32}
+            formatter={(value: string) => (
+              <span className="text-xs text-muted-foreground">{value}</span>
+            )}
           />
           <Tooltip
             content={({ active, payload }) => {
