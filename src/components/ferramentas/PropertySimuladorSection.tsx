@@ -212,6 +212,13 @@ export default function PropertySimuladorSection() {
             </div>
           </div>
 
+          {/* Yield comparison chart */}
+          <YieldComparisonChart
+            occupancy={simOcupacao[0]}
+            rateBoost={rateBoost}
+            selectedTypoId={typo.id}
+          />
+
           {rateBoost > 0 && (
             <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 flex items-start gap-3">
               <ArrowUpRight className="text-primary mt-0.5 flex-shrink-0" size={20} />
