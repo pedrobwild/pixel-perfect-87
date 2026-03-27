@@ -33,6 +33,7 @@ export interface NeighborhoodMetrics {
   competitionLevel: "alta" | "média" | "baixa";
   activeListings: number;
   avgRevenueMo: number;
+  priceSqm: number;
   seasonalityIndex: number;
   dataSource: string;
 }
@@ -145,6 +146,7 @@ function districtToNeighborhood(d: DistrictRow): Neighborhood {
       competitionLevel: COMPETITION_MAP[d.competition] || "média",
       activeListings: d.listingsCount,
       avgRevenueMo: d.revenueMonthBRL,
+      priceSqm: d.priceSqm,
       seasonalityIndex: 1.0,
       dataSource: d.sourceLabel,
     },

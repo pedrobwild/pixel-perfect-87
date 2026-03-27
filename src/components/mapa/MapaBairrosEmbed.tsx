@@ -354,6 +354,9 @@ function InteractiveMap({
             </div>
             <div className="text-[10px] text-muted-foreground">R${hoveredN.avgNightly}/noite · {hoveredN.avgOccupancy}% ocup.</div>
             <div className="text-[10px] text-muted-foreground">ROI est. {hoveredN.metrics.estimatedROI}% · ~{fmt(hoveredN.metrics.activeListings)} studios</div>
+            {hoveredN.metrics.priceSqm > 0 && (
+              <div className="text-[10px] text-muted-foreground">Preço/m² R${fmt(hoveredN.metrics.priceSqm)}</div>
+            )}
             <div className="text-[9px] text-muted-foreground/60 mt-1">Clique para selecionar</div>
           </Popup>
         )}
