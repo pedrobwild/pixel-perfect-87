@@ -100,8 +100,7 @@ export default function CorretorComparison({ corretores, loadingUsers }: Correto
         });
       } else {
         // Fetch from API
-        const params = new URLSearchParams({ userId });
-        const { data: res, error } = await supabase.functions.invoke(`elephant-insights?${params.toString()}`);
+        const { data: res, error } = await supabase.functions.invoke("elephant-insights", { body: { userId } });
         if (error) throw error;
         if (!res?.success) throw new Error("Erro");
         setter({

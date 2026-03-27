@@ -262,9 +262,17 @@ serve(async (req) => {
 
   try {
     const url = new URL(req.url);
-    const action = url.searchParams.get("action");
-    const forceRefresh = url.searchParams.get("refresh") === "true";
-    const userId = url.searchParams.get("userId");
+    // Read params from both query string and POST body for compatibility
+    let bodyParams: Record<string, string> = {};
+    if (req.method === "POST") {
+      try {
+        const raw = await req.json();
+        bodyParams = raw || {};
+      } catch { /* no body */ }
+    }
+    const action = url.searchParams.get("action") || bodyParams.action || null;
+    const forceRefresh = (url.searchParams.get("refresh") || bodyParams.refresh) === "true";
+    const userId = url.searchParams.get("userId") || bodyParams.userId || null;
     const sb = getSupabaseAdmin();
 
     const apiKey = Deno.env.get("ASKELEPHANT_API_KEY");
