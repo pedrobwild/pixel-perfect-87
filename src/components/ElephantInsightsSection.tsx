@@ -49,7 +49,8 @@ export default function ElephantInsightsSection() {
       setLoadingUsers(true);
       try {
         const { data: res, error } = await supabase.functions.invoke(
-          "elephant-insights?action=list-users"
+          "elephant-insights",
+          { body: { action: "list-users" } }
         );
         if (!error && res?.success && res.users) {
           setCorretores(res.users);
@@ -108,12 +109,11 @@ export default function ElephantInsightsSection() {
   const fetchInsights = async (refresh = false) => {
     setLoading(true);
     try {
-      const params = new URLSearchParams();
-      if (refresh) params.set("refresh", "true");
-      if (selectedCorretor) params.set("userId", selectedCorretor);
-      const fnName = `elephant-insights?${params.toString()}`;
+      const body: Record<string, string> = {};
+      if (refresh) body.refresh = "true";
+      if (selectedCorretor) body.userId = selectedCorretor;
 
-      const { data: res, error } = await supabase.functions.invoke(fnName);
+      const { data: res, error } = await supabase.functions.invoke("elephant-insights", { body });
       if (error) throw error;
       if (!res?.success) throw new Error(res?.error || "Erro ao buscar insights");
 
