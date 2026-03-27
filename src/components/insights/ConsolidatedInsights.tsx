@@ -76,8 +76,9 @@ export default function ConsolidatedInsights() {
       );
       if (usersErr || !usersRes?.success) throw new Error("Erro ao listar corretores");
 
+      const allUsers = usersRes.users || [];
       const ALLOWED_NAMES = ["amanda", "juliana"];
-      const filteredUsers = users.filter((u: any) => {
+      const filteredUsers = allUsers.filter((u: any) => {
         const name = (u.name || "").toLowerCase();
         return ALLOWED_NAMES.some((n) => name.includes(n));
       });
@@ -90,7 +91,7 @@ export default function ConsolidatedInsights() {
       }
 
       await loadFromCache();
-      toast({ title: "Insights consolidados atualizados", description: `${users.length} corretores processados.` });
+      toast({ title: "Insights consolidados atualizados", description: `${filteredUsers.length} corretores processados.` });
     } catch (err: any) {
       console.error("Consolidated fetch error:", err);
       toast({ title: "Erro ao atualizar", description: err.message, variant: "destructive" });
