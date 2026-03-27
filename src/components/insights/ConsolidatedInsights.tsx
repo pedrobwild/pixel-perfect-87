@@ -58,7 +58,7 @@ export default function ConsolidatedInsights() {
         return;
       }
 
-      const merged = mergeCacheEntries(caches);
+      const merged = mergeCacheEntries(filteredCaches);
       setData(merged);
 
       // Auto-refresh if qualitative data is missing (AI failed on previous run)
