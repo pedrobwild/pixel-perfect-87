@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import InsightsDashboard from "./InsightsDashboard";
 import QualitativeHighlights from "./QualitativeHighlights";
+import ExecutiveSummary from "./ExecutiveSummary";
 
 interface ConsolidatedData {
   totalMeetings: number;
@@ -176,6 +177,9 @@ export default function ConsolidatedInsights() {
               </Card>
             )}
           </div>
+
+          {/* AI Executive Summary */}
+          {data.dashboard && <ExecutiveSummary dashboardData={data.dashboard} />}
 
           {/* Qualitative Intelligence Highlights */}
           {data.dashboard && <QualitativeHighlights data={data.dashboard} />}
