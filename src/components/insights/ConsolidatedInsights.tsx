@@ -76,10 +76,14 @@ export default function ConsolidatedInsights() {
       );
       if (usersErr || !usersRes?.success) throw new Error("Erro ao listar corretores");
 
-      const users = usersRes.users || [];
-      if (!users.length) throw new Error("Nenhum corretor encontrado");
+      const ALLOWED_NAMES = ["amanda", "juliana"];
+      const filteredUsers = users.filter((u: any) => {
+        const name = (u.name || "").toLowerCase();
+        return ALLOWED_NAMES.some((n) => name.includes(n));
+      });
+      if (!filteredUsers.length) throw new Error("Nenhum corretor autorizado encontrado");
 
-      for (const user of users) {
+      for (const user of filteredUsers) {
         await supabase.functions.invoke("elephant-insights", {
           body: { userId: user.id, refresh: "true" },
         });
