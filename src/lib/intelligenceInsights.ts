@@ -37,7 +37,7 @@ export const INDICATOR_EXPLAINERS: IndicatorExplainer[] = [
     whatItIs: "É o valor médio que um imóvel consegue cobrar por noite neste bairro. Se o ADR é R$300, significa que os studios da região cobram, em média, R$300/noite.",
     whyItMatters: "Uma diária mais alta gera mais receita por reserva — mas não garante, sozinha, que o investimento será melhor. Afinal, se a ocupação for baixa, poucas noites serão vendidas.",
     howToRead: "ADR mais alto → diária mais cara → perfil mais premium. Mas compare sempre com a ocupação e o yield para ter a visão completa.",
-    example: "Um studio na Consolação pode cobrar R$310/noite com 76% de ocupação. Se a ocupação subir para 82%, o retorno anual cresce mesmo sem aumentar a diária.",
+    example: "Um studio na Consolação pode cobrar R$310/noite com 74% de ocupação. Se a ocupação subir para 80%, o retorno anual cresce mesmo sem aumentar a diária.",
     keyMessage: "Diária mais alta ajuda, mas não decide sozinha.",
     commonMistake: "Achar que o bairro com a diária mais cara é automaticamente o melhor investimento.",
     icon: "DollarSign",

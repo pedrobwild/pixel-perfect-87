@@ -398,7 +398,7 @@ export default function RevenueSimulator({ eventsData }: Props) {
 const BENCHMARKS = [
   { name: "Selic", gross: 14.25, net: 12.11, color: "hsl(220, 70%, 50%)" },
   { name: "CDI", gross: 14.15, net: 12.03, color: "hsl(250, 50%, 55%)" },
-  { name: "IFIX", gross: 10.8, net: 9.18, color: "hsl(30, 70%, 50%)" },
+  { name: "IFIX", gross: 10.8, net: 10.8, color: "hsl(30, 70%, 50%)" }, // FIIs isentos de IR para PF
   { name: "Poupança", gross: 7.7, net: 7.7, color: "hsl(0, 0%, 55%)" },
 ];
 
@@ -597,7 +597,7 @@ function YieldComparison({
         )}
 
         <p className="text-[10px] text-muted-foreground/50">
-          Selic e CDI: março/2026. IFIX: média 12m. IR 15% exceto poupança. Yield desconta 25% custos operacionais. Valorização baseada em dados Consolação/Paulista.
+          Selic e CDI: março/2026. IFIX: média 12m (isento de IR para PF). IR 15% sobre Selic/CDI. Poupança isenta. Yield desconta 25% custos operacionais. Valorização baseada em dados Consolação/Paulista.
         </p>
       </CardContent>
     </Card>
