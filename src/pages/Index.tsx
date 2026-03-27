@@ -405,7 +405,7 @@ export default function Index() {
       <footer className="border-t border-border/40 bg-muted/25">
         <div className="max-w-7xl mx-auto px-4 md:px-6 py-8">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
-            <p>© 2025 Bwild. Todos os direitos reservados.</p>
+            <p>© 2026 Bwild. Todos os direitos reservados.</p>
             <div className="flex items-center gap-4">
               <Link to="/ferramentas" className="hover:text-foreground transition-colors">Ferramentas</Link>
               <Link to="/urban-flex-bela-cintra" className="hover:text-foreground transition-colors">Urban Flex</Link>
