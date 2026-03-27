@@ -37,11 +37,11 @@ export interface Typology {
 
 export const TYPOLOGIES: Typology[] = [
   {
-    id: "18m2",
-    label: "Studio 18 m²",
-    area: 18,
-    purchasePrice: 198_000,
-    dailyEstimate: 220,
+    id: "19m2",
+    label: "Studio Compacto 19 m²",
+    area: 19,
+    purchasePrice: 200_000,
+    dailyEstimate: 225,
     idealProfile: "arrojado",
     highlights: [
       "Menor ticket de entrada da região",
@@ -50,42 +50,68 @@ export const TYPOLOGIES: Typology[] = [
     ],
   },
   {
-    id: "27m2",
-    label: "Studio 27 m²",
-    area: 27,
-    purchasePrice: 297_000,
-    dailyEstimate: 290,
+    id: "38m2",
+    label: "Studio Confort 38 m²",
+    area: 38,
+    purchasePrice: 399_000,
+    dailyEstimate: 345,
     idealProfile: "equilibrado",
     highlights: [
-      "Melhor equilíbrio ticket × retorno",
+      "Living amplo com cozinha completa",
       "Aceita casais e estadias corporativas",
       "Tipologia mais comum no mercado",
     ],
   },
   {
-    id: "36m2",
-    label: "Studio 36 m²",
-    area: 36,
-    purchasePrice: 396_000,
-    dailyEstimate: 340,
+    id: "40m2",
+    label: "Studio Premium 40 m²",
+    area: 40,
+    purchasePrice: 420_000,
+    dailyEstimate: 355,
     idealProfile: "equilibrado",
     highlights: [
-      "Diária premium com mais conforto",
+      "Varanda gourmet diferenciada",
       "Público corporativo e médico",
       "Estadias médias de 3–7 noites",
     ],
   },
   {
+    id: "54m2",
+    label: "Flat Executive 54 m²",
+    area: 54,
+    purchasePrice: 567_000,
+    dailyEstimate: 410,
+    idealProfile: "equilibrado",
+    highlights: [
+      "Mesa de jantar 6 lugares + closet",
+      "Estadias corporativas longas",
+      "Público premium com alta recorrência",
+    ],
+  },
+  {
+    id: "76m2",
+    label: "Duplex Assinatura 76 m²",
+    area: 76,
+    purchasePrice: 798_000,
+    dailyEstimate: 465,
+    idealProfile: "conservador",
+    highlights: [
+      "Dois pavimentos com design autoral",
+      "Layout versátil para famílias e grupos",
+      "Menor vacância em alta temporada",
+    ],
+  },
+  {
     id: "83m2",
-    label: "Duplex 83 m²",
+    label: "Cobertura Garden 83 m²",
     area: 83,
-    purchasePrice: 913_000,
+    purchasePrice: 872_000,
     dailyEstimate: 480,
     idealProfile: "conservador",
     highlights: [
+      "Área externa privativa com jacuzzi",
       "Diária mais alta do empreendimento",
-      "Público premium: famílias e grupos",
-      "Menor vacância em alta temporada",
+      "Público premium: famílias e experiências",
     ],
   },
 ];
@@ -130,7 +156,7 @@ export function rankByYield(occupancyPct: number = PROPERTY.avgOccupancy) {
 /** Recomenda tipologia com base no perfil */
 export function recommendTypology(profileName: string): Typology {
   const lower = profileName.toLowerCase();
-  if (lower.includes("conserv")) return TYPOLOGIES[3];
-  if (lower.includes("arrojado") || lower.includes("agressivo")) return TYPOLOGIES[0];
-  return TYPOLOGIES[1];
+  if (lower.includes("conserv")) return TYPOLOGIES.find(t => t.id === "76m2") || TYPOLOGIES[4];
+  if (lower.includes("arrojado") || lower.includes("agressivo")) return TYPOLOGIES.find(t => t.id === "19m2") || TYPOLOGIES[0];
+  return TYPOLOGIES.find(t => t.id === "38m2") || TYPOLOGIES[1];
 }
