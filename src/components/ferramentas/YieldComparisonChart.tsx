@@ -44,9 +44,22 @@ export default function YieldComparisonChart({ occupancy, rateBoost, selectedTyp
           />
           <Legend
             verticalAlign="top"
-            height={32}
-            formatter={(value: string) => (
-              <span className="text-xs text-muted-foreground">{value}</span>
+            height={36}
+            content={({ payload }) => (
+              <div className="flex items-center justify-center gap-6 mb-1">
+                {payload?.map((entry, i) => (
+                  <div key={i} className="flex items-center gap-1.5">
+                    <span
+                      className={`inline-block w-3 h-3 rounded-sm ${
+                        entry.dataKey === "yieldBruto"
+                          ? "bg-primary"
+                          : "bg-muted-foreground/40"
+                      }`}
+                    />
+                    <span className="text-xs text-muted-foreground">{entry.value}</span>
+                  </div>
+                ))}
+              </div>
             )}
           />
           <Tooltip
