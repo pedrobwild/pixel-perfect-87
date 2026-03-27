@@ -13,6 +13,7 @@ import { trackGlobal } from "@/hooks/useGuideAnalytics";
 import SectionBlock from "@/components/guide/SectionBlock";
 import { fmt } from "@/data/guide-data";
 import { PROPERTY, TYPOLOGIES, calcFinancials } from "@/data/propertyData";
+import YieldComparisonChart from "./YieldComparisonChart";
 
 export default function PropertySimuladorSection() {
   const [selectedTypo, setSelectedTypo] = useState(1);
