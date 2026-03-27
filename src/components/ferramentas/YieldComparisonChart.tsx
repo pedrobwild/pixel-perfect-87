@@ -42,6 +42,13 @@ export default function YieldComparisonChart({ occupancy, rateBoost, selectedTyp
             tickFormatter={(v) => `${v}%`}
             className="fill-muted-foreground"
           />
+          <Legend
+            verticalAlign="top"
+            height={32}
+            formatter={(value: string) => (
+              <span className="text-xs text-muted-foreground">{value}</span>
+            )}
+          />
           <Tooltip
             content={({ active, payload }) => {
               if (!active || !payload?.length) return null;
