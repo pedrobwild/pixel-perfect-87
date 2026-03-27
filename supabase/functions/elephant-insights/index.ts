@@ -289,6 +289,61 @@ serve(async (req) => {
       return new Response(JSON.stringify({ success: true, users }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
+    // ─── EXECUTIVE SUMMARY ENDPOINT ─────────────────────────────────
+    if (action === "executive-summary") {
+      const lovableKey = Deno.env.get("LOVABLE_API_KEY");
+      if (!lovableKey) return new Response(JSON.stringify({ success: false, error: "LOVABLE_API_KEY not configured" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+      const dashboardData = bodyParams.dashboardData;
+      if (!dashboardData) return new Response(JSON.stringify({ success: false, error: "dashboardData is required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+      const summaryPrompt = `Você é um analista de inteligência comercial da BWild, empresa de reformas de studios para investimento (Airbnb/short stay).
+
+Com base nos dados consolidados de reuniões com investidores, gere exatamente 3 takeaways executivos — os insights mais importantes e acionáveis para o time comercial.
+
+RETORNE APENAS um JSON array com 3 objetos, sem markdown:
+[
+  {"icon": "brain|shield|target|eye|sparkles", "title": "Título curto (max 8 palavras)", "insight": "Insight acionável em 1-2 frases"},
+  ...
+]
+
+REGRAS:
+- Cada takeaway deve ser concreto, baseado nos dados reais, não genérico
+- Use "icon" como: "brain" para perfil/comportamento, "shield" para objeções/riscos, "target" para oportunidades, "eye" para sinais, "sparkles" para recomendações
+- Português do Brasil, direto e acionável
+- APENAS o JSON array, nada mais`;
+
+      const dataStr = typeof dashboardData === "string" ? dashboardData : JSON.stringify(dashboardData);
+
+      const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${lovableKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [
+            { role: "system", content: summaryPrompt },
+            { role: "user", content: `Dados consolidados:\n${dataStr.substring(0, 8000)}` },
+          ],
+        }),
+      });
+
+      if (!aiResponse.ok) {
+        const status = aiResponse.status;
+        if (status === 429) return new Response(JSON.stringify({ success: false, error: "Rate limit exceeded" }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        if (status === 402) return new Response(JSON.stringify({ success: false, error: "Credits exhausted" }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        return new Response(JSON.stringify({ success: false, error: "AI error" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
+      const aiData = await aiResponse.json();
+      let rawContent = aiData.choices?.[0]?.message?.content || "";
+      rawContent = rawContent.replace(/^```json?\s*\n?/i, "").replace(/\n?```\s*$/i, "").trim();
+
+      let takeaways = [];
+      try { takeaways = JSON.parse(rawContent); } catch { takeaways = []; }
+
+      return new Response(JSON.stringify({ success: true, takeaways }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     // ─── INSIGHTS ENDPOINT ────────────────────────────────────────
     const lovableKey = Deno.env.get("LOVABLE_API_KEY");
     if (!lovableKey) return new Response(JSON.stringify({ success: false, error: "LOVABLE_API_KEY not configured" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
