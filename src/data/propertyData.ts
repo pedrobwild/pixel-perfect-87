@@ -156,7 +156,7 @@ export function rankByYield(occupancyPct: number = PROPERTY.avgOccupancy) {
 /** Recomenda tipologia com base no perfil */
 export function recommendTypology(profileName: string): Typology {
   const lower = profileName.toLowerCase();
-  if (lower.includes("conserv")) return TYPOLOGIES[3];
-  if (lower.includes("arrojado") || lower.includes("agressivo")) return TYPOLOGIES[0];
-  return TYPOLOGIES[1];
+  if (lower.includes("conserv")) return TYPOLOGIES.find(t => t.id === "76m2") || TYPOLOGIES[4];
+  if (lower.includes("arrojado") || lower.includes("agressivo")) return TYPOLOGIES.find(t => t.id === "19m2") || TYPOLOGIES[0];
+  return TYPOLOGIES.find(t => t.id === "38m2") || TYPOLOGIES[1];
 }
