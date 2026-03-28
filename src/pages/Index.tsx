@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { motion, useInView } from "framer-motion";
 import {
@@ -10,7 +10,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import AppNavbar from "@/components/AppNavbar";
 import PlantasSection from "@/components/PlantasSection";
-import { districtByName, formatBRL } from "@/data/districtMetrics";
+import heroImg from "@/assets/uf-fachada.jpeg";
+import { DISTRICTS_MOCK, districtByName, formatBRL } from "@/data/districtMetrics";
 
 const whatsappLink =
   "https://wa.me/5591984804821?text=Olá!%20Vi%20o%20site%20da%20Bwild%20e%20quero%20saber%20mais%20sobre%20os%20empreendimentos.";
@@ -32,6 +33,12 @@ function FadeIn({ children, delay = 0, className = "" }: { children: React.React
 }
 
 export default function Index() {
+  // Derive hero stats from districtMetrics (single source of truth)
+  const heroStats = useMemo(() => {
+    const avgDaily = Math.round(DISTRICTS_MOCK.reduce((s, d) => s + d.nightlyRateBRL, 0) / DISTRICTS_MOCK.length);
+    const avgOcc = Math.round(DISTRICTS_MOCK.reduce((s, d) => s + d.occupancyPercent, 0) / DISTRICTS_MOCK.length);
+    return { avgDaily, avgOcc, count: DISTRICTS_MOCK.length };
+  }, []);
   useEffect(() => {
     document.title = "Bwild · Investimento imobiliário inteligente em short stay";
     const meta = document.querySelector('meta[name="description"]');
@@ -43,65 +50,106 @@ export default function Index() {
       <AppNavbar />
 
       {/* Hero */}
-      <section className="scroll-mt-32 border-b border-border/50 bg-hero-gradient-subtle">
-        <div className="max-w-7xl mx-auto px-4 md:px-6 py-14 md:py-20 lg:py-28">
-          <div className="grid gap-8 lg:grid-cols-[1.15fr_0.85fr] lg:items-center">
+      <section className="relative overflow-hidden">
+        <div className="absolute inset-0">
+          <img src={heroImg} alt="Vista aérea de São Paulo" className="h-full w-full object-cover" loading="eager" />
+          <div className="absolute inset-0 bg-foreground/65" />
+        </div>
+
+        <div className="relative max-w-7xl mx-auto px-4 md:px-6 py-24 md:py-36 lg:py-44">
+          <FadeIn>
+            <Badge className="bg-background/15 text-background border-background/20 hover:bg-background/15 backdrop-blur-sm mb-6">
+              Leal Moreira · Investimento imobiliário
+            </Badge>
+          </FadeIn>
+
+          <FadeIn delay={0.08}>
+            <h1
+              className="font-display text-4xl md:text-5xl lg:text-6xl font-bold leading-[1.05] max-w-3xl"
+              style={{ color: "hsl(var(--primary-foreground))" }}
+            >
+              LM Urban Flex - Bela Cintra
+            </h1>
+          </FadeIn>
+
+          <FadeIn delay={0.16}>
+            <p className="mt-5 text-lg md:text-xl max-w-2xl leading-relaxed" style={{ color: "hsl(var(--primary-foreground) / 0.8)" }}>
+              Guia do investidor com tese clara de short stay e operação simplificada.
+            </p>
+          </FadeIn>
+
+          <FadeIn delay={0.24}>
+            <div className="mt-10">
+              <Link to="/ferramentas">
+                <Button size="lg" className="min-h-[48px] w-full sm:w-auto">
+                  Explorar Ferramentas
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
+            </div>
+          </FadeIn>
+
+          {/* Quick stats */}
+          <FadeIn delay={0.32}>
+            <div className="mt-14 flex flex-wrap gap-8 md:gap-12">
+              {[
+                { value: `${heroStats.count}+`, label: "Bairros analisados" },
+                { value: `R$ ${heroStats.avgDaily}`, label: "Diária média (studios)" },
+                { value: `${heroStats.avgOcc}%`, label: "Ocupação média SP" },
+              ].map((s) => (
+                <div key={s.label}>
+                  <p className="font-display text-2xl md:text-3xl font-bold" style={{ color: "hsl(var(--primary-foreground))" }}>{s.value}</p>
+                  <p className="text-sm mt-0.5" style={{ color: "hsl(var(--primary-foreground) / 0.6)" }}>{s.label}</p>
+                </div>
+              ))}
+            </div>
+          </FadeIn>
+        </div>
+      </section>
+
+      {/* Featured project — Urban Flex */}
+      <section className="border-b border-border/40">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 py-20 md:py-28">
+          <div className="grid gap-8 lg:grid-cols-[1fr_1fr] lg:items-center">
             <FadeIn>
-              <div className="flex flex-wrap gap-2 mb-5">
-                <Badge className="bg-accent/10 text-accent border-accent/20 hover:bg-accent/10">Leal Moreira</Badge>
-                <Badge variant="outline">LM Urban Flex · Bela Cintra</Badge>
-              </div>
-
-              <h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-bold leading-tight text-foreground max-w-4xl">
-                Invista em
-                <span className="text-gradient-premium"> short stay premium </span>
-                na Bela Cintra, a 200m da Paulista.
-              </h1>
-
-              <p className="mt-5 max-w-2xl text-lg text-muted-foreground leading-relaxed">
-                Entenda a tese de investimento, compare tipologias, simule o retorno potencial e veja por que esse
-                endereço sustenta demanda forte para locação de curta temporada.
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary/80 mb-3">Empreendimento em destaque</p>
+              <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground">
+                LM Urban Flex · Bela Cintra
+              </h2>
+              <p className="mt-4 text-muted-foreground leading-relaxed max-w-lg">
+                Retrofit premium a 200 m da Av. Paulista. Studios de 18 a 83 m², amenidades de operação short stay e obra 63% concluída.
               </p>
 
-              <div className="mt-8 flex flex-col sm:flex-row gap-3">
-                <Link to="/urban-flex-bela-cintra">
-                  <Button size="lg" className="min-h-[46px] bg-accent hover:bg-accent/90 text-accent-foreground">
-                    <ArrowRight className="mr-2 h-4 w-4" />
-                    Guia completo do investidor
-                  </Button>
-                </Link>
-                <Button size="lg" variant="outline" className="min-h-[46px]" onClick={() => window.open(whatsappLink, "_blank")}>
-                  <MessageCircle className="mr-2 h-4 w-4" />
-                  Falar com a equipe
-                </Button>
-              </div>
-
-              <div className="mt-10 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <div className="mt-6 grid grid-cols-2 gap-3">
                 {[
-                  { value: "R. Bela Cintra, 209", label: "Endereço do empreendimento" },
-                  { value: "18 a 83 m²", label: "Faixa de tipologias" },
-                  { value: "63,53%", label: "Status geral da obra", highlight: true },
-                  { value: "6 áreas", label: "Amenidades-chave" },
+                  { value: "R. Bela Cintra, 209", label: "Endereço" },
+                  { value: "18 a 83 m²", label: "Tipologias" },
+                  { value: "63,53%", label: "Obra concluída" },
+                  { value: "4 tipologias", label: "Opções de unidade" },
                 ].map((kpi) => (
-                  <div key={kpi.label} className={`rounded-xl border p-4 ${kpi.highlight ? "border-primary/20 bg-primary/5" : "border-border/60 bg-background"}`}>
-                    <p className={`font-display text-lg md:text-xl font-bold whitespace-nowrap ${kpi.highlight ? "text-primary" : "text-foreground"}`}>{kpi.value}</p>
+                  <div key={kpi.label} className="rounded-xl border border-border/60 bg-background p-4">
+                    <p className="font-display text-lg font-bold text-foreground">{kpi.value}</p>
                     <p className="text-xs text-muted-foreground mt-1">{kpi.label}</p>
                   </div>
                 ))}
               </div>
+
+              <Link to="/urban-flex-bela-cintra" className="mt-8 inline-block">
+                <Button size="lg" className="min-h-[46px]">
+                  Explorar guia do investidor
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
             </FadeIn>
 
             <FadeIn delay={0.1}>
-              <Card className="card-elevated overflow-hidden border-primary/10">
+              <Card className="card-elevated border-primary/10 overflow-hidden">
                 <CardContent className="p-6 space-y-4">
-                  <div className="flex items-center gap-3 mb-2">
-                    <h2 className="text-xl font-bold text-foreground">Por que esse ativo faz sentido</h2>
-                  </div>
                   {[
-                    "Endereço na Bela Cintra, a 200m da Paulista — demanda diversificada (corporativa, médica, cultural, turismo).",
-                    "Tipologias de 18 a 83 m² permitem encaixar desde entrada mais leve até produto premium.",
-                    "Amenidades como coworking, lavanderia e conveniência reforçam o posicionamento short stay.",
-                    "Obra 63% concluída — janela de compra com preço de planta e previsibilidade de entrega.",
+                    "Endereço ultra conhecido: Bela Cintra + Paulista.",
+                    "Tipologias variadas — da entrada leve ao produto assinatura.",
+                    "Amenidades pensadas para operação short stay e público corporativo.",
+                    "Simulador de retorno integrado na página de venda.",
                   ].map((item) => (
                     <div key={item} className="flex items-start gap-3 rounded-xl border border-border/60 p-4">
                       <div className="mt-1.5 h-2 w-2 rounded-full bg-primary shrink-0" />
@@ -115,6 +163,219 @@ export default function Index() {
         </div>
       </section>
 
+      {/* Market location data — Consolação */}
+      <section className="bg-muted/25 border-b border-border/40">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 py-20 md:py-28">
+          <FadeIn>
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary/80 mb-3">Por que a Consolação</p>
+            <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground max-w-2xl">
+              Um dos bairros mais rentáveis de São Paulo para short stay.
+            </h2>
+            <p className="mt-4 text-muted-foreground leading-relaxed max-w-2xl">
+              A Consolação concentra demanda corporativa, médica e turística em um raio de poucos quarteirões — o cenário ideal para ocupação alta e diárias consistentes.
+            </p>
+          </FadeIn>
+
+          {(() => {
+            const cons = districtByName.get("Consolação");
+            if (!cons) return null;
+            const statsData = [
+              { value: cons.adrRangeLabel, label: "Diária média (studios)", detail: cons.sourceLabel },
+              { value: `${cons.occupancyPercent}%`, label: "Ocupação média anual", detail: "Acima da média de SP" },
+              { value: `${cons.listingsCount.toLocaleString("pt-BR")}+`, label: "Listings ativos na região", detail: "Mercado validado e líquido" },
+              { value: "R$ 10.500/m²", label: "Preço médio residencial", detail: "Abaixo de Pinheiros e Itaim" },
+            ];
+            return (
+              <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                {statsData.map((stat, i) => (
+                  <FadeIn key={stat.label} delay={i * 0.06}>
+                    <div className="rounded-xl border border-border/60 bg-background p-5 h-full">
+                      <p className="font-display text-xl md:text-2xl font-bold text-primary">{stat.value}</p>
+                      <p className="text-sm font-medium text-foreground mt-2">{stat.label}</p>
+                      <p className="text-[11px] text-muted-foreground mt-1">{stat.detail}</p>
+                    </div>
+                  </FadeIn>
+                ))}
+              </div>
+            );
+          })()}
+
+          <div className="mt-10 grid gap-4 md:grid-cols-3">
+            {[
+              {
+                icon: Building2,
+                title: "Corredor corporativo",
+                text: "Av. Paulista, FIESP, hospitais Sírio-Libanês e 9 de Julho a menos de 1 km. Demanda constante de profissionais em trânsito.",
+              },
+              {
+                icon: MapPin,
+                title: "Infraestrutura completa",
+                text: "3 estações de metrô em 10 min a pé (Consolação, Paulista, Trianon). Gastronomia, cultura e vida noturna que atraem turistas o ano todo.",
+              },
+              {
+                icon: TrendingUp,
+                title: "Potencial de valorização",
+                text: "Preço/m² ainda abaixo de bairros vizinhos como Jardins e Itaim, com tendência de alta impulsionada por novos empreendimentos na região.",
+              },
+            ].map((item, i) => (
+              <FadeIn key={item.title} delay={i * 0.08}>
+                <Card className="card-elevated border-border/60 h-full">
+                  <CardContent className="p-5">
+                    <item.icon className="h-5 w-5 text-primary mb-3" />
+                    <h3 className="text-base font-semibold text-foreground mb-2">{item.title}</h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed">{item.text}</p>
+                  </CardContent>
+                </Card>
+              </FadeIn>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <PlantasSection />
+
+      <section className="bg-muted/25 border-b border-border/40">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 py-20 md:py-28">
+          {/* Comparative table */}
+          <FadeIn className="mt-14">
+          {(() => {
+            const VERDICTS: Record<string, string> = {
+              "Consolação": "Melhor custo-benefício", "Pinheiros": "Diária alta, ticket elevado",
+              "Itaim Bibi": "Premium, mas yield menor", "Vila Mariana": "Boa ocupação, ticket médio",
+              "Moema": "Diária boa, preço alto", "República": "Ticket baixo, risco maior",
+            };
+            const names = ["Consolação", "Pinheiros", "Itaim Bibi", "Vila Mariana", "Moema", "República"];
+            const rows = names.map((n) => {
+              const d = districtByName.get(n);
+              if (!d) return null;
+              const priceSqm = d.priceSqm;
+              const yieldEst = ((d.nightlyRateBRL * (d.occupancyPercent / 100) * 365) / (priceSqm * 30)) * 100;
+              return {
+                name: n,
+                daily: formatBRL(d.nightlyRateBRL),
+                occ: `${d.occupancyPercent}%`,
+                price: `R$ ${priceSqm.toLocaleString("pt-BR")}`,
+                yield: yieldEst.toFixed(1).replace(".", ",") + "%",
+                yieldNum: yieldEst,
+                highlight: n === "Consolação",
+                verdict: VERDICTS[n] || "",
+              };
+            }).filter(Boolean) as Array<{ name: string; daily: string; occ: string; price: string; yield: string; yieldNum: number; highlight: boolean; verdict: string }>;
+
+            const consYield = rows.find(r => r.name === "Consolação")?.yield || "";
+
+            return (
+              <FadeIn className="mt-14">
+                <h3 className="font-display text-xl md:text-2xl font-bold text-foreground mb-2">
+                  Consolação vs. outros bairros
+                </h3>
+                <p className="text-sm text-muted-foreground mb-6">
+                  Yield estimado considera diária média, ocupação e preço de aquisição por m². Quanto menor o ticket e maior a receita, melhor o retorno.
+                </p>
+                <div className="overflow-x-auto rounded-xl border border-border/60 bg-background">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-border/40 bg-muted/30">
+                        <th className="text-left py-3 px-4 font-semibold text-foreground">Bairro</th>
+                        <th className="text-center py-3 px-4 font-semibold text-foreground">Diária média</th>
+                        <th className="text-center py-3 px-4 font-semibold text-foreground">Ocupação</th>
+                        <th className="text-center py-3 px-4 font-semibold text-foreground">Preço/m²</th>
+                        <th className="text-center py-3 px-4 font-semibold text-foreground">Yield bruto est.</th>
+                        <th className="text-center py-3 px-4 font-semibold text-foreground">Veredito</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rows.map((row) => (
+                        <tr
+                          key={row.name}
+                          className={`border-b border-border/20 last:border-0 ${row.highlight ? "bg-primary/5" : ""}`}
+                        >
+                          <td className={`py-3 px-4 font-medium ${row.highlight ? "text-primary font-bold" : "text-foreground"}`}>
+                            {row.highlight && <span className="inline-block w-2 h-2 rounded-full bg-primary mr-2 align-middle" />}
+                            {row.name}
+                          </td>
+                          <td className="text-center py-3 px-4 text-muted-foreground">{row.daily}</td>
+                          <td className="text-center py-3 px-4 text-muted-foreground">{row.occ}</td>
+                          <td className="text-center py-3 px-4 text-muted-foreground">{row.price}</td>
+                          <td className={`text-center py-3 px-4 font-bold ${row.highlight ? "text-primary" : "text-foreground"}`}>
+                            {row.yield}
+                          </td>
+                          <td className="py-3 px-4">
+                            <span className={`text-xs px-2 py-1 rounded-full ${row.highlight ? "bg-primary/10 text-primary font-semibold" : "bg-muted text-muted-foreground"}`}>
+                              {row.verdict}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="mt-6 rounded-xl border border-border/60 bg-muted/30 p-5 space-y-3">
+                  <h4 className="text-sm font-semibold text-foreground">O que é Yield bruto estimado?</h4>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    O <strong className="text-foreground">yield bruto</strong> é a relação entre a receita anual de aluguel e o valor investido no imóvel — quanto maior, mais rápido o imóvel "se paga". O cálculo simplificado é: <span className="font-mono text-xs bg-background px-1.5 py-0.5 rounded border border-border/60">(diária média × ocupação × 365) ÷ custo total do imóvel</span>.
+                  </p>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    A Consolação lidera com <strong className="text-primary">{consYield}</strong> porque combina dois fatores difíceis de encontrar juntos: <strong className="text-foreground">diária competitiva</strong> com um <strong className="text-foreground">preço de aquisição por m² significativamente menor</strong> que bairros vizinhos como Pinheiros e Itaim.
+                  </p>
+                </div>
+                <p className="text-[11px] text-muted-foreground/70 mt-3">
+                  Fonte: AirDNA, pesquisa Bwild 2025. Valores médios para studios 20–35 m².
+                </p>
+              </FadeIn>
+            );
+          })()}
+          </FadeIn>
+        </div>
+      </section>
+
+      <section className="bg-muted/25 border-b border-border/40">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 py-20 md:py-28">
+          <FadeIn>
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary/80 mb-3">Recursos para o investidor</p>
+            <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground max-w-2xl">
+              Tome decisões baseadas em dados, não em achismo.
+            </h2>
+          </FadeIn>
+
+          <div className="mt-12 max-w-xl mx-auto">
+            <FadeIn delay={0.05}>
+              <Card className="card-elevated border-border/60 h-full group hover:border-primary/30 transition-colors">
+                <CardContent className="p-7">
+                  <div className="flex items-center gap-3 mb-5">
+                    <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                      <Wrench className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-foreground">Ferramentas do Investidor</h3>
+                      <p className="text-xs text-muted-foreground">Diagnóstico · Simulador · Ranking</p>
+                    </div>
+                  </div>
+                  <ul className="space-y-3 mb-6">
+                    {[
+                      "Diagnóstico de perfil do investidor personalizado",
+                      "Simulador de receita com cenários otimista/conservador",
+                      "Ranking de bairros por score de investimento",
+                      "Comparativo de tipologias e retorno esperado",
+                    ].map((item) => (
+                      <li key={item} className="flex items-start gap-2.5 text-sm text-muted-foreground">
+                        <BarChart3 className="h-4 w-4 text-primary/60 mt-0.5 shrink-0" />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <Link to="/ferramentas">
+                    <Button className="w-full min-h-[44px] group-hover:bg-primary/90 transition-colors">
+                      Acessar ferramentas
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </Link>
+                </CardContent>
+              </Card>
+            </FadeIn>
+          </div>
+        </div>
+      </section>
 
 
       {/* CTA */}

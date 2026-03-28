@@ -460,53 +460,90 @@ export default function UrbanFlexInvestorGuide() {
         {/* ═══════ HERO ═══════ */}
         <section id="hero" className="scroll-mt-32 border-b border-border/50 bg-hero-gradient-subtle">
           <div className="max-w-7xl mx-auto px-4 md:px-6 py-14 md:py-20">
-            <motion.div
-              initial={{ opacity: 0, y: 24 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-100px" }}
-              transition={{ duration: 0.5 }}
-              className="max-w-3xl"
-            >
-              <div className="flex flex-wrap gap-2 mb-5">
-                <Badge className="bg-accent/10 text-accent border-accent/20 hover:bg-accent/10">Guia do Investidor</Badge>
-                <Badge variant="outline">LM Urban Flex · Bela Cintra</Badge>
-              </div>
+            <div className="grid gap-8 lg:grid-cols-[1.15fr_0.85fr] lg:items-center">
+              <motion.div
+                initial={{ opacity: 0, y: 24 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-100px" }}
+                transition={{ duration: 0.5 }}
+              >
+                <div className="flex flex-wrap gap-2 mb-5">
+                  <Badge className="bg-[hsl(24,90%,50%)]/10 text-[hsl(24,90%,50%)] border-[hsl(24,90%,50%)]/20 hover:bg-[hsl(24,90%,50%)]/10">Leal Moreira</Badge>
+                  <Badge variant="outline">LM Urban Flex · Bela Cintra</Badge>
+                  <Badge variant="outline">Guia do Investidor</Badge>
+                </div>
 
-              <h1 className="font-display text-3xl md:text-4xl lg:text-5xl font-bold leading-tight text-foreground">
-                Simule, compare e decida com dados —
-                <span className="text-gradient-premium"> tudo em um só lugar.</span>
-              </h1>
+                <h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-bold leading-tight text-foreground max-w-4xl">
+                  Invista em
+                  <span className="text-gradient-premium"> short stay premium </span>
+                  na Bela Cintra, a 200m da Paulista.
+                </h1>
 
-              <p className="mt-5 text-lg text-muted-foreground leading-relaxed">
-                Use as ferramentas abaixo para montar sua tese de investimento: perfil de investidor, simulação de retorno,
-                comparação de tipologias, checklist de prontidão e contato direto com a equipe.
-              </p>
+                <p className="mt-5 max-w-2xl text-lg text-muted-foreground leading-relaxed">
+                  Entenda a tese de investimento, compare tipologias, simule o retorno potencial e veja por que esse
+                  endereço sustenta demanda forte para locação de curta temporada.
+                </p>
 
-              <div className="mt-8 flex flex-col sm:flex-row gap-3">
-                <Button size="lg" className="min-h-[46px] bg-accent hover:bg-accent/90 text-accent-foreground" onClick={() => scrollTo("simulador")}>
-                  <CircleDollarSign className="mr-2 h-4 w-4" />
-                  Ir para o simulador
-                </Button>
-                <Button size="lg" variant="outline" className="min-h-[46px]" onClick={() => scrollTo("diagnostico")}>
-                  <LayoutGrid className="mr-2 h-4 w-4" />
-                  Começar pelo perfil
-                </Button>
-              </div>
+                <div className="mt-8 flex flex-col sm:flex-row gap-3">
+                  <Button size="lg" className="min-h-[46px] bg-[hsl(24,90%,50%)] hover:bg-[hsl(24,90%,44%)] text-white" onClick={() => scrollTo("simulador")}>
+                    <CircleDollarSign className="mr-2 h-4 w-4" />
+                    Simular retorno
+                  </Button>
+                  <Button size="lg" variant="outline" className="min-h-[46px]" onClick={() => window.open(whatsappLink, "_blank")}>
+                    <MessageCircle className="mr-2 h-4 w-4" />
+                    Falar com a equipe
+                  </Button>
+                </div>
 
-              <div className="mt-10 grid gap-3 grid-cols-2 sm:grid-cols-4">
-                {[
-                  { icon: LayoutGrid, label: "Diagnóstico de perfil" },
-                  { icon: CircleDollarSign, label: "Simulador de retorno" },
-                  { icon: CalendarRange, label: "Tipologias e plantas" },
-                  { icon: ShieldCheck, label: "Checklist de prontidão" },
-                ].map((tool) => (
-                  <div key={tool.label} className="rounded-xl border border-border/60 bg-background p-3 flex items-center gap-2.5">
-                    <tool.icon className="h-4 w-4 text-accent shrink-0" />
-                    <p className="text-xs font-medium text-foreground">{tool.label}</p>
-                  </div>
-                ))}
-              </div>
-            </motion.div>
+                <div className="mt-10 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                  <KpiCard value="R. Bela Cintra, 209" label="Endereço do empreendimento" />
+                  <KpiCard value="18 a 83 m²" label="Faixa de tipologias" />
+                  <KpiCard value="63,53%" label="Status geral da obra" highlight />
+                  <KpiCard value="6 áreas" label="Amenidades-chave" />
+                </div>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 24 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-100px" }}
+                transition={{ duration: 0.55, delay: 0.1 }}
+              >
+                <Card className="card-elevated overflow-hidden border-primary/10">
+                  <CardHeader className="pb-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <CardTitle className="text-2xl">Por que esse ativo faz sentido</CardTitle>
+                        <CardDescription className="mt-2">
+                          Os fundamentos que sustentam a tese de renda neste endereço.
+                        </CardDescription>
+                      </div>
+                      <ShieldCheck className="h-8 w-8 text-primary" />
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-5">
+                    {[
+                      "Endereço na Bela Cintra, a 200m da Paulista — reconhecimento imediato e demanda diversificada (corporativa, médica, cultural, turismo).",
+                      "Tipologias de 18 a 83 m² permitem encaixar desde entrada mais leve até produto premium com diárias mais altas.",
+                      "Amenidades como coworking, lavanderia e conveniência reforçam o posicionamento para hóspedes de curta temporada.",
+                      "Obra 63% concluída — janela de compra com preço de planta e previsibilidade de entrega.",
+                    ].map((item) => (
+                      <div key={item} className="flex items-start gap-3 rounded-xl border border-border/60 p-4">
+                        <div className="mt-1 h-2.5 w-2.5 rounded-full bg-primary" />
+                        <p className="text-sm leading-relaxed text-foreground">{item}</p>
+                      </div>
+                    ))}
+
+                    <div className="rounded-xl border border-dashed border-primary/25 bg-primary/5 p-4">
+                      <p className="text-sm font-medium text-foreground">
+                        Este guia reúne as informações mais relevantes para você avaliar o investimento. Simule retornos,
+                        entenda os custos e fale com a equipe quando estiver pronto.
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </div>
           </div>
         </section>
 
