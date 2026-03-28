@@ -174,7 +174,7 @@ export default function Index() {
               {
                 icon: Sparkles,
                 title: "Design orientado por dados",
-                desc: "Os projetos 3D foram criados com base em análise de mercado — layouts, acabamentos e estilo pensados para maximizar ocupação e diária.",
+                desc: "Studios com design estratégico alcançam até 30% mais ocupação que unidades sem reforma. Cada projeto 3D foi pensado para maximizar diária e taxa de reserva.",
               },
               {
                 icon: Shield,
