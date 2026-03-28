@@ -356,7 +356,7 @@ export default function PlantasSection() {
 
   return (
     <>
-      <section ref={sectionRef} className="border-b border-border/40 relative overflow-hidden">
+      <section id="tipologias" ref={sectionRef} className="border-b border-border/40 relative overflow-hidden">
         {/* Parallax background accent */}
         <motion.div
           style={{ y: bgY }}
