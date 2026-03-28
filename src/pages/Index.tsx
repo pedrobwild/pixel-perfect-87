@@ -364,7 +364,7 @@ export default function Index() {
 
       {/* ── GUIA DO INVESTIDOR ── */}
       <section className="border-b border-border/40 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.03] via-transparent to-accent/[0.02] pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-br from-accent/[0.05] via-transparent to-accent/[0.03] pointer-events-none" />
         <div className="max-w-7xl mx-auto px-4 md:px-6 py-20 md:py-28 relative">
           <div className="grid gap-10 lg:grid-cols-[1fr_1fr] lg:items-center">
             <FadeIn>
@@ -382,7 +382,7 @@ export default function Index() {
               </p>
 
               <Link to="/urban-flex-bela-cintra" className="mt-8 inline-block">
-                <Button size="lg" className="min-h-[52px] font-bold">
+                <Button size="lg" className="min-h-[52px] font-bold bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg shadow-accent/25">
                   Acessar o Guia do Investidor
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
@@ -401,7 +401,7 @@ export default function Index() {
                 ].map((item, i) => (
                   <div
                     key={item.title}
-                    className="rounded-xl border border-border/60 bg-background p-4 hover:border-primary/30 transition-colors"
+                    className="rounded-xl border border-border/60 bg-background p-4 hover:border-accent/40 hover:shadow-lg hover:shadow-accent/10 transition-all duration-300"
                   >
                     <h3 className="text-sm font-bold text-foreground mb-1">{item.title}</h3>
                     <p className="text-xs text-muted-foreground leading-relaxed">{item.desc}</p>
