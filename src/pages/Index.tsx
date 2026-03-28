@@ -50,60 +50,75 @@ export default function Index() {
       <AppNavbar />
 
       {/* Hero */}
-      <section className="relative overflow-hidden">
-        <div className="absolute inset-0">
-          <img src={heroImg} alt="Vista aérea de São Paulo" className="h-full w-full object-cover" loading="eager" />
-          <div className="absolute inset-0 bg-foreground/65" />
-        </div>
+      <section className="scroll-mt-32 border-b border-border/50 bg-hero-gradient-subtle">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 py-14 md:py-20 lg:py-28">
+          <div className="grid gap-8 lg:grid-cols-[1.15fr_0.85fr] lg:items-center">
+            <FadeIn>
+              <div className="flex flex-wrap gap-2 mb-5">
+                <Badge className="bg-accent/10 text-accent border-accent/20 hover:bg-accent/10">Leal Moreira</Badge>
+                <Badge variant="outline">LM Urban Flex · Bela Cintra</Badge>
+              </div>
 
-        <div className="relative max-w-7xl mx-auto px-4 md:px-6 py-24 md:py-36 lg:py-44">
-          <FadeIn>
-            <Badge className="bg-background/15 text-background border-background/20 hover:bg-background/15 backdrop-blur-sm mb-6">
-              Leal Moreira · Investimento imobiliário
-            </Badge>
-          </FadeIn>
+              <h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-bold leading-tight text-foreground max-w-4xl">
+                Invista em
+                <span className="text-gradient-premium"> short stay premium </span>
+                na Bela Cintra, a 200m da Paulista.
+              </h1>
 
-          <FadeIn delay={0.08}>
-            <h1
-              className="font-display text-4xl md:text-5xl lg:text-6xl font-bold leading-[1.05] max-w-3xl"
-              style={{ color: "hsl(var(--primary-foreground))" }}
-            >
-              LM Urban Flex - Bela Cintra
-            </h1>
-          </FadeIn>
+              <p className="mt-5 max-w-2xl text-lg text-muted-foreground leading-relaxed">
+                Entenda a tese de investimento, compare tipologias, simule o retorno potencial e veja por que esse
+                endereço sustenta demanda forte para locação de curta temporada.
+              </p>
 
-          <FadeIn delay={0.16}>
-            <p className="mt-5 text-lg md:text-xl max-w-2xl leading-relaxed" style={{ color: "hsl(var(--primary-foreground) / 0.8)" }}>
-              Guia do investidor com tese clara de short stay e operação simplificada.
-            </p>
-          </FadeIn>
-
-          <FadeIn delay={0.24}>
-            <div className="mt-10">
-              <Link to="/ferramentas">
-                <Button size="lg" className="min-h-[48px] w-full sm:w-auto">
-                  Explorar Ferramentas
-                  <ArrowRight className="ml-2 h-4 w-4" />
+              <div className="mt-8 flex flex-col sm:flex-row gap-3">
+                <Link to="/urban-flex-bela-cintra">
+                  <Button size="lg" className="min-h-[46px] bg-accent hover:bg-accent/90 text-accent-foreground">
+                    <ArrowRight className="mr-2 h-4 w-4" />
+                    Guia completo do investidor
+                  </Button>
+                </Link>
+                <Button size="lg" variant="outline" className="min-h-[46px]" onClick={() => window.open(whatsappLink, "_blank")}>
+                  <MessageCircle className="mr-2 h-4 w-4" />
+                  Falar com a equipe
                 </Button>
-              </Link>
-            </div>
-          </FadeIn>
+              </div>
 
-          {/* Quick stats */}
-          <FadeIn delay={0.32}>
-            <div className="mt-14 flex flex-wrap gap-8 md:gap-12">
-              {[
-                { value: `${heroStats.count}+`, label: "Bairros analisados" },
-                { value: `R$ ${heroStats.avgDaily}`, label: "Diária média (studios)" },
-                { value: `${heroStats.avgOcc}%`, label: "Ocupação média SP" },
-              ].map((s) => (
-                <div key={s.label}>
-                  <p className="font-display text-2xl md:text-3xl font-bold" style={{ color: "hsl(var(--primary-foreground))" }}>{s.value}</p>
-                  <p className="text-sm mt-0.5" style={{ color: "hsl(var(--primary-foreground) / 0.6)" }}>{s.label}</p>
-                </div>
-              ))}
-            </div>
-          </FadeIn>
+              <div className="mt-10 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                {[
+                  { value: "R. Bela Cintra, 209", label: "Endereço do empreendimento" },
+                  { value: "18 a 83 m²", label: "Faixa de tipologias" },
+                  { value: "63,53%", label: "Status geral da obra", highlight: true },
+                  { value: "6 áreas", label: "Amenidades-chave" },
+                ].map((kpi) => (
+                  <div key={kpi.label} className={`rounded-xl border p-4 ${kpi.highlight ? "border-primary/20 bg-primary/5" : "border-border/60 bg-background"}`}>
+                    <p className={`font-display text-lg md:text-xl font-bold whitespace-nowrap ${kpi.highlight ? "text-primary" : "text-foreground"}`}>{kpi.value}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{kpi.label}</p>
+                  </div>
+                ))}
+              </div>
+            </FadeIn>
+
+            <FadeIn delay={0.1}>
+              <Card className="card-elevated overflow-hidden border-primary/10">
+                <CardContent className="p-6 space-y-4">
+                  <div className="flex items-center gap-3 mb-2">
+                    <h2 className="text-xl font-bold text-foreground">Por que esse ativo faz sentido</h2>
+                  </div>
+                  {[
+                    "Endereço na Bela Cintra, a 200m da Paulista — demanda diversificada (corporativa, médica, cultural, turismo).",
+                    "Tipologias de 18 a 83 m² permitem encaixar desde entrada mais leve até produto premium.",
+                    "Amenidades como coworking, lavanderia e conveniência reforçam o posicionamento short stay.",
+                    "Obra 63% concluída — janela de compra com preço de planta e previsibilidade de entrega.",
+                  ].map((item) => (
+                    <div key={item} className="flex items-start gap-3 rounded-xl border border-border/60 p-4">
+                      <div className="mt-1.5 h-2 w-2 rounded-full bg-primary shrink-0" />
+                      <p className="text-sm leading-relaxed text-foreground">{item}</p>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            </FadeIn>
+          </div>
         </div>
       </section>
 
