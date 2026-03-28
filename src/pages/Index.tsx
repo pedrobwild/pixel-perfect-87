@@ -1,9 +1,10 @@
 import { useEffect, useRef, useMemo } from "react";
 import { Link } from "react-router-dom";
-import { motion, useInView } from "framer-motion";
+import { motion, useInView, useScroll, useTransform } from "framer-motion";
 import {
   ArrowRight, Building2, MapPin, TrendingUp,
-  MessageCircle, Wrench, BarChart3
+  MessageCircle, Wrench, BarChart3, Eye, Map,
+  BrainCircuit, Palette, Calculator, Shield, Zap
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -32,78 +33,206 @@ function FadeIn({ children, delay = 0, className = "" }: { children: React.React
   );
 }
 
+const PLATFORM_PILLARS = [
+  {
+    icon: Palette,
+    title: "Catálogo de Reforma 3D",
+    desc: "6 tipologias com projetos decorados em duas linhas de design. Visualize antes de investir.",
+    cta: "Ver tipologias",
+    href: "#tipologias",
+    accent: true,
+  },
+  {
+    icon: Calculator,
+    title: "Simulador de Retorno",
+    desc: "Projete receita em cenários otimista e conservador com dados reais de mercado.",
+    cta: "Simular agora",
+    href: "/ferramentas",
+  },
+  {
+    icon: Map,
+    title: "Mapa de Inteligência",
+    desc: "Heatmap de demanda, ranking de bairros e comparativo de yield por região de SP.",
+    cta: "Explorar mapa",
+    href: "/ferramentas",
+  },
+  {
+    icon: BrainCircuit,
+    title: "Insights de Vendas",
+    desc: "Dashboard com performance por corretor, scripts de venda gerados por IA e calendário de eventos.",
+    cta: "Ver insights",
+    href: "/insights",
+  },
+];
+
 export default function Index() {
-  // Derive hero stats from districtMetrics (single source of truth)
   const heroStats = useMemo(() => {
     const avgDaily = Math.round(DISTRICTS_MOCK.reduce((s, d) => s + d.nightlyRateBRL, 0) / DISTRICTS_MOCK.length);
     const avgOcc = Math.round(DISTRICTS_MOCK.reduce((s, d) => s + d.occupancyPercent, 0) / DISTRICTS_MOCK.length);
     return { avgDaily, avgOcc, count: DISTRICTS_MOCK.length };
   }, []);
+
+  const heroRef = useRef(null);
+  const { scrollYProgress } = useScroll({ target: heroRef, offset: ["start start", "end start"] });
+  const heroImgY = useTransform(scrollYProgress, [0, 1], ["0%", "25%"]);
+  const heroOpacity = useTransform(scrollYProgress, [0, 0.7], [1, 0]);
+
   useEffect(() => {
     document.title = "Bwild · Investimento imobiliário inteligente em short stay";
     const meta = document.querySelector('meta[name="description"]');
-    if (meta) meta.setAttribute("content", "Plataforma de investimento em studios para short stay em São Paulo. Guia completo, simulador de retorno e ferramentas para investidores.");
+    if (meta) meta.setAttribute("content", "Plataforma completa para investidores em studios short stay em São Paulo. Catálogo 3D, simulador de retorno, mapa de inteligência e insights de vendas.");
   }, []);
 
   return (
     <div className="min-h-screen bg-background">
       <AppNavbar />
 
-      {/* Hero */}
-      <section className="relative overflow-hidden">
-        <div className="absolute inset-0">
-          <img src={heroImg} alt="Vista aérea de São Paulo" className="h-full w-full object-cover" loading="eager" />
-          <div className="absolute inset-0 bg-foreground/65" />
-        </div>
+      {/* ── HERO ── */}
+      <section ref={heroRef} className="relative overflow-hidden min-h-[100svh] flex flex-col justify-center">
+        {/* Parallax background */}
+        <motion.div className="absolute inset-0" style={{ y: heroImgY }}>
+          <img src={heroImg} alt="Fachada LM Urban Flex" className="h-[120%] w-full object-cover" loading="eager" />
+          <div className="absolute inset-0 bg-gradient-to-b from-foreground/70 via-foreground/60 to-foreground/80" />
+        </motion.div>
 
-        <div className="relative max-w-7xl mx-auto px-4 md:px-6 py-24 md:py-36 lg:py-44">
-          <FadeIn>
-            <Badge className="bg-background/15 text-background border-background/20 hover:bg-background/15 backdrop-blur-sm mb-6">
-              Leal Moreira · Investimento imobiliário
+        <motion.div style={{ opacity: heroOpacity }} className="relative max-w-7xl mx-auto px-4 md:px-6 pt-28 pb-16 md:pt-36 md:pb-24 w-full">
+          {/* Eyebrow */}
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.7, delay: 0.1 }}
+          >
+            <Badge className="bg-accent/20 text-accent border-accent/30 hover:bg-accent/25 backdrop-blur-sm mb-6 text-xs font-bold tracking-wide px-3.5 py-1.5">
+              <Zap className="h-3.5 w-3.5 mr-1.5" />
+              Plataforma completa para investidores
             </Badge>
+          </motion.div>
+
+          {/* Headline */}
+          <motion.h1
+            initial={{ opacity: 0, y: 30, filter: "blur(8px)" }}
+            animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+            transition={{ duration: 1, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
+            className="font-display text-4xl md:text-6xl lg:text-7xl font-bold leading-[1.02] max-w-4xl tracking-tight"
+            style={{ color: "hsl(var(--primary-foreground))" }}
+          >
+            Do projeto 3D ao{" "}
+            <span className="text-accent">orçamento de reforma.</span>{" "}
+            Tudo em um só lugar.
+          </motion.h1>
+
+          {/* Subheadline */}
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.4 }}
+            className="mt-6 text-lg md:text-xl max-w-2xl leading-relaxed"
+            style={{ color: "hsl(var(--primary-foreground) / 0.85)" }}
+          >
+            Visualize reformas em 3D, simule retorno financeiro, analise bairros com dados reais
+            e feche negócios com insights de venda — a plataforma que transforma dados em decisões de investimento.
+          </motion.p>
+
+          {/* Dual CTA */}
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.55 }}
+            className="mt-10 flex flex-col sm:flex-row gap-3"
+          >
+            <a href="#tipologias">
+              <Button size="lg" className="min-h-[52px] w-full sm:w-auto text-base bg-accent hover:bg-accent/90 text-accent-foreground font-bold shadow-lg shadow-accent/25">
+                <Eye className="mr-2 h-5 w-5" />
+                Ver projetos de reforma
+              </Button>
+            </a>
+            <Link to="/ferramentas">
+              <Button size="lg" variant="outline" className="min-h-[52px] w-full sm:w-auto text-base border-background/30 text-background hover:bg-background/10 hover:text-background backdrop-blur-sm font-semibold">
+                Simular retorno
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
+          </motion.div>
+
+          {/* Trust stats */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.7 }}
+            className="mt-16 flex flex-wrap gap-8 md:gap-14"
+          >
+            {[
+              { value: "6", label: "Tipologias com projeto 3D" },
+              { value: `R$ ${heroStats.avgDaily}`, label: "Diária média (studios SP)" },
+              { value: `${heroStats.avgOcc}%`, label: "Ocupação média anual" },
+              { value: `${heroStats.count}+`, label: "Bairros com dados" },
+            ].map((s, i) => (
+              <motion.div
+                key={s.label}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.8 + i * 0.08 }}
+              >
+                <p className="font-display text-2xl md:text-3xl font-bold" style={{ color: "hsl(var(--primary-foreground))" }}>{s.value}</p>
+                <p className="text-xs mt-0.5" style={{ color: "hsl(var(--primary-foreground) / 0.55)" }}>{s.label}</p>
+              </motion.div>
+            ))}
+          </motion.div>
+        </motion.div>
+
+        {/* Scroll indicator */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.5 }}
+          className="absolute bottom-8 left-1/2 -translate-x-1/2"
+        >
+          <motion.div
+            animate={{ y: [0, 8, 0] }}
+            transition={{ repeat: Infinity, duration: 1.8, ease: "easeInOut" }}
+            className="w-5 h-8 rounded-full border-2 border-background/30 flex items-start justify-center pt-1.5"
+          >
+            <div className="w-1 h-1.5 rounded-full bg-background/60" />
+          </motion.div>
+        </motion.div>
+      </section>
+
+      {/* ── PLATFORM PILLARS — what you can do ── */}
+      <section className="border-b border-border/40 bg-background relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-b from-accent/[0.02] to-transparent pointer-events-none" />
+        <div className="max-w-7xl mx-auto px-4 md:px-6 py-16 md:py-24 relative">
+          <FadeIn>
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-accent mb-3">O que você pode fazer</p>
+            <h2 className="font-display text-2xl md:text-4xl font-bold text-foreground max-w-2xl leading-tight">
+              Quatro módulos. Uma decisão mais inteligente.
+            </h2>
           </FadeIn>
 
-          <FadeIn delay={0.08}>
-            <h1
-              className="font-display text-4xl md:text-5xl lg:text-6xl font-bold leading-[1.05] max-w-3xl"
-              style={{ color: "hsl(var(--primary-foreground))" }}
-            >
-              LM Urban Flex - Bela Cintra
-            </h1>
-          </FadeIn>
-
-          <FadeIn delay={0.16}>
-            <p className="mt-5 text-lg md:text-xl max-w-2xl leading-relaxed" style={{ color: "hsl(var(--primary-foreground) / 0.8)" }}>
-              Guia do investidor com tese clara de short stay e operação simplificada.
-            </p>
-          </FadeIn>
-
-          <FadeIn delay={0.24}>
-            <div className="mt-10">
-              <Link to="/ferramentas">
-                <Button size="lg" className="min-h-[48px] w-full sm:w-auto">
-                  Explorar Ferramentas
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </Link>
-            </div>
-          </FadeIn>
-
-          {/* Quick stats */}
-          <FadeIn delay={0.32}>
-            <div className="mt-14 flex flex-wrap gap-8 md:gap-12">
-              {[
-                { value: `${heroStats.count}+`, label: "Bairros analisados" },
-                { value: `R$ ${heroStats.avgDaily}`, label: "Diária média (studios)" },
-                { value: `${heroStats.avgOcc}%`, label: "Ocupação média SP" },
-              ].map((s) => (
-                <div key={s.label}>
-                  <p className="font-display text-2xl md:text-3xl font-bold" style={{ color: "hsl(var(--primary-foreground))" }}>{s.value}</p>
-                  <p className="text-sm mt-0.5" style={{ color: "hsl(var(--primary-foreground) / 0.6)" }}>{s.label}</p>
-                </div>
-              ))}
-            </div>
-          </FadeIn>
+          <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {PLATFORM_PILLARS.map((p, i) => (
+              <FadeIn key={p.title} delay={i * 0.08}>
+                <Link to={p.href} className="block h-full">
+                  <Card className={`h-full border-border/60 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 ${
+                    p.accent ? "border-accent/30 bg-accent/[0.03]" : ""
+                  } hover:border-accent/40`}>
+                    <CardContent className="p-6 flex flex-col h-full">
+                      <div className={`h-11 w-11 rounded-xl flex items-center justify-center mb-4 ${
+                        p.accent ? "bg-accent/15 text-accent" : "bg-primary/10 text-primary"
+                      }`}>
+                        <p.icon className="h-5 w-5" />
+                      </div>
+                      <h3 className="text-base font-bold text-foreground mb-2">{p.title}</h3>
+                      <p className="text-sm text-muted-foreground leading-relaxed flex-1">{p.desc}</p>
+                      <span className="mt-4 text-sm font-semibold text-accent flex items-center gap-1 group">
+                        {p.cta}
+                        <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
+                      </span>
+                    </CardContent>
+                  </Card>
+                </Link>
+              </FadeIn>
+            ))}
+          </div>
         </div>
       </section>
 
