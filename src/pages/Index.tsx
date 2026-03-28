@@ -368,13 +368,13 @@ export default function Index() {
         <div className="max-w-7xl mx-auto px-4 md:px-6 py-20 md:py-28 relative">
           <div className="grid gap-10 lg:grid-cols-[1fr_1fr] lg:items-center">
             <FadeIn>
-              <Badge className="mb-4 bg-primary/10 text-primary border-primary/20 text-xs font-semibold px-3 py-1">
+              <Badge className="mb-4 bg-accent/10 text-accent border-accent/20 hover:bg-accent/15 text-xs font-semibold tracking-wide px-3 py-1">
                 <BarChart3 className="h-3.5 w-3.5 mr-1.5" />
                 Ferramenta exclusiva
               </Badge>
-              <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground leading-tight">
-                Guia do Investidor:{" "}
-                <span className="text-primary">tudo o que você precisa saber antes de comprar.</span>
+              <h2 className="font-display text-3xl md:text-5xl font-bold text-foreground leading-[1.1] tracking-tight">
+                Guia do Investidor.{" "}
+                <span className="text-accent">Tudo antes de comprar.</span>
               </h2>
               <p className="mt-4 text-muted-foreground leading-relaxed max-w-lg">
                 Um hub técnico completo para você tomar a melhor decisão — sem jargão comercial, 
