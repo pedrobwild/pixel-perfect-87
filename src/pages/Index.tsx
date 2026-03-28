@@ -362,56 +362,54 @@ export default function Index() {
         </div>
       </section>
 
-      {/* ── COMO FUNCIONA — jornada do comprador ── */}
-      <section className="border-b border-border/40">
-        <div className="max-w-7xl mx-auto px-4 md:px-6 py-20 md:py-28">
-          <FadeIn>
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-accent mb-3">Como funciona</p>
-            <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground max-w-2xl">
-              Da escolha da planta ao orçamento em 3 passos.
-            </h2>
-          </FadeIn>
+      {/* ── GUIA DO INVESTIDOR ── */}
+      <section className="border-b border-border/40 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.03] via-transparent to-accent/[0.02] pointer-events-none" />
+        <div className="max-w-7xl mx-auto px-4 md:px-6 py-20 md:py-28 relative">
+          <div className="grid gap-10 lg:grid-cols-[1fr_1fr] lg:items-center">
+            <FadeIn>
+              <Badge className="mb-4 bg-primary/10 text-primary border-primary/20 text-xs font-semibold px-3 py-1">
+                <BarChart3 className="h-3.5 w-3.5 mr-1.5" />
+                Ferramenta exclusiva
+              </Badge>
+              <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground leading-tight">
+                Guia do Investidor:{" "}
+                <span className="text-primary">tudo o que você precisa saber antes de comprar.</span>
+              </h2>
+              <p className="mt-4 text-muted-foreground leading-relaxed max-w-lg">
+                Um hub técnico completo para você tomar a melhor decisão — sem jargão comercial, 
+                só dados, critérios objetivos e análise de mercado.
+              </p>
 
-          <div className="mt-12 grid gap-6 md:grid-cols-3">
-            {[
-              {
-                step: "01",
-                title: "Escolha sua tipologia",
-                desc: "De 19 a 83 m² — studio compacto, flat executivo, duplex ou cobertura. Cada planta foi pensada para maximizar uso e retorno.",
-              },
-              {
-                step: "02",
-                title: "Visualize a reforma em 3D",
-                desc: "Duas opções de design por planta: Bwild Collection e Bwild Signature. Veja cada ambiente decorado antes de investir.",
-              },
-              {
-                step: "03",
-                title: "Receba o orçamento",
-                desc: "Em um clique, acesse o orçamento detalhado da reforma. Sem surpresas — tudo itemizado e pronto para aprovar.",
-              },
-            ].map((item, i) => (
-              <FadeIn key={item.step} delay={i * 0.1}>
-                <div className="relative p-6 rounded-xl border border-border/60 bg-background h-full">
-                  <span className="font-display text-5xl font-bold text-accent/15 absolute top-4 right-5">{item.step}</span>
-                  <div className="relative">
-                    <h3 className="text-lg font-bold text-foreground mb-2">{item.title}</h3>
-                    <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
-                  </div>
-                </div>
-              </FadeIn>
-            ))}
-          </div>
-
-          <FadeIn delay={0.35}>
-            <div className="mt-8 flex justify-center">
-              <a href="#tipologias">
-                <Button size="lg" className="min-h-[48px] bg-accent hover:bg-accent/90 text-accent-foreground font-bold">
-                  <Eye className="mr-2 h-4 w-4" />
-                  Começar agora — ver plantas
+              <Link to="/urban-flex-bela-cintra" className="mt-8 inline-block">
+                <Button size="lg" className="min-h-[52px] font-bold">
+                  Acessar o Guia do Investidor
+                  <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
-              </a>
-            </div>
-          </FadeIn>
+              </Link>
+            </FadeIn>
+
+            <FadeIn delay={0.1}>
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { title: "Quiz de Perfil", desc: "Descubra qual tipologia combina com seu objetivo de investimento." },
+                  { title: "Checklist de Escolha", desc: "16 critérios técnicos para avaliar o imóvel com clareza." },
+                  { title: "Simulador de Retorno", desc: "Projete receita em cenários otimista e conservador." },
+                  { title: "Checklist de Prontidão", desc: "10 itens para garantir que você está pronto para fechar." },
+                  { title: "Análise de Bairro", desc: "Dados de ocupação, diária e yield da Consolação vs. concorrentes." },
+                  { title: "Estratégia de Renda", desc: "Como operar short stay e maximizar retorno desde o dia 1." },
+                ].map((item, i) => (
+                  <div
+                    key={item.title}
+                    className="rounded-xl border border-border/60 bg-background p-4 hover:border-primary/30 transition-colors"
+                  >
+                    <h3 className="text-sm font-bold text-foreground mb-1">{item.title}</h3>
+                    <p className="text-xs text-muted-foreground leading-relaxed">{item.desc}</p>
+                  </div>
+                ))}
+              </div>
+            </FadeIn>
+          </div>
         </div>
       </section>
 
