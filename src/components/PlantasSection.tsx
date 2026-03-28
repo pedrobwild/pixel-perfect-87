@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { motion, useInView, AnimatePresence } from "framer-motion";
+import { motion, useInView, useScroll, useTransform, AnimatePresence } from "framer-motion";
 import { X, ChevronLeft, ChevronRight, Maximize2, Eye, Loader2, Sparkles, Ruler, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -13,9 +13,9 @@ function FadeIn({ children, delay = 0, className = "" }: { children: React.React
   return (
     <motion.div
       ref={ref}
-      initial={{ opacity: 0, y: 16, filter: "blur(4px)" }}
-      animate={inView ? { opacity: 1, y: 0, filter: "blur(0px)" } : {}}
-      transition={{ duration: 0.6, delay, ease: [0.16, 1, 0.3, 1] }}
+      initial={{ opacity: 0, y: 32, filter: "blur(6px)", scale: 0.97 }}
+      animate={inView ? { opacity: 1, y: 0, filter: "blur(0px)", scale: 1 } : {}}
+      transition={{ duration: 0.8, delay, ease: [0.16, 1, 0.3, 1] }}
       className={className}
     >
       {children}
@@ -25,8 +25,25 @@ function FadeIn({ children, delay = 0, className = "" }: { children: React.React
 
 function PlantaCard({ tipologia, index, onOpen }: { tipologia: Tipologia; index: number; onOpen: (t: Tipologia) => void }) {
   const hasVariants = tipologia.variants && tipologia.variants.length > 0;
+  const ref = useRef(null);
+  const inView = useInView(ref, { once: true, amount: 0.15 });
+  // Staggered reveal: alternate rows slide from left/right
+  const row = Math.floor(index / 3);
+  const col = index % 3;
+  const xOffset = col === 0 ? -40 : col === 2 ? 40 : 0;
+
   return (
-    <FadeIn delay={index * 0.07}>
+    <motion.div
+      ref={ref}
+      initial={{ opacity: 0, y: 60, x: xOffset, scale: 0.92, rotateX: 8 }}
+      animate={inView ? { opacity: 1, y: 0, x: 0, scale: 1, rotateX: 0 } : {}}
+      transition={{
+        duration: 0.9,
+        delay: index * 0.1 + row * 0.05,
+        ease: [0.16, 1, 0.3, 1],
+      }}
+      style={{ perspective: 800 }}
+    >
       <button
         onClick={() => onOpen(tipologia)}
         className="group relative w-full rounded-2xl border border-border/60 bg-card overflow-hidden transition-all duration-300 hover:border-accent/50 hover:shadow-xl hover:shadow-accent/10 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none active:scale-[0.97]"
@@ -72,7 +89,7 @@ function PlantaCard({ tipologia, index, onOpen }: { tipologia: Tipologia; index:
           )}
         </div>
       </button>
-    </FadeIn>
+    </motion.div>
   );
 }
 
@@ -330,11 +347,30 @@ export default function PlantasSection() {
     loadGalleryImages(variant.projetosFolder, getPlantaUrl(tipologia));
   };
 
+  const sectionRef = useRef(null);
+  const { scrollYProgress } = useScroll({
+    target: sectionRef,
+    offset: ["start end", "end start"],
+  });
+  const bgY = useTransform(scrollYProgress, [0, 1], ["0%", "30%"]);
+
   return (
     <>
-      <section className="border-b border-border/40 relative overflow-hidden">
-        {/* Subtle background accent */}
-        <div className="absolute inset-0 bg-gradient-to-br from-accent/[0.03] via-transparent to-accent/[0.02] pointer-events-none" />
+      <section ref={sectionRef} className="border-b border-border/40 relative overflow-hidden">
+        {/* Parallax background accent */}
+        <motion.div
+          style={{ y: bgY }}
+          className="absolute inset-0 bg-gradient-to-br from-accent/[0.05] via-transparent to-accent/[0.03] pointer-events-none will-change-transform"
+        />
+        {/* Decorative floating orbs */}
+        <motion.div
+          style={{ y: useTransform(scrollYProgress, [0, 1], ["0%", "50%"]) }}
+          className="absolute -top-20 -right-20 w-72 h-72 rounded-full bg-accent/[0.04] blur-3xl pointer-events-none"
+        />
+        <motion.div
+          style={{ y: useTransform(scrollYProgress, [0, 1], ["0%", "40%"]) }}
+          className="absolute -bottom-32 -left-20 w-96 h-96 rounded-full bg-accent/[0.03] blur-3xl pointer-events-none"
+        />
         
         <div className="max-w-7xl mx-auto px-4 md:px-6 py-20 md:py-28 relative">
           {/* Section header — high impact */}
@@ -346,7 +382,7 @@ export default function PlantasSection() {
               </Badge>
             </FadeIn>
 
-            <FadeIn delay={0.05}>
+            <FadeIn delay={0.08}>
               <h2 className="font-display text-3xl md:text-5xl font-bold text-foreground leading-[1.1] tracking-tight">
                 Escolha sua planta.{" "}
                 <span className="text-accent">Visualize a reforma.</span>{" "}
@@ -354,7 +390,7 @@ export default function PlantasSection() {
               </h2>
             </FadeIn>
 
-            <FadeIn delay={0.1}>
+            <FadeIn delay={0.16}>
               <p className="mt-5 text-muted-foreground text-base md:text-lg leading-relaxed max-w-2xl">
                 De 19 a 83 m², cada tipologia tem projetos 3D prontos com opções de design para você comparar e decidir. 
                 Selecione a planta, explore os renders e solicite seu orçamento em poucos cliques.
@@ -362,7 +398,7 @@ export default function PlantasSection() {
             </FadeIn>
 
             {/* Value props row */}
-            <FadeIn delay={0.15}>
+            <FadeIn delay={0.24}>
               <div className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted-foreground">
                 <span className="flex items-center gap-1.5">
                   <span className="h-1.5 w-1.5 rounded-full bg-accent" />
@@ -381,14 +417,14 @@ export default function PlantasSection() {
           </div>
 
           {/* Cards grid */}
-          <div className="mt-14 grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
+          <div className="mt-14 grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6" style={{ perspective: 1200 }}>
             {tipologias.map((p, i) => (
               <PlantaCard key={p.id} tipologia={p} index={i} onOpen={openPlanta} />
             ))}
           </div>
 
           {/* Bottom CTA */}
-          <FadeIn delay={0.4}>
+          <FadeIn delay={0.8}>
             <div className="mt-10 flex items-center justify-center">
               <p className="text-sm text-muted-foreground text-center max-w-md">
                 Clique em qualquer planta acima para ver os projetos 3D decorados e solicitar o orçamento de reforma.
