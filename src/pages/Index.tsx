@@ -108,15 +108,6 @@ export default function Index() {
                 Ver plantas e projetos 3D
               </Button>
             </a>
-            <Button
-              size="lg"
-              variant="outline"
-              className="min-h-[52px] w-full sm:w-auto text-base border-background/30 text-background hover:bg-background/10 hover:text-background backdrop-blur-sm font-semibold"
-              onClick={() => window.open(whatsappLink, "_blank")}
-            >
-              <MessageCircle className="mr-2 h-4 w-4" />
-              Falar com consultor
-            </Button>
           </motion.div>
 
           {/* Trust facts — específicos do empreendimento */}
