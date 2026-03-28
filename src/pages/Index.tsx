@@ -218,6 +218,12 @@ export default function Index() {
               ))}
             </div>
           </FadeIn>
+
+          <FadeIn delay={0.35}>
+            <p className="mt-4 text-[11px] text-muted-foreground/60">
+              Fonte: AirDNA Market Minder, pesquisa Bwild 2025. Dados referentes a studios 20–35 m² na região da Consolação.
+            </p>
+          </FadeIn>
         </div>
       </section>
 
