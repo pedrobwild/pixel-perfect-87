@@ -80,7 +80,7 @@ export default function Index() {
             style={{ color: "hsl(var(--primary-foreground))" }}
           >
             Seu studio a 200m da Paulista.{" "}
-            <span className="text-accent">Já com reforma projetada.</span>
+            <span className="text-accent">Projetado para rentabilizar.</span>
           </motion.h1>
 
           {/* Sub — benefício direto */}
@@ -91,8 +91,8 @@ export default function Index() {
             className="mt-6 text-lg md:text-xl max-w-2xl leading-relaxed"
             style={{ color: "hsl(var(--primary-foreground) / 0.85)" }}
           >
-            Escolha entre 6 tipologias de 19 a 83 m², visualize os projetos de reforma em 3D
-            e receba o orçamento pronto — tudo antes mesmo da entrega das chaves.
+            6 tipologias de 19 a 83 m² com projetos de reforma 3D criados a partir de dados reais 
+            de ocupação e rentabilidade — cada detalhe pensado para o seu imóvel performar acima da média.
           </motion.p>
 
           {/* Dual CTA */}
@@ -160,7 +160,7 @@ export default function Index() {
           <FadeIn>
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-accent mb-3">Por que o Urban Flex</p>
             <h2 className="font-display text-2xl md:text-4xl font-bold text-foreground max-w-3xl leading-tight">
-              Um imóvel pensado para gerar renda desde o primeiro dia.
+              Localização, dados e design trabalhando juntos pelo seu retorno.
             </h2>
           </FadeIn>
 
@@ -173,8 +173,8 @@ export default function Index() {
               },
               {
                 icon: Sparkles,
-                title: "Reforma projetada",
-                desc: "Projetos 3D prontos com 2 linhas de design por planta. Você visualiza o resultado antes de decidir.",
+                title: "Design orientado por dados",
+                desc: "Os projetos 3D foram criados com base em análise de mercado — layouts, acabamentos e estilo pensados para maximizar ocupação e diária.",
               },
               {
                 icon: Shield,
@@ -368,8 +368,8 @@ export default function Index() {
                 <span className="text-accent">Tudo antes de comprar.</span>
               </h2>
               <p className="mt-4 text-muted-foreground leading-relaxed max-w-lg">
-                Um hub técnico completo para você tomar a melhor decisão — sem jargão comercial, 
-                só dados, critérios objetivos e análise de mercado.
+                A mesma inteligência de mercado que usamos para projetar cada reforma está aqui, aberta para você.
+                Dados, critérios objetivos e análise — para decidir com a mesma segurança que nós temos.
               </p>
 
               <Link to="/urban-flex-bela-cintra" className="mt-8 inline-block">
@@ -409,10 +409,10 @@ export default function Index() {
         <div className="max-w-7xl mx-auto px-4 md:px-6 py-20 md:py-28">
           <FadeIn className="text-center max-w-2xl mx-auto">
             <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground">
-              Pronto para conhecer seu futuro studio?
+              Cada projeto foi desenhado para performar.
             </h2>
             <p className="mt-4 text-muted-foreground text-lg leading-relaxed">
-              Explore as plantas, veja os projetos de reforma e converse com a equipe comercial.
+              Explore as plantas, veja os projetos pensados para alta rentabilidade e converse com a equipe comercial.
             </p>
             <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
               <Button size="lg" className="min-h-[48px]" onClick={() => window.open(whatsappLink, "_blank")}>
