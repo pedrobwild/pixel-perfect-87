@@ -121,6 +121,118 @@ function HighlightChips({ highlights }: { highlights: string[] }) {
   );
 }
 
+/* Variant design rationale descriptions */
+const VARIANT_DESCRIPTIONS: Record<string, string> = {
+  "Bwild Collection": "Design contemporâneo com materiais de alta performance e paleta neutra — otimizado para ocupação máxima em plataformas de short stay.",
+  "Bwild Signature": "Linha autoral com acabamentos premium e identidade marcante — para o investidor que quer diferenciar e cobrar diárias mais altas.",
+};
+
+/* ── Mobile: Segmented control tabs for variants ── */
+function MobileVariantTabs({
+  selected,
+  loadingGallery,
+  onVariantClick,
+  onViewProjetos,
+}: {
+  selected: Tipologia;
+  loadingGallery: boolean;
+  onVariantClick: (v: TipologiaVariant, t: Tipologia) => void;
+  onViewProjetos: (t: Tipologia) => void;
+}) {
+  const hasVariants = selected.variants && selected.variants.length > 0;
+  const [activeIdx, setActiveIdx] = useState(0);
+
+  if (!hasVariants) {
+    return (
+      <Button
+        size="lg"
+        className="w-full min-h-[48px] bg-accent hover:bg-accent/90 text-accent-foreground"
+        disabled={loadingGallery}
+        onClick={() => onViewProjetos(selected)}
+      >
+        {loadingGallery ? (
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+        ) : (
+          <Eye className="mr-2 h-4 w-4" />
+        )}
+        Visualizar projetos de reforma
+      </Button>
+    );
+  }
+
+  const variants = selected.variants!;
+  const current = variants[activeIdx];
+
+  return (
+    <div className="space-y-4">
+      <p className="text-sm font-semibold text-foreground">2 linhas de projeto — compare e escolha:</p>
+
+      {/* Segmented control */}
+      <div
+        role="tablist"
+        aria-label="Linhas de projeto"
+        className="flex rounded-xl bg-muted/60 border border-border/40 p-1 gap-1"
+      >
+        {variants.map((v, i) => (
+          <button
+            key={v.variantId}
+            role="tab"
+            id={`variant-tab-${v.variantId}`}
+            aria-selected={i === activeIdx}
+            aria-controls={`variant-panel-${v.variantId}`}
+            tabIndex={i === activeIdx ? 0 : -1}
+            onKeyDown={(e) => {
+              if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+                e.preventDefault();
+                const next = e.key === "ArrowRight"
+                  ? (i + 1) % variants.length
+                  : (i - 1 + variants.length) % variants.length;
+                setActiveIdx(next);
+                document.getElementById(`variant-tab-${variants[next].variantId}`)?.focus();
+              }
+            }}
+            onClick={() => setActiveIdx(i)}
+            className={`flex-1 py-2.5 px-3 rounded-lg text-sm font-bold transition-all min-h-[44px] ${
+              i === activeIdx
+                ? "bg-accent text-accent-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {v.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Tab panel — description + CTA */}
+      <div
+        role="tabpanel"
+        id={`variant-panel-${current.variantId}`}
+        aria-labelledby={`variant-tab-${current.variantId}`}
+        className="space-y-4"
+      >
+        <p className="text-sm text-muted-foreground leading-relaxed">
+          {VARIANT_DESCRIPTIONS[current.label] || "Linha de projeto exclusiva com design pensado para rentabilidade."}
+        </p>
+
+        <Button
+          size="lg"
+          className="w-full min-h-[52px] bg-accent hover:bg-accent/90 text-accent-foreground font-bold"
+          disabled={loadingGallery}
+          onClick={() => onVariantClick(current, selected)}
+        >
+          {loadingGallery ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <Eye className="mr-2 h-4 w-4" />
+          )}
+          Ver projetos 3D — {current.label}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+/* ── Desktop: Original variant buttons ── */
 function VariantButtons({
   selected,
   loadingGallery,
@@ -350,7 +462,7 @@ function MobilePlantaDrawer({
                   </p>
                 </div>
                 <HighlightChips highlights={selected.highlights} />
-                <VariantButtons
+                <MobileVariantTabs
                   selected={selected}
                   loadingGallery={loadingGallery}
                   onVariantClick={onVariantClick}
