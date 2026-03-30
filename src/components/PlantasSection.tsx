@@ -508,7 +508,7 @@ function DesktopPlantaModal({
 }
 
 export default function PlantasSection() {
-  const [selected, setSelected] = useState<Tipologia | null>(null);
+  const isMobile = useIsMobile();
   const [showGallery, setShowGallery] = useState(false);
   const [galleryIdx, setGalleryIdx] = useState(0);
   const [galleryImages, setGalleryImages] = useState<string[]>([]);
@@ -647,10 +647,10 @@ export default function PlantasSection() {
         </div>
       </section>
 
-      {/* Modal */}
-      <AnimatePresence>
-        {selected && (
-          <PlantaModal
+      {/* Modal / Drawer */}
+      {selected && (
+        isMobile ? (
+          <MobilePlantaDrawer
             selected={selected}
             showGallery={showGallery}
             galleryIdx={galleryIdx}
@@ -664,8 +664,25 @@ export default function PlantasSection() {
             setActiveVariant={setActiveVariant}
             setGalleryIdx={setGalleryIdx}
           />
-        )}
-      </AnimatePresence>
+        ) : (
+          <AnimatePresence>
+            <DesktopPlantaModal
+              selected={selected}
+              showGallery={showGallery}
+              galleryIdx={galleryIdx}
+              galleryImages={galleryImages}
+              loadingGallery={loadingGallery}
+              activeVariant={activeVariant}
+              onClose={close}
+              onViewProjetos={handleViewProjetos}
+              onVariantClick={handleVariantClick}
+              setShowGallery={setShowGallery}
+              setActiveVariant={setActiveVariant}
+              setGalleryIdx={setGalleryIdx}
+            />
+          </AnimatePresence>
+        )
+      )}
     </>
   );
 }
