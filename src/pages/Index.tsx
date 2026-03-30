@@ -36,11 +36,51 @@ function FadeIn({ children, delay = 0, className = "" }: { children: React.React
 
 export default function Index() {
   const cons = useMemo(() => districtByName.get("Consolação"), []);
+  const isMobile = useIsMobile();
 
-  const heroRef = useRef(null);
+  const heroRef = useRef<HTMLElement>(null);
+  const tipologiasRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({ target: heroRef, offset: ["start start", "end start"] });
   const heroImgY = useTransform(scrollYProgress, [0, 1], ["0%", "25%"]);
   const heroOpacity = useTransform(scrollYProgress, [0, 0.7], [1, 0]);
+
+  // Sticky CTA visibility: show after hero exits viewport, hide when #tipologias is visible
+  const [showStickyCta, setShowStickyCta] = useState(false);
+
+  useEffect(() => {
+    if (!isMobile) { setShowStickyCta(false); return; }
+
+    const heroEl = heroRef.current;
+    const tipEl = document.getElementById("tipologias");
+    if (!heroEl) return;
+
+    let heroOut = false;
+    let tipIn = false;
+
+    const heroObs = new IntersectionObserver(([e]) => {
+      heroOut = !e.isIntersecting;
+      setShowStickyCta(heroOut && !tipIn);
+    }, { threshold: 0 });
+
+    const tipObs = new IntersectionObserver(([e]) => {
+      tipIn = e.isIntersecting;
+      setShowStickyCta(heroOut && !tipIn);
+    }, { threshold: 0 });
+
+    heroObs.observe(heroEl);
+    // tipologias section may mount later — retry
+    const tryObserveTip = () => {
+      const el = document.getElementById("tipologias");
+      if (el) { tipObs.observe(el); return true; }
+      return false;
+    };
+    if (!tryObserveTip()) {
+      const t = setTimeout(tryObserveTip, 500);
+      return () => { clearTimeout(t); heroObs.disconnect(); tipObs.disconnect(); };
+    }
+
+    return () => { heroObs.disconnect(); tipObs.disconnect(); };
+  }, [isMobile]);
 
   useEffect(() => {
     document.title = "Urban Flex Bela Cintra · Studios de 19 a 83 m² na Consolação";
@@ -48,62 +88,87 @@ export default function Index() {
     if (meta) meta.setAttribute("content", "Studios de 19 a 83 m² a 200m da Av. Paulista. Veja projetos de reforma 3D, compare opções de design e solicite seu orçamento. Entrega dez/2026.");
   }, []);
 
+  const trustFacts = [
+    { value: "Dez/2026", label: "Entrega" },
+    { value: "63,5%", label: "Obra" },
+    { value: "19–83 m²", label: "Tipologias" },
+    { value: "2 opções", label: "Por planta" },
+  ];
+
   return (
     <div className="min-h-screen bg-background">
       <AppNavbar />
 
       {/* ── HERO — focado no comprador do studio ── */}
-      <section ref={heroRef} className="relative overflow-hidden min-h-[100svh] flex flex-col justify-center">
-        <motion.div className="absolute inset-0" style={{ y: heroImgY }}>
-          <img src={heroImg} alt="Fachada LM Urban Flex Bela Cintra" className="h-[120%] w-full object-cover" loading="eager" />
-          <div className="absolute inset-0 bg-gradient-to-b from-foreground/75 via-foreground/55 to-foreground/80" />
-        </motion.div>
+      <section
+        ref={heroRef}
+        className={`relative overflow-hidden flex flex-col justify-center ${
+          isMobile ? "min-h-[76svh]" : "min-h-[100svh]"
+        }`}
+      >
+        {/* Background image — parallax only on desktop */}
+        {isMobile ? (
+          <div className="absolute inset-0">
+            <img src={heroImg} alt="Fachada LM Urban Flex Bela Cintra" className="h-full w-full object-cover" loading="eager" />
+            <div className="absolute inset-0 bg-gradient-to-b from-foreground/75 via-foreground/55 to-foreground/80" />
+          </div>
+        ) : (
+          <motion.div className="absolute inset-0" style={{ y: heroImgY }}>
+            <img src={heroImg} alt="Fachada LM Urban Flex Bela Cintra" className="h-[120%] w-full object-cover" loading="eager" />
+            <div className="absolute inset-0 bg-gradient-to-b from-foreground/75 via-foreground/55 to-foreground/80" />
+          </motion.div>
+        )}
 
-        <motion.div style={{ opacity: heroOpacity }} className="relative max-w-7xl mx-auto px-4 md:px-6 pt-28 pb-16 md:pt-36 md:pb-24 w-full">
-          {/* Eyebrow — empreendimento */}
+        <motion.div style={isMobile ? undefined : { opacity: heroOpacity }} className="relative max-w-7xl mx-auto px-4 md:px-6 pt-24 pb-10 md:pt-36 md:pb-24 w-full">
+          {/* Eyebrow */}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.7, delay: 0.1 }}
           >
-            <Badge className="bg-accent/90 text-accent-foreground border-accent/40 hover:bg-accent backdrop-blur-sm mb-5 text-xs font-bold tracking-wide px-3.5 py-1.5">
+            <Badge className="bg-accent/90 text-accent-foreground border-accent/40 hover:bg-accent backdrop-blur-sm mb-4 md:mb-5 text-[11px] md:text-xs font-bold tracking-wide px-3 py-1.5">
               <Building2 className="h-3.5 w-3.5 mr-1.5" />
-              LM Urban Flex · R. Bela Cintra, 209 — Consolação
+              {isMobile ? "Urban Flex · Consolação" : "LM Urban Flex · R. Bela Cintra, 209 — Consolação"}
             </Badge>
           </motion.div>
 
-          {/* Headline — proposta de valor para o comprador */}
+          {/* Headline — max 2 lines on mobile */}
           <motion.h1
             initial={{ opacity: 0, y: 30, filter: "blur(8px)" }}
             animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
             transition={{ duration: 1, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
-            className="font-display text-4xl md:text-6xl lg:text-7xl font-bold leading-[1.02] max-w-4xl tracking-tight"
+            className="font-display text-[1.75rem] md:text-6xl lg:text-7xl font-bold leading-[1.08] md:leading-[1.02] max-w-4xl tracking-tight"
             style={{ color: "hsl(var(--primary-foreground))" }}
           >
-            Seu studio a 200m da Paulista.{" "}
-            <span className="text-accent">Projetado para rentabilizar.</span>
+            {isMobile ? (
+              <>Seu studio na Paulista. <span className="text-accent">Projetado para render.</span></>
+            ) : (
+              <>Seu studio a 200m da Paulista.{" "}<span className="text-accent">Projetado para rentabilizar.</span></>
+            )}
           </motion.h1>
 
-          {/* Sub — benefício direto */}
+          {/* Sub — max 3 lines on mobile */}
           <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.4 }}
-            className="mt-6 text-lg md:text-xl max-w-2xl leading-relaxed"
+            className="mt-4 md:mt-6 text-[15px] md:text-xl max-w-2xl leading-relaxed"
             style={{ color: "hsl(var(--primary-foreground) / 0.85)" }}
           >
-            6 tipologias de 19 a 83 m² com projetos de reforma 3D criados a partir de dados reais 
-            de ocupação e rentabilidade — cada detalhe pensado para o seu imóvel performar acima da média.
+            {isMobile
+              ? "6 tipologias com projetos 3D baseados em dados reais de ocupação — cada detalhe pensado para seu imóvel performar."
+              : "6 tipologias de 19 a 83 m² com projetos de reforma 3D criados a partir de dados reais de ocupação e rentabilidade — cada detalhe pensado para o seu imóvel performar acima da média."
+            }
           </motion.p>
 
-          {/* Dual CTA */}
+          {/* CTA — single full-width on mobile */}
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.55 }}
-            className="mt-10 flex flex-col sm:flex-row gap-3"
+            className="mt-8 md:mt-10 flex flex-col sm:flex-row gap-3"
           >
-            <a href="#tipologias">
+            <a href="#tipologias" className="w-full sm:w-auto">
               <Button size="lg" className="min-h-[52px] w-full sm:w-auto text-base bg-accent hover:bg-accent/90 text-accent-foreground font-bold shadow-lg shadow-accent/25">
                 <Eye className="mr-2 h-5 w-5" />
                 Ver plantas e projetos 3D
@@ -111,47 +176,70 @@ export default function Index() {
             </a>
           </motion.div>
 
-          {/* Trust facts — específicos do empreendimento */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.7 }}
-            className="mt-16 flex flex-wrap gap-8 md:gap-14"
-          >
-            {[
-              { value: "Dez/2026", label: "Previsão de entrega" },
-              { value: "63,5%", label: "Obra concluída" },
-              { value: "19–83 m²", label: "De studio a cobertura" },
-              { value: "2 opções", label: "De reforma por planta" },
-            ].map((s, i) => (
-              <motion.div
-                key={s.label}
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.8 + i * 0.08 }}
-              >
-                <p className="font-display text-2xl md:text-3xl font-bold" style={{ color: "hsl(var(--primary-foreground))" }}>{s.value}</p>
-                <p className="text-xs mt-0.5" style={{ color: "hsl(var(--primary-foreground) / 0.55)" }}>{s.label}</p>
-              </motion.div>
-            ))}
-          </motion.div>
+          {/* Trust facts — horizontal snap chips on mobile, original layout on desktop */}
+          {isMobile ? (
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.7 }}
+              className="mt-8 -mx-4 px-4 overflow-x-auto scrollbar-none"
+            >
+              <div className="flex gap-2 snap-x snap-mandatory w-max">
+                {trustFacts.map((s, i) => (
+                  <div
+                    key={s.label}
+                    className="snap-start shrink-0 flex items-center gap-1.5 rounded-full border border-border/20 bg-background/10 backdrop-blur-sm px-3.5 py-2"
+                  >
+                    <span className="font-display text-sm font-bold" style={{ color: "hsl(var(--primary-foreground))" }}>{s.value}</span>
+                    <span className="text-[11px]" style={{ color: "hsl(var(--primary-foreground) / 0.55)" }}>{s.label}</span>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          ) : (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, delay: 0.7 }}
+              className="mt-16 flex flex-wrap gap-8 md:gap-14"
+            >
+              {[
+                { value: "Dez/2026", label: "Previsão de entrega" },
+                { value: "63,5%", label: "Obra concluída" },
+                { value: "19–83 m²", label: "De studio a cobertura" },
+                { value: "2 opções", label: "De reforma por planta" },
+              ].map((s, i) => (
+                <motion.div
+                  key={s.label}
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.8 + i * 0.08 }}
+                >
+                  <p className="font-display text-2xl md:text-3xl font-bold" style={{ color: "hsl(var(--primary-foreground))" }}>{s.value}</p>
+                  <p className="text-xs mt-0.5" style={{ color: "hsl(var(--primary-foreground) / 0.55)" }}>{s.label}</p>
+                </motion.div>
+              ))}
+            </motion.div>
+          )}
         </motion.div>
 
-        {/* Scroll indicator */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1.5 }}
-          className="absolute bottom-8 left-1/2 -translate-x-1/2"
-        >
+        {/* Scroll indicator — desktop only */}
+        {!isMobile && (
           <motion.div
-            animate={{ y: [0, 8, 0] }}
-            transition={{ repeat: Infinity, duration: 1.8, ease: "easeInOut" }}
-            className="w-5 h-8 rounded-full border-2 border-background/30 flex items-start justify-center pt-1.5"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 1.5 }}
+            className="absolute bottom-8 left-1/2 -translate-x-1/2"
           >
-            <div className="w-1 h-1.5 rounded-full bg-background/60" />
+            <motion.div
+              animate={{ y: [0, 8, 0] }}
+              transition={{ repeat: Infinity, duration: 1.8, ease: "easeInOut" }}
+              className="w-5 h-8 rounded-full border-2 border-background/30 flex items-start justify-center pt-1.5"
+            >
+              <div className="w-1 h-1.5 rounded-full bg-background/60" />
+            </motion.div>
           </motion.div>
-        </motion.div>
+        )}
       </section>
 
       {/* ── POR QUE ESTE IMÓVEL — redução de objeção ── */}
