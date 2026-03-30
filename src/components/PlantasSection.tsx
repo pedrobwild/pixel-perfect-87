@@ -462,7 +462,7 @@ function MobilePlantaDrawer({
                   </p>
                 </div>
                 <HighlightChips highlights={selected.highlights} />
-                <VariantButtons
+                <MobileVariantTabs
                   selected={selected}
                   loadingGallery={loadingGallery}
                   onVariantClick={onVariantClick}
