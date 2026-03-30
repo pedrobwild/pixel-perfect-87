@@ -9,6 +9,7 @@ export default function AppNavbar() {
   const { pathname } = useLocation();
   const isHome = pathname === "/";
   const [mobileOpen, setMobileOpen] = useState(false);
+  const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
 
   const navLinks = [
     { to: "/insights", label: "Insights", icon: Sparkles },
@@ -46,15 +47,17 @@ export default function AppNavbar() {
           </Link>
         </div>
 
-        {/* Mobile hamburger */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="sm:hidden h-9 w-9"
-          onClick={() => setMobileOpen(true)}
-        >
-          <Menu className="h-5 w-5" />
-        </Button>
+        {/* Mobile hamburger — hidden on homepage to prioritize funnel nav */}
+        {!(isHome && isMobile) && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="sm:hidden h-9 w-9"
+            onClick={() => setMobileOpen(true)}
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
+        )}
       </div>
 
       {/* Mobile sheet */}
