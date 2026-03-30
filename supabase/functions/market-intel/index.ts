@@ -12,7 +12,17 @@ serve(async (req) => {
   }
 
   try {
-    const { propertyName, neighborhood, city } = await req.json();
+    const body = await req.json();
+    const propertyName = typeof body.propertyName === "string" ? body.propertyName.slice(0, 200) : "";
+    const neighborhood = typeof body.neighborhood === "string" ? body.neighborhood.slice(0, 100) : "";
+    const city = typeof body.city === "string" ? body.city.slice(0, 100) : "";
+
+    if (!neighborhood || !city) {
+      return new Response(
+        JSON.stringify({ success: false, error: "neighborhood and city are required" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     const apiKey = Deno.env.get("PERPLEXITY_API_KEY");
     if (!apiKey) {
