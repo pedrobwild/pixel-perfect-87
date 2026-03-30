@@ -65,7 +65,7 @@ export default function Index() {
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.7, delay: 0.1 }}
           >
-            <Badge className="bg-accent/20 text-accent border-accent/30 hover:bg-accent/25 backdrop-blur-sm mb-5 text-xs font-bold tracking-wide px-3.5 py-1.5">
+            <Badge className="bg-accent/90 text-accent-foreground border-accent/40 hover:bg-accent backdrop-blur-sm mb-5 text-xs font-bold tracking-wide px-3.5 py-1.5">
               <Building2 className="h-3.5 w-3.5 mr-1.5" />
               LM Urban Flex · R. Bela Cintra, 209 — Consolação
             </Badge>
