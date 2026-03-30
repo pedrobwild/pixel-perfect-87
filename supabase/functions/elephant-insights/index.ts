@@ -10,6 +10,27 @@ const corsHeaders = {
 const ELEPHAN_BASE = "https://api.elephan.dev/v1";
 const CACHE_TTL_HOURS = 6;
 
+// ─── Simple in-memory rate limiter ──────────────────────────────
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+const RATE_LIMIT_WINDOW_MS = 60_000; // 1 minute
+const RATE_LIMIT_MAX = 10; // max requests per window
+
+function checkRateLimit(key: string): boolean {
+  const now = Date.now();
+  const entry = rateLimitMap.get(key);
+  if (!entry || now > entry.resetAt) {
+    rateLimitMap.set(key, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+    return true;
+  }
+  if (entry.count >= RATE_LIMIT_MAX) return false;
+  entry.count++;
+  return true;
+}
+
+// ─── Input validation helpers ───────────────────────────────────
+const VALID_ACTIONS = new Set(["list-users", "executive-summary", null]);
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 function getSupabaseAdmin() {
   return createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 }
@@ -261,8 +282,13 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
+    // Rate limit by IP
+    const clientIp = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+    if (!checkRateLimit(clientIp)) {
+      return new Response(JSON.stringify({ success: false, error: "Rate limit exceeded. Try again in 1 minute." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     const url = new URL(req.url);
-    // Read params from both query string and POST body for compatibility
     let bodyParams: Record<string, string> = {};
     if (req.method === "POST") {
       try {
@@ -270,9 +296,21 @@ serve(async (req) => {
         bodyParams = raw || {};
       } catch { /* no body */ }
     }
+
     const action = url.searchParams.get("action") || bodyParams.action || null;
     const forceRefresh = (url.searchParams.get("refresh") || bodyParams.refresh) === "true";
     const userId = url.searchParams.get("userId") || bodyParams.userId || null;
+
+    // Validate action
+    if (action !== null && !VALID_ACTIONS.has(action)) {
+      return new Response(JSON.stringify({ success: false, error: "Invalid action" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    // Validate userId format if provided
+    if (userId && !UUID_RE.test(userId) && userId.length > 100) {
+      return new Response(JSON.stringify({ success: false, error: "Invalid userId format" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     const sb = getSupabaseAdmin();
 
     const apiKey = Deno.env.get("ASKELEPHANT_API_KEY");
