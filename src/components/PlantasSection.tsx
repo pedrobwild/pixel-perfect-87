@@ -95,7 +95,162 @@ function PlantaCard({ tipologia, index, onOpen }: { tipologia: Tipologia; index:
   );
 }
 
-function PlantaModal({
+/* ── Step enum for mobile drawer flow ── */
+type ModalStep = "planta" | "variantes" | "galeria";
+
+/* ── Shared content blocks ── */
+function PlantaView({ selected }: { selected: Tipologia }) {
+  return (
+    <div className="rounded-xl overflow-hidden bg-muted/20 border border-border/40">
+      <img
+        src={getPlantaUrl(selected)}
+        alt={`Planta ${selected.name}`}
+        className="w-full object-contain max-h-[50vh]"
+      />
+    </div>
+  );
+}
+
+function HighlightChips({ highlights }: { highlights: string[] }) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {highlights.map((h) => (
+        <span key={h} className="text-xs px-3 py-1.5 rounded-full bg-primary/10 text-primary font-medium">{h}</span>
+      ))}
+    </div>
+  );
+}
+
+function VariantButtons({
+  selected,
+  loadingGallery,
+  onVariantClick,
+  onViewProjetos,
+}: {
+  selected: Tipologia;
+  loadingGallery: boolean;
+  onVariantClick: (v: TipologiaVariant, t: Tipologia) => void;
+  onViewProjetos: (t: Tipologia) => void;
+}) {
+  const hasVariants = selected.variants && selected.variants.length > 0;
+
+  if (hasVariants) {
+    return (
+      <div className="space-y-3">
+        <p className="text-sm font-medium text-muted-foreground">Escolha a linha de projeto:</p>
+        <div className="grid grid-cols-2 gap-3">
+          {selected.variants!.map((variant) => (
+            <Button
+              key={variant.variantId}
+              size="lg"
+              variant={variant.variantId.includes("collection") ? "outline" : "default"}
+              className={`min-h-[56px] flex flex-col gap-0.5 ${
+                variant.variantId.includes("collection")
+                  ? "border-accent/40 hover:bg-accent/5"
+                  : "bg-accent hover:bg-accent/90 text-accent-foreground"
+              }`}
+              disabled={loadingGallery}
+              onClick={() => onVariantClick(variant, selected)}
+            >
+              {loadingGallery ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <>
+                  <span className="text-sm font-bold">{variant.label}</span>
+                  <span className="text-xs opacity-70">Ver projetos 3D</span>
+                </>
+              )}
+            </Button>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <Button
+      size="lg"
+      className="w-full min-h-[48px] bg-accent hover:bg-accent/90 text-accent-foreground"
+      disabled={loadingGallery}
+      onClick={() => onViewProjetos(selected)}
+    >
+      {loadingGallery ? (
+        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+      ) : (
+        <Eye className="mr-2 h-4 w-4" />
+      )}
+      Visualizar projetos de reforma
+    </Button>
+  );
+}
+
+function GalleryView({
+  selected,
+  galleryIdx,
+  galleryImages,
+  activeVariant,
+  setGalleryIdx,
+}: {
+  selected: Tipologia;
+  galleryIdx: number;
+  galleryImages: string[];
+  activeVariant: TipologiaVariant | null;
+  setGalleryIdx: React.Dispatch<React.SetStateAction<number>>;
+}) {
+  return (
+    <div className="space-y-4">
+      <div>
+        <h3 className="font-display text-lg font-bold text-foreground">
+          {activeVariant ? `${activeVariant.label}` : "Projetos 3D"}
+        </h3>
+        <p className="text-sm text-muted-foreground">{selected.name} · {selected.area}</p>
+      </div>
+
+      <div className="relative rounded-xl overflow-hidden bg-muted/20 border border-border/40">
+        <img
+          src={galleryImages[galleryIdx % galleryImages.length]}
+          alt={`Projeto 3D ${galleryIdx + 1}`}
+          className="w-full object-contain max-h-[50vh]"
+        />
+        {galleryImages.length > 1 && (
+          <>
+            <button
+              onClick={() => setGalleryIdx((prev) => (prev - 1 + galleryImages.length) % galleryImages.length)}
+              className="absolute left-3 top-1/2 -translate-y-1/2 h-10 w-10 rounded-xl bg-background/80 backdrop-blur-sm border border-border/60 flex items-center justify-center hover:bg-background transition-colors active:scale-95"
+            >
+              <ChevronLeft className="h-5 w-5 text-foreground" />
+            </button>
+            <button
+              onClick={() => setGalleryIdx((prev) => (prev + 1) % galleryImages.length)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 h-10 w-10 rounded-xl bg-background/80 backdrop-blur-sm border border-border/60 flex items-center justify-center hover:bg-background transition-colors active:scale-95"
+            >
+              <ChevronRight className="h-5 w-5 text-foreground" />
+            </button>
+          </>
+        )}
+      </div>
+
+      {galleryImages.length > 1 && (
+        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
+          {galleryImages.map((img, idx) => (
+            <button
+              key={idx}
+              onClick={() => setGalleryIdx(idx)}
+              className={`shrink-0 h-14 w-18 rounded-lg overflow-hidden border-2 transition-all active:scale-95 ${
+                idx === galleryIdx ? "border-accent" : "border-border/40 opacity-60 hover:opacity-100"
+              }`}
+            >
+              <img src={img} alt="" className="h-full w-full object-contain bg-muted/20" />
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Mobile Drawer (full-screen, stepped) ── */
+function MobilePlantaDrawer({
   selected,
   showGallery,
   galleryIdx,
@@ -108,7 +263,133 @@ function PlantaModal({
   setShowGallery,
   setActiveVariant,
   setGalleryIdx,
-}: {
+}: ModalCommonProps) {
+  const step: ModalStep = showGallery ? "galeria" : "planta";
+  const hasVariants = selected.variants && selected.variants.length > 0;
+
+  const getOrcamentoUrl = () => {
+    if (activeVariant) return activeVariant.orcamentoUrl;
+    return `https://envision-build-guide.lovable.app/o/2aa034962039?tipologia=${encodeURIComponent(selected.name)}`;
+  };
+
+  const handleBack = () => {
+    if (showGallery) {
+      setShowGallery(false);
+      setActiveVariant(null);
+    } else {
+      onClose();
+    }
+  };
+
+  // Step indicator labels
+  const steps = hasVariants
+    ? ["Planta", "Linha de projeto", "Galeria"]
+    : ["Planta", "Galeria"];
+  const currentStepIdx = step === "galeria" ? steps.length - 1 : 0;
+
+  return (
+    <Drawer open onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DrawerContent
+        className="h-[100dvh] max-h-[100dvh] rounded-none border-0 flex flex-col"
+        aria-labelledby="drawer-title"
+      >
+        {/* Header with back, title, close */}
+        <div
+          className="flex items-center gap-2 px-4 border-b border-border/40 shrink-0"
+          style={{ paddingTop: "calc(env(safe-area-inset-top, 8px) + 8px)", minHeight: 56 }}
+        >
+          <button
+            onClick={handleBack}
+            className="h-9 w-9 rounded-lg flex items-center justify-center hover:bg-muted/60 transition-colors active:scale-95 shrink-0"
+            aria-label={showGallery ? "Voltar à planta" : "Fechar"}
+          >
+            <ChevronLeft className="h-5 w-5 text-foreground" />
+          </button>
+          <div className="flex-1 min-w-0">
+            <DrawerTitle id="drawer-title" className="text-sm font-bold text-foreground truncate">
+              {selected.name}
+            </DrawerTitle>
+            <p className="text-xs text-muted-foreground truncate">{selected.area}</p>
+          </div>
+          <DrawerClose asChild>
+            <button
+              className="h-9 w-9 rounded-lg flex items-center justify-center hover:bg-muted/60 transition-colors active:scale-95 shrink-0"
+              aria-label="Fechar"
+            >
+              <X className="h-4 w-4 text-muted-foreground" />
+            </button>
+          </DrawerClose>
+        </div>
+
+        {/* Step indicators */}
+        <div className="px-4 py-2 flex gap-1.5 shrink-0">
+          {steps.map((s, i) => (
+            <div key={s} className="flex-1 flex flex-col items-center gap-1">
+              <div className={`h-1 w-full rounded-full transition-colors ${
+                i <= currentStepIdx ? "bg-accent" : "bg-border"
+              }`} />
+              <span className={`text-[10px] ${
+                i === currentStepIdx ? "text-accent font-semibold" : "text-muted-foreground"
+              }`}>
+                {s}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        {/* Scrollable content */}
+        <div className="flex-1 overflow-y-auto px-4 py-4 space-y-5">
+          {!showGallery ? (
+            <>
+              <PlantaView selected={selected} />
+              <div className="space-y-4">
+                <div>
+                  <h3 className="font-display text-xl font-bold text-foreground">{selected.name}</h3>
+                  <p className="text-muted-foreground text-sm mt-1">
+                    {selected.area} · {selected.bedrooms} · {selected.bathrooms} banheiro(s)
+                  </p>
+                </div>
+                <HighlightChips highlights={selected.highlights} />
+                <VariantButtons
+                  selected={selected}
+                  loadingGallery={loadingGallery}
+                  onVariantClick={onVariantClick}
+                  onViewProjetos={onViewProjetos}
+                />
+              </div>
+            </>
+          ) : (
+            <GalleryView
+              selected={selected}
+              galleryIdx={galleryIdx}
+              galleryImages={galleryImages}
+              activeVariant={activeVariant}
+              setGalleryIdx={setGalleryIdx}
+            />
+          )}
+        </div>
+
+        {/* Sticky footer CTA */}
+        {showGallery && (
+          <div
+            className="shrink-0 border-t border-border/40 px-4 pt-3 bg-background"
+            style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 8px) + 12px)" }}
+          >
+            <a href={getOrcamentoUrl()} target="_blank" rel="noopener noreferrer" className="block">
+              <Button size="lg" className="w-full min-h-[52px] bg-accent hover:bg-accent/90 text-accent-foreground font-bold">
+                Solicitar Orçamento de Reforma
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </a>
+          </div>
+        )}
+      </DrawerContent>
+    </Drawer>
+  );
+}
+
+/* ── Desktop Modal (preserved) ── */
+interface ModalCommonProps {
   selected: Tipologia;
   showGallery: boolean;
   galleryIdx: number;
@@ -121,7 +402,22 @@ function PlantaModal({
   setShowGallery: (v: boolean) => void;
   setActiveVariant: (v: TipologiaVariant | null) => void;
   setGalleryIdx: React.Dispatch<React.SetStateAction<number>>;
-}) {
+}
+
+function DesktopPlantaModal({
+  selected,
+  showGallery,
+  galleryIdx,
+  galleryImages,
+  loadingGallery,
+  activeVariant,
+  onClose,
+  onViewProjetos,
+  onVariantClick,
+  setShowGallery,
+  setActiveVariant,
+  setGalleryIdx,
+}: ModalCommonProps) {
   const getOrcamentoUrl = () => {
     if (activeVariant) return activeVariant.orcamentoUrl;
     return `https://envision-build-guide.lovable.app/o/2aa034962039?tipologia=${encodeURIComponent(selected.name)}`;
@@ -135,6 +431,9 @@ function PlantaModal({
       transition={{ duration: 0.25 }}
       className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/60 backdrop-blur-sm p-4"
       onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="desktop-modal-title"
     >
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 12 }}
@@ -147,77 +446,27 @@ function PlantaModal({
         <button
           onClick={onClose}
           className="absolute top-4 right-4 z-10 h-9 w-9 rounded-xl bg-muted/80 flex items-center justify-center hover:bg-muted transition-colors focus-visible:ring-2 focus-visible:ring-primary active:scale-95"
+          aria-label="Fechar"
         >
           <X className="h-4 w-4 text-foreground" />
         </button>
 
         {!showGallery ? (
           <div className="p-6 md:p-8">
-            <div className="rounded-xl overflow-hidden bg-muted/20 border border-border/40 mb-6">
-              <img
-                src={getPlantaUrl(selected)}
-                alt={`Planta ${selected.name}`}
-                className="w-full object-contain max-h-[50vh]"
-              />
-            </div>
+            <PlantaView selected={selected} />
 
-            <div className="space-y-4">
+            <div className="mt-6 space-y-4">
               <div>
-                <h3 className="font-display text-2xl font-bold text-foreground">{selected.name}</h3>
+                <h3 id="desktop-modal-title" className="font-display text-2xl font-bold text-foreground">{selected.name}</h3>
                 <p className="text-muted-foreground mt-1">{selected.area} · {selected.bedrooms} · {selected.bathrooms} banheiro(s)</p>
               </div>
-
-              <div className="flex flex-wrap gap-2">
-                {selected.highlights.map((h) => (
-                  <span key={h} className="text-xs px-3 py-1.5 rounded-full bg-primary/10 text-primary font-medium">{h}</span>
-                ))}
-              </div>
-
-              {/* Variant selector or default button */}
-              {selected.variants && selected.variants.length > 0 ? (
-                <div className="mt-4 space-y-3">
-                  <p className="text-sm font-medium text-muted-foreground">Escolha a linha de projeto:</p>
-                  <div className="grid grid-cols-2 gap-3">
-                    {selected.variants.map((variant) => (
-                      <Button
-                        key={variant.variantId}
-                        size="lg"
-                        variant={variant.variantId.includes("collection") ? "outline" : "default"}
-                        className={`min-h-[56px] flex flex-col gap-0.5 ${
-                          variant.variantId.includes("collection")
-                            ? "border-accent/40 hover:bg-accent/5"
-                            : "bg-accent hover:bg-accent/90 text-accent-foreground"
-                        }`}
-                        disabled={loadingGallery}
-                        onClick={() => onVariantClick(variant, selected)}
-                      >
-                        {loadingGallery ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <>
-                            <span className="text-sm font-bold">{variant.label}</span>
-                            <span className="text-xs opacity-70">Ver projetos 3D</span>
-                          </>
-                        )}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <Button
-                  size="lg"
-                  className="w-full min-h-[48px] mt-4 bg-accent hover:bg-accent/90 text-accent-foreground"
-                  disabled={loadingGallery}
-                  onClick={() => onViewProjetos(selected)}
-                >
-                  {loadingGallery ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <Eye className="mr-2 h-4 w-4" />
-                  )}
-                  Visualizar projetos de reforma
-                </Button>
-              )}
+              <HighlightChips highlights={selected.highlights} />
+              <VariantButtons
+                selected={selected}
+                loadingGallery={loadingGallery}
+                onVariantClick={onVariantClick}
+                onViewProjetos={onViewProjetos}
+              />
             </div>
           </div>
         ) : (
@@ -237,58 +486,20 @@ function PlantaModal({
                 </h3>
                 <p className="text-sm text-muted-foreground">{selected.area}</p>
               </div>
-              <a
-                href={getOrcamentoUrl()}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
+              <a href={getOrcamentoUrl()} target="_blank" rel="noopener noreferrer">
                 <Button size="sm" className="shrink-0 bg-accent hover:bg-accent/90 text-accent-foreground font-bold border-none">
                   Orçamento para Reforma
                 </Button>
               </a>
             </div>
 
-            <div className="relative rounded-xl overflow-hidden bg-muted/20 border border-border/40">
-              <img
-                src={galleryImages[galleryIdx % galleryImages.length]}
-                alt={`Projeto 3D ${galleryIdx + 1}`}
-                className="w-full object-contain max-h-[55vh]"
-              />
-
-              {galleryImages.length > 1 && (
-                <>
-                  <button
-                    onClick={() => setGalleryIdx((prev) => (prev - 1 + galleryImages.length) % galleryImages.length)}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 h-10 w-10 rounded-xl bg-background/80 backdrop-blur-sm border border-border/60 flex items-center justify-center hover:bg-background transition-colors active:scale-95"
-                  >
-                    <ChevronLeft className="h-5 w-5 text-foreground" />
-                  </button>
-                  <button
-                    onClick={() => setGalleryIdx((prev) => (prev + 1) % galleryImages.length)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 h-10 w-10 rounded-xl bg-background/80 backdrop-blur-sm border border-border/60 flex items-center justify-center hover:bg-background transition-colors active:scale-95"
-                  >
-                    <ChevronRight className="h-5 w-5 text-foreground" />
-                  </button>
-                </>
-              )}
-            </div>
-
-            {/* Thumbnails */}
-            {galleryImages.length > 1 && (
-              <div className="mt-4 flex gap-2 overflow-x-auto pb-2">
-                {galleryImages.map((img, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => setGalleryIdx(idx)}
-                    className={`shrink-0 h-16 w-20 rounded-lg overflow-hidden border-2 transition-all active:scale-95 ${
-                      idx === galleryIdx ? "border-accent" : "border-border/40 opacity-60 hover:opacity-100"
-                    }`}
-                  >
-                    <img src={img} alt="" className="h-full w-full object-contain bg-muted/20" />
-                  </button>
-                ))}
-              </div>
-            )}
+            <GalleryView
+              selected={selected}
+              galleryIdx={galleryIdx}
+              galleryImages={galleryImages}
+              activeVariant={activeVariant}
+              setGalleryIdx={setGalleryIdx}
+            />
           </div>
         )}
       </motion.div>
