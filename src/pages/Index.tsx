@@ -12,6 +12,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import AppNavbar from "@/components/AppNavbar";
 import MobileQuickNav from "@/components/MobileQuickNav";
+import ComparativoRegional from "@/components/ComparativoRegional";
 import PlantasSection from "@/components/PlantasSection";
 import heroImg from "@/assets/uf-fachada.jpeg";
 import { DISTRICTS_MOCK, districtByName, formatBRL } from "@/data/districtMetrics";
