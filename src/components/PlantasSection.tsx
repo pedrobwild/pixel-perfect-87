@@ -3,7 +3,7 @@ import { motion, useInView, useScroll, useTransform, AnimatePresence } from "fra
 import { X, ChevronLeft, ChevronRight, Maximize2, Eye, Loader2, Sparkles, Ruler, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerClose } from "@/components/ui/drawer";
+import { Dialog, DialogContent, DialogTitle, DialogClose } from "@/components/ui/dialog";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { supabase } from "@/integrations/supabase/client";
 import { tipologias, getPlantaUrl, getProjetosFolder, getStorageBase } from "@/data/tipologias";
