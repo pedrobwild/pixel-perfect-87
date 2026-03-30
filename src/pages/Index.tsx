@@ -1,4 +1,4 @@
-import { useEffect, useRef, useMemo, useState } from "react";
+import { useEffect, useRef, useMemo, useState, lazy, Suspense } from "react";
 import { Link } from "react-router-dom";
 import { motion, useInView, useScroll, useTransform, AnimatePresence } from "framer-motion";
 import {
@@ -14,10 +14,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import AppNavbar from "@/components/AppNavbar";
 import MobileQuickNav from "@/components/MobileQuickNav";
-import ComparativoRegional from "@/components/ComparativoRegional";
-import PlantasSection from "@/components/PlantasSection";
 import heroImg from "@/assets/uf-fachada.jpeg";
 import { DISTRICTS_MOCK, districtByName, formatBRL } from "@/data/districtMetrics";
+
+const ComparativoRegional = lazy(() => import("@/components/ComparativoRegional"));
+const PlantasSection = lazy(() => import("@/components/PlantasSection"));
 
 const guideItems = [
   { title: "Quiz de Perfil", desc: "Descubra qual tipologia combina com seu objetivo de investimento.", icon: Target, hash: "diagnostico" },
