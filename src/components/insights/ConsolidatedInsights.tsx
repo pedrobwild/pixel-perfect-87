@@ -97,10 +97,21 @@ export default function ConsolidatedInsights() {
       });
       if (!filteredUsers.length) throw new Error("Nenhum corretor autorizado encontrado");
 
-      for (const user of filteredUsers) {
-        await supabase.functions.invoke("elephant-insights", {
-          body: { userId: user.id, refresh: "true" },
-        });
+      // Process corretores in parallel for speed
+      const results = await Promise.allSettled(
+        filteredUsers.map((user: any) =>
+          supabase.functions.invoke("elephant-insights", {
+            body: { userId: user.id, refresh: "true" },
+          })
+        )
+      );
+
+      const failures = results.filter((r) => r.status === "rejected");
+      if (failures.length === filteredUsers.length) {
+        throw new Error("Falha ao processar todos os corretores");
+      }
+      if (failures.length > 0) {
+        console.warn(`${failures.length}/${filteredUsers.length} corretores falharam`);
       }
 
       await loadFromCache();
