@@ -360,6 +360,7 @@ export default function Index() {
           {/* Comparative — cards on mobile, table on desktop */}
           <FadeIn className="mt-14">
             <ComparativoRegional isMobile={isMobile} />
+          </FadeIn>
         </div>
       </section>
 
