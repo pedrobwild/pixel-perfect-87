@@ -175,3 +175,7 @@ All colors MUST be HSL.
     transform: translateY(0);
   }
 }
+
+/* Hide scrollbar for horizontal snap containers */
+.scrollbar-none::-webkit-scrollbar { display: none; }
+.scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
