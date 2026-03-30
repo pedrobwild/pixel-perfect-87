@@ -5,7 +5,8 @@ import {
   ArrowRight, Building2, MapPin, TrendingUp,
   MessageCircle, Wrench, BarChart3, Eye,
   CheckCircle2, Clock, Sparkles, Shield,
-  Target, Calculator, Map, ListChecks, Lightbulb, ClipboardCheck
+  Target, Calculator, Map, ListChecks, Lightbulb, ClipboardCheck,
+  ChevronDown
 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
