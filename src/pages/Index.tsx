@@ -170,7 +170,7 @@ export default function Index() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.4 }}
             className="mt-4 md:mt-6 text-[15px] md:text-xl max-w-2xl leading-relaxed"
-            style={{ color: "hsl(var(--primary-foreground) / 0.85)" }}
+            style={{ color: "hsl(var(--primary-foreground) / 0.92)" }}
           >
             {isMobile
               ? "6 tipologias com projetos 3D baseados em dados reais de ocupação — cada detalhe pensado para seu imóvel performar."
@@ -208,7 +208,7 @@ export default function Index() {
                     className="snap-start shrink-0 flex items-center gap-1.5 rounded-full border border-border/20 bg-background/10 backdrop-blur-sm px-3.5 py-2"
                   >
                     <span className="font-display text-sm font-bold" style={{ color: "hsl(var(--primary-foreground))" }}>{s.value}</span>
-                    <span className="text-[11px]" style={{ color: "hsl(var(--primary-foreground) / 0.55)" }}>{s.label}</span>
+                    <span className="text-[11px]" style={{ color: "hsl(var(--primary-foreground) / 0.7)" }}>{s.label}</span>
                   </div>
                 ))}
               </div>
@@ -233,7 +233,7 @@ export default function Index() {
                   transition={{ duration: 0.5, delay: 0.8 + i * 0.08 }}
                 >
                   <p className="font-display text-2xl md:text-3xl font-bold" style={{ color: "hsl(var(--primary-foreground))" }}>{s.value}</p>
-                  <p className="text-xs mt-0.5" style={{ color: "hsl(var(--primary-foreground) / 0.55)" }}>{s.label}</p>
+                  <p className="text-xs mt-0.5" style={{ color: "hsl(var(--primary-foreground) / 0.7)" }}>{s.label}</p>
                 </motion.div>
               ))}
             </motion.div>
@@ -445,7 +445,7 @@ export default function Index() {
 
               {/* Accordion — remaining items */}
               <details className="mt-4 group">
-                <summary className="flex items-center justify-center gap-1.5 py-2.5 text-xs font-semibold text-muted-foreground hover:text-foreground cursor-pointer transition-colors list-none [&::-webkit-details-marker]:hidden">
+                <summary className="flex items-center justify-center gap-1.5 py-3 min-h-[44px] text-xs font-semibold text-muted-foreground hover:text-foreground cursor-pointer transition-colors list-none [&::-webkit-details-marker]:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:rounded-lg">
                   Ver tudo no guia
                   <ChevronDown className="h-3.5 w-3.5 transition-transform group-open:rotate-180" />
                 </summary>
@@ -512,12 +512,13 @@ export default function Index() {
         <div className="max-w-7xl mx-auto px-4 md:px-6 py-8">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
             <p>© 2026 Bwild. Todos os direitos reservados.</p>
-            <div className="flex items-center gap-4">
-              <Link to="/ferramentas" className="hover:text-foreground transition-colors">Ferramentas</Link>
-              <Link to="/urban-flex-bela-cintra" className="hover:text-foreground transition-colors">Guia do Investidor</Link>
+            <nav aria-label="Links do rodapé" className="flex items-center gap-4">
+              <Link to="/ferramentas" className="hover:text-foreground transition-colors min-h-[44px] flex items-center">Ferramentas</Link>
+              <Link to="/urban-flex-bela-cintra" className="hover:text-foreground transition-colors min-h-[44px] flex items-center">Guia do Investidor</Link>
+            </nav>
             </div>
           </div>
-        </div>
+          </div>
       </footer>
 
       {/* ── STICKY MOBILE CTA ── */}

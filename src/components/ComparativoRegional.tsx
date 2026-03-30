@@ -92,10 +92,11 @@ function MobileCards({ rows }: { rows: ReturnType<typeof buildRows> }) {
 
       <button
         onClick={() => setShowAll(!showAll)}
-        className="w-full flex items-center justify-center gap-1.5 py-2.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
+        className="w-full flex items-center justify-center gap-1.5 min-h-[44px] py-2.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none focus-visible:rounded-lg"
+        aria-expanded={showAll}
       >
         {showAll ? "Ver top 3" : "Ver todos os bairros"}
-        <ChevronDown className={`h-3.5 w-3.5 transition-transform ${showAll ? "rotate-180" : ""}`} />
+        <ChevronDown className={`h-3.5 w-3.5 transition-transform ${showAll ? "rotate-180" : ""}`} aria-hidden="true" />
       </button>
 
       <Accordion type="single" collapsible className="mt-2">

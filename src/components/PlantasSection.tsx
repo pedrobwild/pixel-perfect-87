@@ -328,13 +328,15 @@ function GalleryView({
           <>
             <button
               onClick={() => setGalleryIdx((prev) => (prev - 1 + galleryImages.length) % galleryImages.length)}
-              className="absolute left-3 top-1/2 -translate-y-1/2 h-10 w-10 rounded-xl bg-background/80 backdrop-blur-sm border border-border/60 flex items-center justify-center hover:bg-background transition-colors active:scale-95"
+              aria-label="Imagem anterior"
+              className="absolute left-3 top-1/2 -translate-y-1/2 h-11 w-11 rounded-xl bg-background/80 backdrop-blur-sm border border-border/60 flex items-center justify-center hover:bg-background transition-colors active:scale-95 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
             >
               <ChevronLeft className="h-5 w-5 text-foreground" />
             </button>
             <button
               onClick={() => setGalleryIdx((prev) => (prev + 1) % galleryImages.length)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 h-10 w-10 rounded-xl bg-background/80 backdrop-blur-sm border border-border/60 flex items-center justify-center hover:bg-background transition-colors active:scale-95"
+              aria-label="Próxima imagem"
+              className="absolute right-3 top-1/2 -translate-y-1/2 h-11 w-11 rounded-xl bg-background/80 backdrop-blur-sm border border-border/60 flex items-center justify-center hover:bg-background transition-colors active:scale-95 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
             >
               <ChevronRight className="h-5 w-5 text-foreground" />
             </button>
@@ -348,11 +350,13 @@ function GalleryView({
             <button
               key={idx}
               onClick={() => setGalleryIdx(idx)}
-              className={`shrink-0 h-14 w-18 rounded-lg overflow-hidden border-2 transition-all active:scale-95 ${
-                idx === galleryIdx ? "border-accent" : "border-border/40 opacity-60 hover:opacity-100"
+              aria-label={`Ver imagem ${idx + 1} de ${galleryImages.length}`}
+              aria-current={idx === galleryIdx ? "true" : undefined}
+              className={`shrink-0 h-14 w-18 rounded-lg overflow-hidden border-2 transition-all active:scale-95 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none ${
+                idx === galleryIdx ? "border-accent ring-1 ring-accent/30" : "border-border/40 opacity-60 hover:opacity-100"
               }`}
             >
-              <img src={img} alt="" className="h-full w-full object-contain bg-muted/20" />
+              <img src={img} alt={`Miniatura projeto ${idx + 1}`} className="h-full w-full object-contain bg-muted/20" />
             </button>
           ))}
         </div>
@@ -412,7 +416,7 @@ function MobilePlantaDrawer({
         >
           <button
             onClick={handleBack}
-            className="h-9 w-9 rounded-lg flex items-center justify-center hover:bg-muted/60 transition-colors active:scale-95 shrink-0"
+            className="h-10 w-10 rounded-lg flex items-center justify-center hover:bg-muted/60 transition-colors active:scale-95 shrink-0 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
             aria-label={showGallery ? "Voltar à planta" : "Fechar"}
           >
             <ChevronLeft className="h-5 w-5 text-foreground" />
@@ -425,25 +429,32 @@ function MobilePlantaDrawer({
           </div>
           <DialogClose asChild>
             <button
-              className="h-9 w-9 rounded-lg flex items-center justify-center hover:bg-muted/60 transition-colors active:scale-95 shrink-0"
+              className="h-10 w-10 rounded-lg flex items-center justify-center hover:bg-muted/60 transition-colors active:scale-95 shrink-0 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
               aria-label="Fechar"
             >
-              <X className="h-4 w-4 text-muted-foreground" />
+              <X className="h-4.5 w-4.5 text-muted-foreground" />
             </button>
           </DialogClose>
         </div>
 
         {/* Step indicators */}
-        <div className="px-4 py-2 flex gap-1.5 shrink-0">
+        <div className="px-4 py-2 flex gap-1.5 shrink-0" role="group" aria-label="Progresso das etapas">
           {steps.map((s, i) => (
             <div key={s} className="flex-1 flex flex-col items-center gap-1">
-              <div className={`h-1 w-full rounded-full transition-colors ${
-                i <= currentStepIdx ? "bg-accent" : "bg-border"
-              }`} />
+              <div
+                className={`h-1 w-full rounded-full transition-colors ${
+                  i <= currentStepIdx ? "bg-accent" : "bg-border"
+                }`}
+                aria-hidden="true"
+              />
               <span className={`text-[10px] ${
-                i === currentStepIdx ? "text-accent font-semibold" : "text-muted-foreground"
+                i === currentStepIdx ? "text-accent font-bold" : "text-muted-foreground"
               }`}>
-                {s}
+                {i <= currentStepIdx ? "✓ " : ""}{s}
+              </span>
+            </div>
+          ))}
+        </div>
               </span>
             </div>
           ))}
