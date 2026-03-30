@@ -563,6 +563,6 @@ export default function Index() {
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
+    </main>
   );
 }
