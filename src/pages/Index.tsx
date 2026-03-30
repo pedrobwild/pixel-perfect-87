@@ -4,7 +4,8 @@ import { motion, useInView, useScroll, useTransform, AnimatePresence } from "fra
 import {
   ArrowRight, Building2, MapPin, TrendingUp,
   MessageCircle, Wrench, BarChart3, Eye,
-  CheckCircle2, Clock, Sparkles, Shield
+  CheckCircle2, Clock, Sparkles, Shield,
+  Target, Calculator, Map, ListChecks, Lightbulb, ClipboardCheck
 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
@@ -368,51 +369,102 @@ export default function Index() {
       {/* ── GUIA DO INVESTIDOR ── */}
       <section id="guia" className="border-b border-border/40 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-accent/[0.05] via-transparent to-accent/[0.03] pointer-events-none" />
-        <div className="max-w-7xl mx-auto px-4 md:px-6 py-20 md:py-28 relative">
-          <div className="grid gap-10 lg:grid-cols-[1fr_1fr] lg:items-center">
-            <FadeIn>
-              <Badge className="mb-4 bg-accent/10 text-accent border-accent/20 hover:bg-accent/15 text-xs font-semibold tracking-wide px-3 py-1">
-                <BarChart3 className="h-3.5 w-3.5 mr-1.5" />
-                Ferramenta exclusiva
-              </Badge>
-              <h2 className="font-display text-3xl md:text-5xl font-bold text-foreground leading-[1.1] tracking-tight">
-                Guia do Investidor.{" "}
-                <span className="text-accent">Tudo antes de comprar.</span>
-              </h2>
-              <p className="mt-4 text-muted-foreground leading-relaxed max-w-lg">
-                A mesma inteligência de mercado que usamos para projetar cada reforma está aqui, aberta para você.
-                Dados, critérios objetivos e análise — para decidir com a mesma segurança que nós temos.
-              </p>
+        <div className="max-w-7xl mx-auto px-4 md:px-6 py-16 md:py-28 relative">
+          {/* Header — always visible */}
+          <FadeIn>
+            <Badge className="mb-4 bg-accent/10 text-accent border-accent/20 hover:bg-accent/15 text-xs font-semibold tracking-wide px-3 py-1">
+              <BarChart3 className="h-3.5 w-3.5 mr-1.5" />
+              Ferramenta exclusiva
+            </Badge>
+            <h2 className="font-display text-2xl md:text-5xl font-bold text-foreground leading-[1.1] tracking-tight max-w-2xl">
+              Guia do Investidor.{" "}
+              <span className="text-accent">Tudo antes de comprar.</span>
+            </h2>
+            <p className="mt-3 md:mt-4 text-muted-foreground leading-relaxed max-w-lg text-[15px] md:text-base">
+              Dados, critérios objetivos e análise — para decidir com segurança.
+            </p>
+          </FadeIn>
 
-              <Link to="/urban-flex-bela-cintra" className="mt-8 inline-block">
-                <Button size="lg" className="min-h-[52px] font-bold bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg shadow-accent/25">
-                  Acessar o Guia do Investidor
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </Link>
-            </FadeIn>
-
-            <FadeIn delay={0.1}>
+          {/* Desktop: 2-col grid (unchanged) */}
+          {!isMobile && (
+            <FadeIn delay={0.1} className="mt-10">
               <div className="grid grid-cols-2 gap-3">
-                {[
-                  { title: "Quiz de Perfil", desc: "Descubra qual tipologia combina com seu objetivo de investimento." },
-                  { title: "Checklist de Escolha", desc: "16 critérios técnicos para avaliar o imóvel com clareza." },
-                  { title: "Simulador de Retorno", desc: "Projete receita em cenários otimista e conservador." },
-                  { title: "Checklist de Prontidão", desc: "10 itens para garantir que você está pronto para fechar." },
-                  { title: "Análise de Bairro", desc: "Dados de ocupação, diária e yield da Consolação vs. concorrentes." },
-                  { title: "Estratégia de Renda", desc: "Como operar short stay e maximizar retorno desde o dia 1." },
-                ].map((item, i) => (
+                {guideItems.map((item) => (
                   <div
                     key={item.title}
                     className="rounded-xl border border-border/60 bg-background p-4 hover:border-accent/40 hover:shadow-lg hover:shadow-accent/10 transition-all duration-300"
                   >
-                    <h3 className="text-sm font-bold text-foreground mb-1">{item.title}</h3>
-                    <p className="text-xs text-muted-foreground leading-relaxed">{item.desc}</p>
+                    <div className="flex items-start gap-3">
+                      <div className="h-9 w-9 rounded-lg bg-accent/10 flex items-center justify-center shrink-0">
+                        <item.icon className="h-4 w-4 text-accent" />
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-bold text-foreground mb-1">{item.title}</h3>
+                        <p className="text-xs text-muted-foreground leading-relaxed">{item.desc}</p>
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
             </FadeIn>
-          </div>
+          )}
+
+          {/* Mobile: Horizontal snap carousel (priority items) + accordion for rest */}
+          {isMobile && (
+            <FadeIn delay={0.1} className="mt-6">
+              {/* Carousel — 3 priority items */}
+              <div className="-mx-4 px-4 overflow-x-auto scrollbar-none">
+                <div className="flex gap-3 snap-x snap-mandatory w-max pb-2">
+                  {guidePriorityItems.map((item) => (
+                    <div
+                      key={item.title}
+                      className="snap-start shrink-0 w-[72vw] rounded-xl border border-border/60 bg-background p-5"
+                    >
+                      <div className="h-10 w-10 rounded-xl bg-accent/10 flex items-center justify-center mb-3">
+                        <item.icon className="h-5 w-5 text-accent" />
+                      </div>
+                      <h3 className="text-sm font-bold text-foreground mb-1.5">{item.title}</h3>
+                      <p className="text-xs text-muted-foreground leading-relaxed">{item.desc}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Accordion — remaining items */}
+              <details className="mt-4 group">
+                <summary className="flex items-center justify-center gap-1.5 py-2.5 text-xs font-semibold text-muted-foreground hover:text-foreground cursor-pointer transition-colors list-none [&::-webkit-details-marker]:hidden">
+                  Ver tudo no guia
+                  <ChevronDown className="h-3.5 w-3.5 transition-transform group-open:rotate-180" />
+                </summary>
+                <div className="mt-3 space-y-2">
+                  {guideSecondaryItems.map((item) => (
+                    <div
+                      key={item.title}
+                      className="flex items-start gap-3 rounded-xl border border-border/60 bg-background p-4"
+                    >
+                      <div className="h-8 w-8 rounded-lg bg-accent/10 flex items-center justify-center shrink-0">
+                        <item.icon className="h-4 w-4 text-accent" />
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-bold text-foreground mb-0.5">{item.title}</h3>
+                        <p className="text-xs text-muted-foreground leading-relaxed">{item.desc}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </details>
+            </FadeIn>
+          )}
+
+          {/* CTA */}
+          <FadeIn delay={0.2} className="mt-8 md:mt-10">
+            <Link to="/urban-flex-bela-cintra">
+              <Button size="lg" className="min-h-[52px] w-full sm:w-auto font-bold bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg shadow-accent/25">
+                Acessar o Guia do Investidor
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
+          </FadeIn>
         </div>
       </section>
 
