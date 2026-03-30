@@ -45,7 +45,10 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { profileType, profileData, dashboardContext } = await req.json();
+    const body = await req.json();
+    const profileType = typeof body.profileType === "string" ? body.profileType.slice(0, 200) : "";
+    const profileData = body.profileData && typeof body.profileData === "object" ? body.profileData : null;
+    const dashboardContext = body.dashboardContext && typeof body.dashboardContext === "object" ? body.dashboardContext : null;
 
     if (!profileType) {
       return new Response(JSON.stringify({ error: "profileType é obrigatório" }), {

@@ -270,8 +270,9 @@ export default function AdminUpload() {
               {item.file.type.startsWith("image/") ? (
                 <img
                   src={URL.createObjectURL(item.file)}
-                  alt=""
+                  alt={item.file.name}
                   className="h-full w-full object-cover"
+                  onLoad={(e) => URL.revokeObjectURL((e.target as HTMLImageElement).src)}
                 />
               ) : (
                 <ImageIcon className="h-5 w-5 text-muted-foreground" />
