@@ -320,7 +320,7 @@ export default function Index() {
       <PlantasSection />
 
       {/* ── CONSOLAÇÃO vs OUTROS BAIRROS ── */}
-      <section className="bg-muted/25 border-b border-border/40">
+      <section id="comparativo" className="bg-muted/25 border-b border-border/40">
         <div className="max-w-7xl mx-auto px-4 md:px-6 py-20 md:py-28">
           <FadeIn>
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary/80 mb-3">Dados de mercado</p>
@@ -449,7 +449,7 @@ export default function Index() {
       </section>
 
       {/* ── GUIA DO INVESTIDOR ── */}
-      <section className="border-b border-border/40 relative overflow-hidden">
+      <section id="guia" className="border-b border-border/40 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-accent/[0.05] via-transparent to-accent/[0.03] pointer-events-none" />
         <div className="max-w-7xl mx-auto px-4 md:px-6 py-20 md:py-28 relative">
           <div className="grid gap-10 lg:grid-cols-[1fr_1fr] lg:items-center">
