@@ -509,6 +509,7 @@ function DesktopPlantaModal({
 
 export default function PlantasSection() {
   const isMobile = useIsMobile();
+  const [selected, setSelected] = useState<Tipologia | null>(null);
   const [showGallery, setShowGallery] = useState(false);
   const [galleryIdx, setGalleryIdx] = useState(0);
   const [galleryImages, setGalleryImages] = useState<string[]>([]);
