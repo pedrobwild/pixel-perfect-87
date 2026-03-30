@@ -53,6 +53,7 @@ function FadeIn({ children, delay = 0, className = "" }: { children: React.React
 export default function Index() {
   const cons = useMemo(() => districtByName.get("Consolação"), []);
   const isMobile = useIsMobile();
+  const [activeGuideCard, setActiveGuideCard] = useState(0);
 
   const heroRef = useRef<HTMLElement>(null);
   const tipologiasRef = useRef<HTMLDivElement>(null);
