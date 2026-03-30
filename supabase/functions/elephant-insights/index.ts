@@ -10,6 +10,27 @@ const corsHeaders = {
 const ELEPHAN_BASE = "https://api.elephan.dev/v1";
 const CACHE_TTL_HOURS = 6;
 
+// ─── Simple in-memory rate limiter ──────────────────────────────
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+const RATE_LIMIT_WINDOW_MS = 60_000; // 1 minute
+const RATE_LIMIT_MAX = 10; // max requests per window
+
+function checkRateLimit(key: string): boolean {
+  const now = Date.now();
+  const entry = rateLimitMap.get(key);
+  if (!entry || now > entry.resetAt) {
+    rateLimitMap.set(key, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+    return true;
+  }
+  if (entry.count >= RATE_LIMIT_MAX) return false;
+  entry.count++;
+  return true;
+}
+
+// ─── Input validation helpers ───────────────────────────────────
+const VALID_ACTIONS = new Set(["list-users", "executive-summary", null]);
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 function getSupabaseAdmin() {
   return createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 }
@@ -82,7 +103,37 @@ function extractAnswerMetrics(answers: any[]): { scoreQuestions: any[]; yesNoQue
   };
 }
 
-function computeLeadScore(t: any): number {
+interface TranscribeEntry {
+  title?: string;
+  duration?: number;
+  dateIncluded?: string;
+  summary?: string;
+  sentimentAnalysis?: { totalSentiment?: unknown };
+  reasons?: ReasonEntry[];
+  competitors?: CompetitorEntry[];
+  answers?: AnswerEntry[];
+  deal?: { crmUrl?: string; id?: string };
+}
+
+interface ReasonEntry {
+  type?: string;
+  description?: string;
+  details?: unknown;
+}
+
+interface CompetitorEntry {
+  word?: string;
+  name?: string;
+  count?: number;
+}
+
+interface AnswerEntry {
+  question?: string;
+  score?: number;
+  yesNo?: string | boolean;
+}
+
+export function computeLeadScore(t: TranscribeEntry): number {
   let score = 50;
   const dominant = extractDominantSentiment(t.sentimentAnalysis?.totalSentiment);
   if (dominant === "positive") score += 20;
@@ -95,19 +146,19 @@ function computeLeadScore(t: any): number {
   else if (durationMin < 5) score -= 10;
 
   const reasons = t.reasons || [];
-  const objections = reasons.filter((r: any) => r.type === "objection").length;
-  const positivePoints = reasons.filter((r: any) => r.type === "positive_point").length;
-  const potentialLoss = reasons.filter((r: any) => r.type === "potential_loss").length;
+  const objections = reasons.filter((r) => r.type === "objection").length;
+  const positivePoints = reasons.filter((r) => r.type === "positive_point").length;
+  const potentialLoss = reasons.filter((r) => r.type === "potential_loss").length;
   score -= objections * 5;
   score += positivePoints * 4;
   score -= potentialLoss * 8;
 
-  const competitors = (t.competitors || []).reduce((s: number, c: any) => s + (c.count || 1), 0);
+  const competitors = (t.competitors || []).reduce((s: number, c) => s + (c.count || 1), 0);
   score -= competitors * 3;
 
-  const answers = extractAnswerMetrics(t.answers);
-  const yesCount = answers.yesNoQuestions.filter((q: any) => q.yesNo).length;
-  const noCount = answers.yesNoQuestions.filter((q: any) => !q.yesNo).length;
+  const answers = extractAnswerMetrics(t.answers || []);
+  const yesCount = answers.yesNoQuestions.filter((q) => q.yesNo).length;
+  const noCount = answers.yesNoQuestions.filter((q) => !q.yesNo).length;
   score += yesCount * 4;
   score -= noCount * 3;
   if (answers.avgScore !== null) score += Math.round((answers.avgScore - 5) * 2);
@@ -261,8 +312,13 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
+    // Rate limit by IP
+    const clientIp = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+    if (!checkRateLimit(clientIp)) {
+      return new Response(JSON.stringify({ success: false, error: "Rate limit exceeded. Try again in 1 minute." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     const url = new URL(req.url);
-    // Read params from both query string and POST body for compatibility
     let bodyParams: Record<string, string> = {};
     if (req.method === "POST") {
       try {
@@ -270,9 +326,21 @@ serve(async (req) => {
         bodyParams = raw || {};
       } catch { /* no body */ }
     }
+
     const action = url.searchParams.get("action") || bodyParams.action || null;
     const forceRefresh = (url.searchParams.get("refresh") || bodyParams.refresh) === "true";
     const userId = url.searchParams.get("userId") || bodyParams.userId || null;
+
+    // Validate action
+    if (action !== null && !VALID_ACTIONS.has(action)) {
+      return new Response(JSON.stringify({ success: false, error: "Invalid action" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    // Validate userId format if provided
+    if (userId && !UUID_RE.test(userId) && userId.length > 100) {
+      return new Response(JSON.stringify({ success: false, error: "Invalid userId format" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     const sb = getSupabaseAdmin();
 
     const apiKey = Deno.env.get("ASKELEPHANT_API_KEY");
