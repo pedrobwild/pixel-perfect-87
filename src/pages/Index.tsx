@@ -113,7 +113,7 @@ export default function Index() {
   ];
 
   return (
-    <div className="min-h-screen bg-background">
+    <main className="min-h-screen bg-background">
       <AppNavbar />
       {isMobile && <MobileQuickNav />}
 
@@ -563,6 +563,6 @@ export default function Index() {
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
+    </main>
   );
 }
