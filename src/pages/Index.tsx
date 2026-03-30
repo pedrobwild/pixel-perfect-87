@@ -19,6 +19,18 @@ import PlantasSection from "@/components/PlantasSection";
 import heroImg from "@/assets/uf-fachada.jpeg";
 import { DISTRICTS_MOCK, districtByName, formatBRL } from "@/data/districtMetrics";
 
+const guideItems = [
+  { title: "Quiz de Perfil", desc: "Descubra qual tipologia combina com seu objetivo de investimento.", icon: Target },
+  { title: "Simulador de Retorno", desc: "Projete receita em cenários otimista e conservador.", icon: Calculator },
+  { title: "Análise de Bairro", desc: "Dados de ocupação, diária e yield da Consolação vs. concorrentes.", icon: Map },
+  { title: "Checklist de Escolha", desc: "16 critérios técnicos para avaliar o imóvel com clareza.", icon: ListChecks },
+  { title: "Checklist de Prontidão", desc: "10 itens para garantir que você está pronto para fechar.", icon: ClipboardCheck },
+  { title: "Estratégia de Renda", desc: "Como operar short stay e maximizar retorno desde o dia 1.", icon: Lightbulb },
+];
+
+const guidePriorityItems = guideItems.slice(0, 3);
+const guideSecondaryItems = guideItems.slice(3);
+
 const whatsappLink =
   "https://wa.me/5591984804821?text=Olá!%20Vi%20o%20site%20da%20Bwild%20e%20quero%20saber%20mais%20sobre%20o%20Urban%20Flex%20Bela%20Cintra.";
 
