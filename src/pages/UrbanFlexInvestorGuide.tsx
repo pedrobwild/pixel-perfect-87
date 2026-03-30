@@ -423,6 +423,18 @@ export default function UrbanFlexInvestorGuide() {
     };
   }, [selectedUnit, occupancy, dailyRateInput, acquisitionInput, fitoutInput, fixedCostsInput, furnishingLevel]);
 
+  // Deep link: scroll to hash section on mount
+  useEffect(() => {
+    const hash = window.location.hash.replace("#", "");
+    if (hash) {
+      // Small delay to ensure DOM is rendered
+      const t = setTimeout(() => {
+        document.getElementById(hash)?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 300);
+      return () => clearTimeout(t);
+    }
+  }, []);
+
   const scrollTo = (id: SectionId) => {
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
