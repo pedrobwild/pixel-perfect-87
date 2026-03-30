@@ -403,9 +403,10 @@ export default function Index() {
             <FadeIn delay={0.1} className="mt-10">
               <div className="grid grid-cols-2 gap-3">
                 {guideItems.map((item) => (
-                  <div
+                  <Link
                     key={item.title}
-                    className="rounded-xl border border-border/60 bg-background p-4 hover:border-accent/40 hover:shadow-lg hover:shadow-accent/10 transition-all duration-300"
+                    to={`/urban-flex-bela-cintra#${item.hash}`}
+                    className="rounded-xl border border-border/60 bg-background p-4 hover:border-accent/40 hover:shadow-lg hover:shadow-accent/10 transition-all duration-300 block"
                   >
                     <div className="flex items-start gap-3">
                       <div className="h-9 w-9 rounded-lg bg-accent/10 flex items-center justify-center shrink-0">
@@ -416,7 +417,7 @@ export default function Index() {
                         <p className="text-xs text-muted-foreground leading-relaxed">{item.desc}</p>
                       </div>
                     </div>
-                  </div>
+                  </Link>
                 ))}
               </div>
             </FadeIn>
@@ -429,16 +430,17 @@ export default function Index() {
               <div className="-mx-4 px-4 overflow-x-auto scrollbar-none">
                 <div className="flex gap-3 snap-x snap-mandatory w-max pb-2">
                   {guidePriorityItems.map((item) => (
-                    <div
+                    <Link
                       key={item.title}
-                      className="snap-start shrink-0 w-[72vw] rounded-xl border border-border/60 bg-background p-5"
+                      to={`/urban-flex-bela-cintra#${item.hash}`}
+                      className="snap-start shrink-0 w-[72vw] rounded-xl border border-border/60 bg-background p-5 block"
                     >
                       <div className="h-10 w-10 rounded-xl bg-accent/10 flex items-center justify-center mb-3">
                         <item.icon className="h-5 w-5 text-accent" />
                       </div>
                       <h3 className="text-sm font-bold text-foreground mb-1.5">{item.title}</h3>
                       <p className="text-xs text-muted-foreground leading-relaxed">{item.desc}</p>
-                    </div>
+                    </Link>
                   ))}
                 </div>
               </div>
@@ -451,8 +453,9 @@ export default function Index() {
                 </summary>
                 <div className="mt-3 space-y-2">
                   {guideSecondaryItems.map((item) => (
-                    <div
+                    <Link
                       key={item.title}
+                      to={`/urban-flex-bela-cintra#${item.hash}`}
                       className="flex items-start gap-3 rounded-xl border border-border/60 bg-background p-4"
                     >
                       <div className="h-8 w-8 rounded-lg bg-accent/10 flex items-center justify-center shrink-0">
@@ -462,7 +465,7 @@ export default function Index() {
                         <h3 className="text-sm font-bold text-foreground mb-0.5">{item.title}</h3>
                         <p className="text-xs text-muted-foreground leading-relaxed">{item.desc}</p>
                       </div>
-                    </div>
+                    </Link>
                   ))}
                 </div>
               </details>
