@@ -288,10 +288,10 @@ function MobilePlantaDrawer({
   const currentStepIdx = step === "galeria" ? steps.length - 1 : 0;
 
   return (
-    <Drawer open onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DrawerContent
-        className="h-[100dvh] max-h-[100dvh] rounded-none border-0 flex flex-col"
-        aria-labelledby="drawer-title"
+    <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogContent
+        className="h-[100dvh] max-h-[100dvh] w-screen max-w-full rounded-none border-0 p-0 flex flex-col gap-0 [&>button:last-child]:hidden"
+        aria-labelledby="mobile-modal-title"
       >
         {/* Header with back, title, close */}
         <div
@@ -306,19 +306,19 @@ function MobilePlantaDrawer({
             <ChevronLeft className="h-5 w-5 text-foreground" />
           </button>
           <div className="flex-1 min-w-0">
-            <DrawerTitle id="drawer-title" className="text-sm font-bold text-foreground truncate">
+            <DialogTitle id="mobile-modal-title" className="text-sm font-bold text-foreground truncate">
               {selected.name}
-            </DrawerTitle>
+            </DialogTitle>
             <p className="text-xs text-muted-foreground truncate">{selected.area}</p>
           </div>
-          <DrawerClose asChild>
+          <DialogClose asChild>
             <button
               className="h-9 w-9 rounded-lg flex items-center justify-center hover:bg-muted/60 transition-colors active:scale-95 shrink-0"
               aria-label="Fechar"
             >
               <X className="h-4 w-4 text-muted-foreground" />
             </button>
-          </DrawerClose>
+          </DialogClose>
         </div>
 
         {/* Step indicators */}
@@ -383,8 +383,8 @@ function MobilePlantaDrawer({
             </a>
           </div>
         )}
-      </DrawerContent>
-    </Drawer>
+      </DialogContent>
+    </Dialog>
   );
 }
 
