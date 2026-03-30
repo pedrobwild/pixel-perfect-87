@@ -336,7 +336,9 @@ export default function Index() {
       </section>
 
       {/* ── TIPOLOGIAS (funil de conversão) ── */}
-      <PlantasSection />
+      <Suspense fallback={<div className="min-h-[400px]" />}>
+        <PlantasSection />
+      </Suspense>
 
       {/* ── CONSOLAÇÃO vs OUTROS BAIRROS ── */}
       <section id="comparativo" className="bg-muted/25 border-b border-border/40">
@@ -376,7 +378,9 @@ export default function Index() {
 
           {/* Comparative — cards on mobile, table on desktop */}
           <FadeIn className="mt-14">
-            <ComparativoRegional isMobile={isMobile} />
+            <Suspense fallback={<div className="min-h-[200px]" />}>
+              <ComparativoRegional isMobile={isMobile} />
+            </Suspense>
           </FadeIn>
         </div>
       </section>
