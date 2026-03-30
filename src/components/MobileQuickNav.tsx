@@ -1,0 +1,107 @@
+import { useEffect, useRef, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+
+const NAV_ITEMS = [
+  { id: "tipologias", label: "Plantas" },
+  { id: "comparativo", label: "Comparativo" },
+  { id: "guia", label: "Guia" },
+] as const;
+
+const HEADER_HEIGHT = 64; // sticky header h-16
+const NAV_HEIGHT = 44;
+const SCROLL_OFFSET = HEADER_HEIGHT + NAV_HEIGHT + 8;
+
+export default function MobileQuickNav() {
+  const [visible, setVisible] = useState(false);
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const navRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const heroEl = document.querySelector<HTMLElement>("section[class*='min-h-']");
+    const guiaEl = document.getElementById("guia");
+    if (!heroEl) return;
+
+    let heroOut = false;
+    let pastGuia = false;
+
+    const update = () => setVisible(heroOut && !pastGuia);
+
+    const heroObs = new IntersectionObserver(
+      ([e]) => { heroOut = !e.isIntersecting; update(); },
+      { threshold: 0 }
+    );
+
+    // Hide after guia section ends (use bottom sentinel)
+    const guiaObs = new IntersectionObserver(
+      ([e]) => { pastGuia = !e.isIntersecting && (e.boundingClientRect.top < 0); update(); },
+      { threshold: 0 }
+    );
+
+    heroObs.observe(heroEl);
+    if (guiaEl) guiaObs.observe(guiaEl);
+
+    // Scrollspy: determine active section
+    const handleScroll = () => {
+      let current: string | null = null;
+      for (const item of NAV_ITEMS) {
+        const el = document.getElementById(item.id);
+        if (!el) continue;
+        const rect = el.getBoundingClientRect();
+        if (rect.top <= SCROLL_OFFSET + 40) current = item.id;
+      }
+      setActiveId(current);
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll();
+
+    return () => {
+      heroObs.disconnect();
+      guiaObs.disconnect();
+      window.removeEventListener("scroll", handleScroll);
+    };
+  }, []);
+
+  const scrollTo = (id: string) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const y = el.getBoundingClientRect().top + window.scrollY - SCROLL_OFFSET;
+    window.scrollTo({ top: y, behavior: "smooth" });
+  };
+
+  return (
+    <AnimatePresence>
+      {visible && (
+        <motion.div
+          ref={navRef}
+          initial={{ opacity: 0, y: -12 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -12 }}
+          transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+          className="fixed top-16 inset-x-0 z-30 md:hidden"
+        >
+          <div className="glass-nav border-b border-border/40 px-4 py-1.5">
+            <div className="flex gap-2 justify-center">
+              {NAV_ITEMS.map((item) => {
+                const isActive = activeId === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => scrollTo(item.id)}
+                    className={`px-4 py-2 rounded-full text-xs font-semibold transition-colors min-h-[36px] ${
+                      isActive
+                        ? "bg-accent text-accent-foreground"
+                        : "bg-secondary/60 text-muted-foreground"
+                    }`}
+                  >
+                    {item.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
