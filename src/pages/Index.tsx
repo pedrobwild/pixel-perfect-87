@@ -53,6 +53,7 @@ function FadeIn({ children, delay = 0, className = "" }: { children: React.React
 export default function Index() {
   const cons = useMemo(() => districtByName.get("Consolação"), []);
   const isMobile = useIsMobile();
+  const [activeGuideCard, setActiveGuideCard] = useState(0);
 
   const heroRef = useRef<HTMLElement>(null);
   const tipologiasRef = useRef<HTMLDivElement>(null);
@@ -427,7 +428,15 @@ export default function Index() {
           {isMobile && (
             <FadeIn delay={0.1} className="mt-6">
               {/* Carousel — 3 priority items */}
-              <div className="-mx-4 px-4 overflow-x-auto scrollbar-none">
+              <div
+                className="-mx-4 px-4 overflow-x-auto scrollbar-none"
+                onScroll={(e) => {
+                  const el = e.currentTarget;
+                  const cardWidth = el.scrollWidth / guidePriorityItems.length;
+                  const idx = Math.round(el.scrollLeft / cardWidth);
+                  setActiveGuideCard(idx);
+                }}
+              >
                 <div className="flex gap-3 snap-x snap-mandatory w-max pb-2">
                   {guidePriorityItems.map((item) => (
                     <Link
@@ -443,6 +452,17 @@ export default function Index() {
                     </Link>
                   ))}
                 </div>
+              </div>
+              {/* Pagination dots */}
+              <div className="flex justify-center gap-1.5 mt-3" role="tablist" aria-label="Indicador de card ativo">
+                {guidePriorityItems.map((_, i) => (
+                  <span
+                    key={i}
+                    role="tab"
+                    aria-selected={activeGuideCard === i}
+                    className={`h-1.5 rounded-full transition-all duration-300 ${activeGuideCard === i ? "w-5 bg-accent" : "w-1.5 bg-muted-foreground/30"}`}
+                  />
+                ))}
               </div>
 
               {/* Accordion — remaining items */}
