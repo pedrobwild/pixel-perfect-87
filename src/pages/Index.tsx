@@ -20,12 +20,12 @@ import heroImg from "@/assets/uf-fachada.jpeg";
 import { DISTRICTS_MOCK, districtByName, formatBRL } from "@/data/districtMetrics";
 
 const guideItems = [
-  { title: "Quiz de Perfil", desc: "Descubra qual tipologia combina com seu objetivo de investimento.", icon: Target },
-  { title: "Simulador de Retorno", desc: "Projete receita em cenários otimista e conservador.", icon: Calculator },
-  { title: "Análise de Bairro", desc: "Dados de ocupação, diária e yield da Consolação vs. concorrentes.", icon: Map },
-  { title: "Checklist de Escolha", desc: "16 critérios técnicos para avaliar o imóvel com clareza.", icon: ListChecks },
-  { title: "Checklist de Prontidão", desc: "10 itens para garantir que você está pronto para fechar.", icon: ClipboardCheck },
-  { title: "Estratégia de Renda", desc: "Como operar short stay e maximizar retorno desde o dia 1.", icon: Lightbulb },
+  { title: "Quiz de Perfil", desc: "Descubra qual tipologia combina com seu objetivo de investimento.", icon: Target, hash: "diagnostico" },
+  { title: "Simulador de Retorno", desc: "Projete receita em cenários otimista e conservador.", icon: Calculator, hash: "simulador" },
+  { title: "Análise de Bairro", desc: "Dados de ocupação, diária e yield da Consolação vs. concorrentes.", icon: Map, hash: "localizacao" },
+  { title: "Checklist de Escolha", desc: "16 critérios técnicos para avaliar o imóvel com clareza.", icon: ListChecks, hash: "escolha-ativo" },
+  { title: "Checklist de Prontidão", desc: "10 itens para garantir que você está pronto para fechar.", icon: ClipboardCheck, hash: "checklist-final" },
+  { title: "Estratégia de Renda", desc: "Como operar short stay e maximizar retorno desde o dia 1.", icon: Lightbulb, hash: "rentabilidade" },
 ];
 
 const guidePriorityItems = guideItems.slice(0, 3);
