@@ -516,9 +516,8 @@ export default function Index() {
               <Link to="/ferramentas" className="hover:text-foreground transition-colors min-h-[44px] flex items-center">Ferramentas</Link>
               <Link to="/urban-flex-bela-cintra" className="hover:text-foreground transition-colors min-h-[44px] flex items-center">Guia do Investidor</Link>
             </nav>
-            </div>
           </div>
-          </div>
+        </div>
       </footer>
 
       {/* ── STICKY MOBILE CTA ── */}
