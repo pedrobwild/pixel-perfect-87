@@ -464,21 +464,21 @@ export default function Index() {
 
       {/* ── CTA FINAL ── */}
       <section>
-        <div className="max-w-7xl mx-auto px-4 md:px-6 py-20 md:py-28">
+        <div className="max-w-7xl mx-auto px-5 md:px-6 py-14 md:py-28">
           <FadeIn className="text-center max-w-2xl mx-auto">
-            <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground">
+            <h2 className="font-display text-2xl md:text-4xl font-bold text-foreground">
               Cada projeto foi desenhado para performar.
             </h2>
-            <p className="mt-4 text-muted-foreground text-lg leading-relaxed">
+            <p className="mt-3 md:mt-4 text-muted-foreground text-[15px] md:text-lg leading-relaxed">
               Explore as plantas, veja os projetos pensados para alta rentabilidade e converse com a equipe comercial.
             </p>
-            <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
-              <Button size="lg" className="min-h-[48px]" onClick={() => window.open(whatsappLink, "_blank")}>
+            <div className="mt-6 md:mt-8 flex flex-col sm:flex-row gap-3 justify-center">
+              <Button size="lg" className="min-h-[52px] active:scale-[0.97] transition-transform" onClick={() => window.open(whatsappLink, "_blank")}>
                 <MessageCircle className="mr-2 h-4 w-4" />
                 Falar com consultor
               </Button>
               <a href="#tipologias">
-                <Button size="lg" variant="outline" className="min-h-[48px] w-full sm:w-auto">
+                <Button size="lg" variant="outline" className="min-h-[52px] w-full sm:w-auto active:scale-[0.97] transition-transform">
                   Ver plantas e projetos
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
@@ -488,12 +488,12 @@ export default function Index() {
         </div>
       </section>
 
-      {/* Footer */}
+      {/* Footer — extra bottom padding on mobile for sticky CTA */}
       <footer className="border-t border-border/40 bg-muted/25">
-        <div className="max-w-7xl mx-auto px-4 md:px-6 py-8">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
+        <div className="max-w-7xl mx-auto px-5 md:px-6 py-6 md:py-8 pb-20 md:pb-8">
+          <div className="flex flex-col items-center gap-3 md:gap-4 text-[13px] md:text-sm text-muted-foreground md:flex-row md:justify-between">
             <p>© 2026 Bwild. Todos os direitos reservados.</p>
-            <nav aria-label="Links do rodapé" className="flex items-center gap-4">
+            <nav aria-label="Links do rodapé" className="flex items-center gap-5">
               <Link to="/ferramentas" className="hover:text-foreground transition-colors min-h-[44px] flex items-center">Ferramentas</Link>
               <Link to="/urban-flex-bela-cintra" className="hover:text-foreground transition-colors min-h-[44px] flex items-center">Guia do Investidor</Link>
             </nav>
