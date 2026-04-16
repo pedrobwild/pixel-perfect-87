@@ -29,8 +29,7 @@ const guideItems = [
   { title: "Estratégia de Renda", desc: "Como operar short stay e maximizar retorno desde o dia 1.", icon: Lightbulb, hash: "rentabilidade" },
 ];
 
-const guidePriorityItems = guideItems.slice(0, 3);
-const guideSecondaryItems = guideItems.slice(3);
+// guidePriorityItems/guideSecondaryItems removed — mobile uses full list
 
 const whatsappLink =
   "https://wa.me/5591984804821?text=Olá!%20Vi%20o%20site%20da%20Bwild%20e%20quero%20saber%20mais%20sobre%20o%20Urban%20Flex%20Bela%20Cintra.";
