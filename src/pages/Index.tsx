@@ -121,15 +121,15 @@ export default function Index() {
       {/* ── HERO — focado no comprador do studio ── */}
       <section
         ref={heroRef}
-        className={`relative overflow-hidden flex flex-col justify-center ${
-          isMobile ? "min-h-[76svh]" : "min-h-[100svh]"
+        className={`relative overflow-hidden flex flex-col ${
+          isMobile ? "min-h-[85svh] justify-end" : "min-h-[100svh] justify-center"
         }`}
       >
         {/* Background image — parallax only on desktop */}
         {isMobile ? (
           <div className="absolute inset-0">
             <img src={heroImg} alt="Fachada LM Urban Flex Bela Cintra" className="h-full w-full object-cover" loading="eager" />
-            <div className="absolute inset-0 bg-gradient-to-b from-foreground/75 via-foreground/55 to-foreground/80" />
+            <div className="absolute inset-0 bg-gradient-to-t from-foreground/90 via-foreground/50 to-foreground/20" />
           </div>
         ) : (
           <motion.div className="absolute inset-0" style={{ y: heroImgY }}>
@@ -138,82 +138,62 @@ export default function Index() {
           </motion.div>
         )}
 
-        <motion.div style={isMobile ? undefined : { opacity: heroOpacity }} className="relative max-w-7xl mx-auto px-4 md:px-6 pt-24 pb-10 md:pt-36 md:pb-24 w-full">
+        <motion.div style={isMobile ? undefined : { opacity: heroOpacity }} className="relative max-w-7xl mx-auto px-5 md:px-6 pt-24 pb-8 md:pt-36 md:pb-24 w-full">
           {/* Eyebrow */}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.7, delay: 0.1 }}
           >
-            <Badge className="bg-accent/90 text-accent-foreground border-accent/40 hover:bg-accent backdrop-blur-sm mb-4 md:mb-5 text-[11px] md:text-xs font-bold tracking-wide px-3 py-1.5">
+            <Badge className="bg-accent/90 text-accent-foreground border-accent/40 hover:bg-accent backdrop-blur-sm mb-3 md:mb-5 text-[11px] md:text-xs font-bold tracking-wide px-3 py-1.5">
               <Building2 className="h-3.5 w-3.5 mr-1.5" />
               {isMobile ? "Urban Flex · Consolação" : "LM Urban Flex · R. Bela Cintra, 209 — Consolação"}
             </Badge>
           </motion.div>
 
-          {/* Headline — max 2 lines on mobile */}
+          {/* Headline */}
           <motion.h1
             initial={{ opacity: 0, y: 30, filter: "blur(8px)" }}
             animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
             transition={{ duration: 1, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
-            className="font-display text-[1.75rem] md:text-6xl lg:text-7xl font-bold leading-[1.08] md:leading-[1.02] max-w-4xl tracking-tight"
+            className="font-display text-[1.65rem] md:text-6xl lg:text-7xl font-bold leading-[1.12] md:leading-[1.02] max-w-4xl tracking-tight"
             style={{ color: "hsl(var(--primary-foreground))" }}
           >
             {isMobile ? (
-              <>Seu studio na Paulista. <span className="text-accent">Projetado para render.</span></>
+              <>Seu studio na Paulista.{" "}<br /><span className="text-accent">Projetado para render.</span></>
             ) : (
               <>Seu studio a 200m da Paulista.{" "}<span className="text-accent">Projetado para rentabilizar.</span></>
             )}
           </motion.h1>
 
-          {/* Sub — max 3 lines on mobile */}
+          {/* Sub */}
           <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.4 }}
-            className="mt-4 md:mt-6 text-[15px] md:text-xl max-w-2xl leading-relaxed"
-            style={{ color: "hsl(var(--primary-foreground) / 0.92)" }}
+            className="mt-3 md:mt-6 text-[14px] md:text-xl max-w-2xl leading-relaxed"
+            style={{ color: "hsl(var(--primary-foreground) / 0.88)" }}
           >
             {isMobile
-              ? "6 tipologias com projetos 3D baseados em dados reais de ocupação — cada detalhe pensado para seu imóvel performar."
+              ? "6 tipologias com projetos 3D baseados em dados reais de ocupação."
               : "6 tipologias de 19 a 83 m² com projetos de reforma 3D criados a partir de dados reais de ocupação e rentabilidade — cada detalhe pensado para o seu imóvel performar acima da média."
             }
           </motion.p>
 
-          {/* CTA — single full-width on mobile */}
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.55 }}
-            className="mt-8 md:mt-10 flex flex-col sm:flex-row gap-3"
-          >
-            <a href="#tipologias" className="w-full sm:w-auto">
-              <Button size="lg" className="min-h-[52px] w-full sm:w-auto text-base bg-accent hover:bg-accent/90 text-accent-foreground font-bold shadow-lg shadow-accent/25">
-                <Eye className="mr-2 h-5 w-5" />
-                Ver plantas e projetos 3D
-              </Button>
-            </a>
-          </motion.div>
-
-          {/* Trust facts — horizontal snap chips on mobile, original layout on desktop */}
+          {/* Trust facts — compact row on mobile */}
           {isMobile ? (
             <motion.div
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.7 }}
-              className="mt-8 -mx-4 px-4 overflow-x-auto scrollbar-none"
+              transition={{ duration: 0.6, delay: 0.55 }}
+              className="mt-5 flex flex-wrap gap-x-4 gap-y-2"
             >
-              <div className="flex gap-2 snap-x snap-mandatory w-max">
-                {trustFacts.map((s, i) => (
-                  <div
-                    key={s.label}
-                    className="snap-start shrink-0 flex items-center gap-1.5 rounded-full border border-border/20 bg-background/10 backdrop-blur-sm px-3.5 py-2"
-                  >
-                    <span className="font-display text-sm font-bold" style={{ color: "hsl(var(--primary-foreground))" }}>{s.value}</span>
-                    <span className="text-[11px]" style={{ color: "hsl(var(--primary-foreground) / 0.7)" }}>{s.label}</span>
-                  </div>
-                ))}
-              </div>
+              {trustFacts.map((s) => (
+                <div key={s.label} className="flex items-center gap-1.5">
+                  <span className="font-display text-[13px] font-bold" style={{ color: "hsl(var(--primary-foreground))" }}>{s.value}</span>
+                  <span className="text-[11px]" style={{ color: "hsl(var(--primary-foreground) / 0.6)" }}>{s.label}</span>
+                </div>
+              ))}
             </motion.div>
           ) : (
             <motion.div
@@ -240,6 +220,21 @@ export default function Index() {
               ))}
             </motion.div>
           )}
+
+          {/* CTA — full-width on mobile, bottom-anchored */}
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.65 }}
+            className="mt-6 md:mt-10 flex flex-col sm:flex-row gap-3"
+          >
+            <a href="#tipologias" className="w-full sm:w-auto">
+              <Button size="lg" className="min-h-[52px] w-full sm:w-auto text-base bg-accent hover:bg-accent/90 text-accent-foreground font-bold shadow-lg shadow-accent/25 active:scale-[0.97] transition-transform">
+                <Eye className="mr-2 h-5 w-5" />
+                Ver plantas e projetos 3D
+              </Button>
+            </a>
+          </motion.div>
         </motion.div>
 
         {/* Scroll indicator — desktop only */}
@@ -264,7 +259,7 @@ export default function Index() {
       {/* ── POR QUE ESTE IMÓVEL — redução de objeção ── */}
       <section className="border-b border-border/40 bg-background relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-accent/[0.02] to-transparent pointer-events-none" />
-        <div className="max-w-7xl mx-auto px-4 md:px-6 py-16 md:py-24 relative">
+        <div className="max-w-7xl mx-auto px-5 md:px-6 py-12 md:py-24 relative">
           <FadeIn>
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-accent mb-3">Por que o Urban Flex</p>
             <h2 className="font-display text-2xl md:text-4xl font-bold text-foreground max-w-3xl leading-tight">
@@ -272,7 +267,7 @@ export default function Index() {
             </h2>
           </FadeIn>
 
-          <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-8 md:mt-10 grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
             {[
               {
                 icon: MapPin,
