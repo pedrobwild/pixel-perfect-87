@@ -80,8 +80,8 @@ export default function MobileQuickNav() {
           transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
           className="fixed top-16 inset-x-0 z-30 md:hidden"
         >
-          <nav className="glass-nav border-b border-border/40 px-4 py-1.5" aria-label="Navegação rápida da página">
-            <div className="flex gap-2 justify-center" role="tablist">
+          <nav className="glass-nav border-b border-border/40 px-5 py-2" aria-label="Navegação rápida da página">
+            <div className="flex gap-1.5 justify-center" role="tablist">
               {NAV_ITEMS.map((item) => {
                 const isActive = activeId === item.id;
                 return (
@@ -91,10 +91,10 @@ export default function MobileQuickNav() {
                     aria-selected={isActive}
                     aria-label={`Ir para ${item.label}`}
                     onClick={() => scrollTo(item.id)}
-                    className={`px-4 py-2 rounded-full text-xs font-semibold transition-colors min-h-[44px] focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none ${
+                    className={`relative px-5 py-2.5 rounded-full text-xs font-semibold transition-all min-h-[40px] focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none active:scale-[0.95] ${
                       isActive
-                        ? "bg-accent text-accent-foreground"
-                        : "bg-secondary/60 text-muted-foreground"
+                        ? "bg-accent text-accent-foreground shadow-sm shadow-accent/20"
+                        : "bg-secondary/60 text-muted-foreground hover:bg-secondary"
                     }`}
                   >
                     {item.label}
