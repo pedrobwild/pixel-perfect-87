@@ -509,11 +509,11 @@ export default function Index() {
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 80, opacity: 0 }}
             transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-            className="fixed bottom-0 inset-x-0 z-50 bg-background/80 backdrop-blur-md border-t border-border/40 px-4 pt-3"
-            style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 8px) + 12px)" }}
+            className="fixed bottom-0 inset-x-0 z-50 bg-background/90 backdrop-blur-xl border-t border-border/40 px-5 pt-2.5"
+            style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 8px) + 10px)" }}
           >
             <a href="#tipologias" className="block">
-              <Button size="lg" className="w-full min-h-[52px] text-base bg-accent hover:bg-accent/90 text-accent-foreground font-bold shadow-lg shadow-accent/25">
+              <Button size="lg" className="w-full min-h-[50px] text-[15px] bg-accent hover:bg-accent/90 text-accent-foreground font-bold shadow-lg shadow-accent/25 active:scale-[0.97] transition-transform">
                 <Eye className="mr-2 h-5 w-5" />
                 Ver plantas e projetos 3D
               </Button>
