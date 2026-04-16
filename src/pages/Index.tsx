@@ -293,13 +293,15 @@ export default function Index() {
               },
             ].map((item, i) => (
               <FadeIn key={item.title} delay={i * 0.06}>
-                <Card className="h-full border-border/60 hover:border-accent/30 transition-colors">
-                  <CardContent className="p-5">
-                    <div className="h-10 w-10 rounded-xl bg-accent/10 flex items-center justify-center mb-3">
-                      <item.icon className="h-5 w-5 text-accent" />
+                <Card className="h-full border-border/60 hover:border-accent/30 transition-colors active:scale-[0.98] active:border-accent/40">
+                  <CardContent className="p-4 md:p-5 flex md:block items-start gap-3">
+                    <div className="h-9 w-9 md:h-10 md:w-10 rounded-xl bg-accent/10 flex items-center justify-center shrink-0 md:mb-3">
+                      <item.icon className="h-4 w-4 md:h-5 md:w-5 text-accent" />
                     </div>
-                    <h3 className="text-sm font-bold text-foreground mb-1.5">{item.title}</h3>
-                    <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
+                    <div>
+                      <h3 className="text-sm font-bold text-foreground mb-1">{item.title}</h3>
+                      <p className="text-[13px] md:text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
+                    </div>
                   </CardContent>
                 </Card>
               </FadeIn>
@@ -308,7 +310,7 @@ export default function Index() {
 
           {/* Micro social proof */}
           <FadeIn delay={0.3}>
-            <div className="mt-8 flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+            <div className="mt-6 md:mt-8 flex flex-wrap items-center gap-3 md:gap-4 text-[13px] md:text-sm text-muted-foreground">
               {[
                 "Incorporadora Leal Moreira",
                 "Operação short stay ready",
@@ -337,7 +339,7 @@ export default function Index() {
 
       {/* ── CONSOLAÇÃO vs OUTROS BAIRROS ── */}
       <section id="comparativo" className="bg-muted/25 border-b border-border/40">
-        <div className="max-w-7xl mx-auto px-4 md:px-6 py-20 md:py-28">
+        <div className="max-w-7xl mx-auto px-5 md:px-6 py-14 md:py-28">
           <FadeIn>
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary/80 mb-3">Dados de mercado</p>
             <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground max-w-2xl">
