@@ -280,9 +280,9 @@ export default function Index() {
         <div className="absolute inset-0 bg-gradient-to-b from-accent/[0.02] to-transparent pointer-events-none" />
         <div className="max-w-7xl mx-auto px-5 md:px-6 py-12 md:py-24 relative">
           <FadeIn>
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-accent mb-3">Por que o Urban Flex</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-accent mb-3">{t("why.eyebrow")}</p>
             <h2 className="font-display text-2xl md:text-4xl font-bold text-foreground max-w-3xl leading-tight">
-              Localização, dados e design trabalhando juntos pelo seu retorno.
+              {t("why.title")}
             </h2>
           </FadeIn>
 
@@ -290,25 +290,28 @@ export default function Index() {
             {[
               {
                 icon: MapPin,
-                title: "Localização premium",
-                desc: "Rua Bela Cintra, 209 — a 200m da Av. Paulista, entre metrô Consolação e Trianon-MASP.",
+                title: t("why.items.location.title"),
+                desc: t("why.items.location.desc"),
               },
               {
                 icon: Sparkles,
-                title: "Design orientado por dados",
-                desc: "Studios com design estratégico alcançam até 30% mais ocupação que unidades sem reforma. Cada projeto 3D foi pensado para maximizar diária e taxa de reserva.",
+                title: t("why.items.design.title"),
+                desc: t("why.items.design.desc"),
               },
               {
                 icon: Shield,
-                title: "Obra em andamento",
-                desc: "63,5% concluída, entrega prevista para dezembro de 2026. Retrofit com padrão construtivo Leal Moreira.",
+                title: t("why.items.construction.title"),
+                desc: t("why.items.construction.desc"),
               },
               {
                 icon: TrendingUp,
-                title: "Retorno validado",
+                title: t("why.items.returnValidated.title"),
                 desc: cons
-                  ? `Consolação tem ${cons.occupancyPercent}% de ocupação e diária média de ${formatBRL(cons.nightlyRateBRL)} para studios.`
-                  : "Consolação é um dos bairros com melhor yield bruto de SP para short stay.",
+                  ? t("why.items.returnValidated.descWith", {
+                      occupancy: cons.occupancyPercent,
+                      rate: formatBRL(cons.nightlyRateBRL),
+                    })
+                  : t("why.items.returnValidated.descFallback"),
               },
             ].map((item, i) => (
               <FadeIn key={item.title} delay={i * 0.06}>
@@ -331,13 +334,13 @@ export default function Index() {
           <FadeIn delay={0.3}>
             <div className="mt-6 md:mt-8 flex flex-wrap items-center gap-3 md:gap-4 text-[13px] md:text-sm text-muted-foreground">
               {[
-                "Incorporadora Leal Moreira",
-                "Operação short stay ready",
-                "Amenidades completas no empreendimento",
-              ].map((t) => (
-                <span key={t} className="flex items-center gap-1.5">
+                t("why.proof.incorporator"),
+                t("why.proof.ready"),
+                t("why.proof.amenities"),
+              ].map((label) => (
+                <span key={label} className="flex items-center gap-1.5">
                   <CheckCircle2 className="h-3.5 w-3.5 text-accent" />
-                  {t}
+                  {label}
                 </span>
               ))}
             </div>
@@ -345,7 +348,7 @@ export default function Index() {
 
           <FadeIn delay={0.35}>
             <p className="mt-4 text-[11px] text-muted-foreground/60">
-              Fonte: AirDNA Market Minder, pesquisa Bwild 2025. Dados referentes a studios 20–35 m² na região da Consolação.
+              {t("why.source")}
             </p>
           </FadeIn>
         </div>
