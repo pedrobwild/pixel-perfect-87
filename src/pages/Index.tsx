@@ -169,7 +169,7 @@ export default function Index() {
           >
             <Badge className="bg-accent/90 text-accent-foreground border-accent/40 hover:bg-accent backdrop-blur-sm mb-3 md:mb-5 text-[11px] md:text-xs font-bold tracking-wide px-3 py-1.5">
               <Building2 className="h-3.5 w-3.5 mr-1.5" />
-              {isMobile ? "Urban Flex · Consolação" : "LM Urban Flex · R. Bela Cintra, 209 — Consolação"}
+              {isMobile ? t("hero.badgeMobile") : t("hero.badgeDesktop")}
             </Badge>
           </motion.div>
 
@@ -182,9 +182,9 @@ export default function Index() {
             style={{ color: "hsl(var(--primary-foreground))" }}
           >
             {isMobile ? (
-              <>Seu studio na Paulista.{" "}<br /><span className="text-accent">Projetado para render.</span></>
+              <>{t("hero.headlineMobileA")}{" "}<br /><span className="text-accent">{t("hero.headlineMobileB")}</span></>
             ) : (
-              <>Seu studio a 200m da Paulista.{" "}<span className="text-accent">Projetado para rentabilizar.</span></>
+              <>{t("hero.headlineDesktopA")}{" "}<span className="text-accent">{t("hero.headlineDesktopB")}</span></>
             )}
           </motion.h1>
 
@@ -196,10 +196,7 @@ export default function Index() {
             className="mt-3 md:mt-6 text-[14px] md:text-xl max-w-2xl leading-relaxed"
             style={{ color: "hsl(var(--primary-foreground) / 0.88)" }}
           >
-            {isMobile
-              ? "6 tipologias com projetos 3D baseados em dados reais de ocupação."
-              : "6 tipologias de 19 a 83 m² com projetos de reforma 3D criados a partir de dados reais de ocupação e rentabilidade — cada detalhe pensado para o seu imóvel performar acima da média."
-            }
+            {isMobile ? t("hero.subMobile") : t("hero.subDesktop")}
           </motion.p>
 
           {/* Trust facts — compact row on mobile */}
@@ -225,10 +222,10 @@ export default function Index() {
               className="mt-16 flex flex-wrap gap-8 md:gap-14"
             >
               {[
-                { value: "Dez/2026", label: "Previsão de entrega" },
-                { value: "63,5%", label: "Obra concluída" },
-                { value: "19–83 m²", label: "De studio a cobertura" },
-                { value: "2 opções", label: "De reforma por planta" },
+                { value: "Dez/2026", label: t("hero.trust.deliveryLong") },
+                { value: "63,5%", label: t("hero.trust.progressLong") },
+                { value: "19–83 m²", label: t("hero.trust.typologiesLong") },
+                { value: t("hero.trust.optionsShort"), label: t("hero.trust.optionsLabel") },
               ].map((s, i) => (
                 <motion.div
                   key={s.label}
@@ -253,7 +250,7 @@ export default function Index() {
             <a href="#tipologias" className="w-full sm:w-auto">
               <Button size="lg" className="min-h-[52px] w-full sm:w-auto text-base bg-accent hover:bg-accent/90 text-accent-foreground font-bold shadow-lg shadow-accent/25 active:scale-[0.97] transition-transform">
                 <Eye className="mr-2 h-5 w-5" />
-                Ver plantas e projetos 3D
+                {t("hero.ctaPrimary")}
               </Button>
             </a>
           </motion.div>
