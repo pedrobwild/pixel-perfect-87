@@ -1,19 +1,22 @@
 import { useState } from "react";
-import { Building2, BookOpen, Wrench, ArrowLeft, Menu, X, Sparkles, Handshake } from "lucide-react";
+import { Building2, Wrench, ArrowLeft, Menu, Sparkles } from "lucide-react";
 import lealMoreiraLogo from "@/assets/leal-moreira-logo.png";
 import { Link, useLocation } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 export default function AppNavbar() {
   const { pathname } = useLocation();
+  const { t } = useTranslation();
   const isHome = pathname === "/";
   const [mobileOpen, setMobileOpen] = useState(false);
   const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
 
   const navLinks = [
-    { to: "/insights", label: "Insights", icon: Sparkles },
-    { to: "/ferramentas", label: "Ferramentas", icon: Wrench },
+    { to: "/insights", label: t("nav.insights"), icon: Sparkles },
+    { to: "/ferramentas", label: t("nav.ferramentas"), icon: Wrench },
   ];
 
   return (
@@ -22,7 +25,7 @@ export default function AppNavbar() {
         <div className="flex items-center gap-3">
           {!isHome && (
             <Link to="/">
-              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" aria-label={t("nav.back")}>
                 <ArrowLeft className="h-4 w-4" />
               </Button>
             </Link>
@@ -43,21 +46,26 @@ export default function AppNavbar() {
             </Link>
           ))}
           <Link to="/urban-flex-bela-cintra">
-            <Button variant="outline" size="sm">Urban Flex</Button>
+            <Button variant="outline" size="sm">{t("nav.urbanFlex")}</Button>
           </Link>
+          <LanguageSwitcher variant="compact" className="ml-1" />
         </div>
 
-        {/* Mobile hamburger — hidden on homepage to prioritize funnel nav */}
-        {!(isHome && isMobile) && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="sm:hidden h-9 w-9"
-            onClick={() => setMobileOpen(true)}
-          >
-            <Menu className="h-5 w-5" />
-          </Button>
-        )}
+        {/* Mobile right side: language switcher always visible + hamburger */}
+        <div className="flex items-center gap-1 sm:hidden">
+          <LanguageSwitcher variant="icon" />
+          {!(isHome && isMobile) && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9"
+              onClick={() => setMobileOpen(true)}
+              aria-label={t("nav.menu")}
+            >
+              <Menu className="h-5 w-5" />
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Mobile sheet */}
@@ -97,8 +105,11 @@ export default function AppNavbar() {
               }`}
             >
               <Building2 className="h-4 w-4 shrink-0" />
-              Urban Flex
+              {t("nav.urbanFlex")}
             </Link>
+            <div className="pt-3 mt-3 border-t border-border/40">
+              <LanguageSwitcher variant="full" className="w-full justify-start" />
+            </div>
           </nav>
         </SheetContent>
       </Sheet>
