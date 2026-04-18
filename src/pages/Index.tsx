@@ -47,9 +47,27 @@ function FadeIn({ children, delay = 0, className = "" }: { children: React.React
 }
 
 export default function Index() {
+  const { t } = useTranslation();
   const cons = useMemo(() => districtByName.get("Consolação"), []);
   const isMobile = useIsMobile();
   // activeGuideCard removed — mobile now uses vertical list
+
+  const guideItems = useMemo(
+    () =>
+      guideItemsConfig.map((item) => ({
+        title: t(`guide.items.${item.key}.title`),
+        desc: t(`guide.items.${item.key}.desc`),
+        icon: item.icon,
+        hash: item.hash,
+      })),
+    [t]
+  );
+
+  const whatsappLink = useMemo(
+    () =>
+      `https://wa.me/5591984804821?text=${encodeURIComponent(t("whatsapp.message"))}`,
+    [t]
+  );
 
   const heroRef = useRef<HTMLElement>(null);
   const tipologiasRef = useRef<HTMLDivElement>(null);
@@ -88,24 +106,33 @@ export default function Index() {
       return false;
     };
     if (!tryObserveTip()) {
-      const t = setTimeout(tryObserveTip, 500);
-      return () => { clearTimeout(t); heroObs.disconnect(); tipObs.disconnect(); };
+      const timeoutId = setTimeout(tryObserveTip, 500);
+      return () => { clearTimeout(timeoutId); heroObs.disconnect(); tipObs.disconnect(); };
     }
 
     return () => { heroObs.disconnect(); tipObs.disconnect(); };
   }, [isMobile]);
 
   useEffect(() => {
-    document.title = "Urban Flex Bela Cintra · Studios de 19 a 83 m² na Consolação";
+    const lng = (typeof document !== "undefined" && document.documentElement.lang) || "pt-BR";
+    const isEn = lng.startsWith("en");
+    document.title = isEn
+      ? "Urban Flex Bela Cintra · Studios from 19 to 83 m² in Consolação"
+      : "Urban Flex Bela Cintra · Studios de 19 a 83 m² na Consolação";
     const meta = document.querySelector('meta[name="description"]');
-    if (meta) meta.setAttribute("content", "Studios de 19 a 83 m² a 200m da Av. Paulista. Veja projetos de reforma 3D, compare opções de design e solicite seu orçamento. Entrega dez/2026.");
-  }, []);
+    if (meta) meta.setAttribute(
+      "content",
+      isEn
+        ? "Studios from 19 to 83 m² 200m from Av. Paulista. View 3D renovation projects, compare design options and request a quote. Delivery Dec/2026."
+        : "Studios de 19 a 83 m² a 200m da Av. Paulista. Veja projetos de reforma 3D, compare opções de design e solicite seu orçamento. Entrega dez/2026."
+    );
+  }, [t]);
 
   const trustFacts = [
-    { value: "Dez/2026", label: "Entrega" },
-    { value: "63,5%", label: "Obra" },
-    { value: "19–83 m²", label: "Tipologias" },
-    { value: "2 opções", label: "Por planta" },
+    { value: "Dez/2026", label: t("hero.trust.deliveryShort") },
+    { value: "63,5%", label: t("hero.trust.progressShort") },
+    { value: "19–83 m²", label: t("hero.trust.typologiesShort") },
+    { value: t("hero.trust.optionsShort"), label: t("hero.trust.optionsLabel") },
   ];
 
   return (
