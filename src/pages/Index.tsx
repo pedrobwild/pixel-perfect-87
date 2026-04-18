@@ -537,7 +537,7 @@ export default function Index() {
             <a href="#tipologias" className="block">
               <Button size="lg" className="w-full min-h-[50px] text-[15px] bg-accent hover:bg-accent/90 text-accent-foreground font-bold shadow-lg shadow-accent/25 active:scale-[0.97] transition-transform">
                 <Eye className="mr-2 h-5 w-5" />
-                Ver plantas e projetos 3D
+                {t("hero.ctaPrimary")}
               </Button>
             </a>
           </motion.div>
