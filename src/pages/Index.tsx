@@ -1,5 +1,6 @@
 import { useEffect, useRef, useMemo, useState, lazy, Suspense } from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { motion, useInView, useScroll, useTransform, AnimatePresence } from "framer-motion";
 import {
   ArrowRight, Building2, MapPin, TrendingUp,
@@ -20,19 +21,14 @@ import { DISTRICTS_MOCK, districtByName, formatBRL } from "@/data/districtMetric
 const ComparativoRegional = lazy(() => import("@/components/ComparativoRegional"));
 const PlantasSection = lazy(() => import("@/components/PlantasSection"));
 
-const guideItems = [
-  { title: "Quiz de Perfil", desc: "Descubra qual tipologia combina com seu objetivo de investimento.", icon: Target, hash: "diagnostico" },
-  { title: "Simulador de Retorno", desc: "Projete receita em cenários otimista e conservador.", icon: Calculator, hash: "simulador" },
-  { title: "Análise de Bairro", desc: "Dados de ocupação, diária e yield da Consolação vs. concorrentes.", icon: Map, hash: "localizacao" },
-  { title: "Checklist de Escolha", desc: "16 critérios técnicos para avaliar o imóvel com clareza.", icon: ListChecks, hash: "escolha-ativo" },
-  { title: "Checklist de Prontidão", desc: "10 itens para garantir que você está pronto para fechar.", icon: ClipboardCheck, hash: "checklist-final" },
-  { title: "Estratégia de Renda", desc: "Como operar short stay e maximizar retorno desde o dia 1.", icon: Lightbulb, hash: "rentabilidade" },
-];
-
-// guidePriorityItems/guideSecondaryItems removed — mobile uses full list
-
-const whatsappLink =
-  "https://wa.me/5591984804821?text=Olá!%20Vi%20o%20site%20da%20Bwild%20e%20quero%20saber%20mais%20sobre%20o%20Urban%20Flex%20Bela%20Cintra.";
+const guideItemsConfig = [
+  { key: "quiz", icon: Target, hash: "diagnostico" },
+  { key: "simulator", icon: Calculator, hash: "simulador" },
+  { key: "neighborhood", icon: Map, hash: "localizacao" },
+  { key: "choice", icon: ListChecks, hash: "escolha-ativo" },
+  { key: "readiness", icon: ClipboardCheck, hash: "checklist-final" },
+  { key: "income", icon: Lightbulb, hash: "rentabilidade" },
+] as const;
 
 function FadeIn({ children, delay = 0, className = "" }: { children: React.ReactNode; delay?: number; className?: string }) {
   const ref = useRef(null);
