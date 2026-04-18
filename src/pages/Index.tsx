@@ -1,5 +1,6 @@
 import { useEffect, useRef, useMemo, useState, lazy, Suspense } from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { motion, useInView, useScroll, useTransform, AnimatePresence } from "framer-motion";
 import {
   ArrowRight, Building2, MapPin, TrendingUp,
@@ -20,19 +21,14 @@ import { DISTRICTS_MOCK, districtByName, formatBRL } from "@/data/districtMetric
 const ComparativoRegional = lazy(() => import("@/components/ComparativoRegional"));
 const PlantasSection = lazy(() => import("@/components/PlantasSection"));
 
-const guideItems = [
-  { title: "Quiz de Perfil", desc: "Descubra qual tipologia combina com seu objetivo de investimento.", icon: Target, hash: "diagnostico" },
-  { title: "Simulador de Retorno", desc: "Projete receita em cenários otimista e conservador.", icon: Calculator, hash: "simulador" },
-  { title: "Análise de Bairro", desc: "Dados de ocupação, diária e yield da Consolação vs. concorrentes.", icon: Map, hash: "localizacao" },
-  { title: "Checklist de Escolha", desc: "16 critérios técnicos para avaliar o imóvel com clareza.", icon: ListChecks, hash: "escolha-ativo" },
-  { title: "Checklist de Prontidão", desc: "10 itens para garantir que você está pronto para fechar.", icon: ClipboardCheck, hash: "checklist-final" },
-  { title: "Estratégia de Renda", desc: "Como operar short stay e maximizar retorno desde o dia 1.", icon: Lightbulb, hash: "rentabilidade" },
-];
-
-// guidePriorityItems/guideSecondaryItems removed — mobile uses full list
-
-const whatsappLink =
-  "https://wa.me/5591984804821?text=Olá!%20Vi%20o%20site%20da%20Bwild%20e%20quero%20saber%20mais%20sobre%20o%20Urban%20Flex%20Bela%20Cintra.";
+const guideItemsConfig = [
+  { key: "quiz", icon: Target, hash: "diagnostico" },
+  { key: "simulator", icon: Calculator, hash: "simulador" },
+  { key: "neighborhood", icon: Map, hash: "localizacao" },
+  { key: "choice", icon: ListChecks, hash: "escolha-ativo" },
+  { key: "readiness", icon: ClipboardCheck, hash: "checklist-final" },
+  { key: "income", icon: Lightbulb, hash: "rentabilidade" },
+] as const;
 
 function FadeIn({ children, delay = 0, className = "" }: { children: React.ReactNode; delay?: number; className?: string }) {
   const ref = useRef(null);
@@ -51,9 +47,27 @@ function FadeIn({ children, delay = 0, className = "" }: { children: React.React
 }
 
 export default function Index() {
+  const { t } = useTranslation();
   const cons = useMemo(() => districtByName.get("Consolação"), []);
   const isMobile = useIsMobile();
   // activeGuideCard removed — mobile now uses vertical list
+
+  const guideItems = useMemo(
+    () =>
+      guideItemsConfig.map((item) => ({
+        title: t(`guide.items.${item.key}.title`),
+        desc: t(`guide.items.${item.key}.desc`),
+        icon: item.icon,
+        hash: item.hash,
+      })),
+    [t]
+  );
+
+  const whatsappLink = useMemo(
+    () =>
+      `https://wa.me/5591984804821?text=${encodeURIComponent(t("whatsapp.message"))}`,
+    [t]
+  );
 
   const heroRef = useRef<HTMLElement>(null);
   const tipologiasRef = useRef<HTMLDivElement>(null);
@@ -92,24 +106,33 @@ export default function Index() {
       return false;
     };
     if (!tryObserveTip()) {
-      const t = setTimeout(tryObserveTip, 500);
-      return () => { clearTimeout(t); heroObs.disconnect(); tipObs.disconnect(); };
+      const timeoutId = setTimeout(tryObserveTip, 500);
+      return () => { clearTimeout(timeoutId); heroObs.disconnect(); tipObs.disconnect(); };
     }
 
     return () => { heroObs.disconnect(); tipObs.disconnect(); };
   }, [isMobile]);
 
   useEffect(() => {
-    document.title = "Urban Flex Bela Cintra · Studios de 19 a 83 m² na Consolação";
+    const lng = (typeof document !== "undefined" && document.documentElement.lang) || "pt-BR";
+    const isEn = lng.startsWith("en");
+    document.title = isEn
+      ? "Urban Flex Bela Cintra · Studios from 19 to 83 m² in Consolação"
+      : "Urban Flex Bela Cintra · Studios de 19 a 83 m² na Consolação";
     const meta = document.querySelector('meta[name="description"]');
-    if (meta) meta.setAttribute("content", "Studios de 19 a 83 m² a 200m da Av. Paulista. Veja projetos de reforma 3D, compare opções de design e solicite seu orçamento. Entrega dez/2026.");
-  }, []);
+    if (meta) meta.setAttribute(
+      "content",
+      isEn
+        ? "Studios from 19 to 83 m² 200m from Av. Paulista. View 3D renovation projects, compare design options and request a quote. Delivery Dec/2026."
+        : "Studios de 19 a 83 m² a 200m da Av. Paulista. Veja projetos de reforma 3D, compare opções de design e solicite seu orçamento. Entrega dez/2026."
+    );
+  }, [t]);
 
   const trustFacts = [
-    { value: "Dez/2026", label: "Entrega" },
-    { value: "63,5%", label: "Obra" },
-    { value: "19–83 m²", label: "Tipologias" },
-    { value: "2 opções", label: "Por planta" },
+    { value: "Dez/2026", label: t("hero.trust.deliveryShort") },
+    { value: "63,5%", label: t("hero.trust.progressShort") },
+    { value: "19–83 m²", label: t("hero.trust.typologiesShort") },
+    { value: t("hero.trust.optionsShort"), label: t("hero.trust.optionsLabel") },
   ];
 
   return (
@@ -146,7 +169,7 @@ export default function Index() {
           >
             <Badge className="bg-accent/90 text-accent-foreground border-accent/40 hover:bg-accent backdrop-blur-sm mb-3 md:mb-5 text-[11px] md:text-xs font-bold tracking-wide px-3 py-1.5">
               <Building2 className="h-3.5 w-3.5 mr-1.5" />
-              {isMobile ? "Urban Flex · Consolação" : "LM Urban Flex · R. Bela Cintra, 209 — Consolação"}
+              {isMobile ? t("hero.badgeMobile") : t("hero.badgeDesktop")}
             </Badge>
           </motion.div>
 
@@ -159,9 +182,9 @@ export default function Index() {
             style={{ color: "hsl(var(--primary-foreground))" }}
           >
             {isMobile ? (
-              <>Seu studio na Paulista.{" "}<br /><span className="text-accent">Projetado para render.</span></>
+              <>{t("hero.headlineMobileA")}{" "}<br /><span className="text-accent">{t("hero.headlineMobileB")}</span></>
             ) : (
-              <>Seu studio a 200m da Paulista.{" "}<span className="text-accent">Projetado para rentabilizar.</span></>
+              <>{t("hero.headlineDesktopA")}{" "}<span className="text-accent">{t("hero.headlineDesktopB")}</span></>
             )}
           </motion.h1>
 
@@ -173,10 +196,7 @@ export default function Index() {
             className="mt-3 md:mt-6 text-[14px] md:text-xl max-w-2xl leading-relaxed"
             style={{ color: "hsl(var(--primary-foreground) / 0.88)" }}
           >
-            {isMobile
-              ? "6 tipologias com projetos 3D baseados em dados reais de ocupação."
-              : "6 tipologias de 19 a 83 m² com projetos de reforma 3D criados a partir de dados reais de ocupação e rentabilidade — cada detalhe pensado para o seu imóvel performar acima da média."
-            }
+            {isMobile ? t("hero.subMobile") : t("hero.subDesktop")}
           </motion.p>
 
           {/* Trust facts — compact row on mobile */}
@@ -202,10 +222,10 @@ export default function Index() {
               className="mt-16 flex flex-wrap gap-8 md:gap-14"
             >
               {[
-                { value: "Dez/2026", label: "Previsão de entrega" },
-                { value: "63,5%", label: "Obra concluída" },
-                { value: "19–83 m²", label: "De studio a cobertura" },
-                { value: "2 opções", label: "De reforma por planta" },
+                { value: "Dez/2026", label: t("hero.trust.deliveryLong") },
+                { value: "63,5%", label: t("hero.trust.progressLong") },
+                { value: "19–83 m²", label: t("hero.trust.typologiesLong") },
+                { value: t("hero.trust.optionsShort"), label: t("hero.trust.optionsLabel") },
               ].map((s, i) => (
                 <motion.div
                   key={s.label}
@@ -230,7 +250,7 @@ export default function Index() {
             <a href="#tipologias" className="w-full sm:w-auto">
               <Button size="lg" className="min-h-[52px] w-full sm:w-auto text-base bg-accent hover:bg-accent/90 text-accent-foreground font-bold shadow-lg shadow-accent/25 active:scale-[0.97] transition-transform">
                 <Eye className="mr-2 h-5 w-5" />
-                Ver plantas e projetos 3D
+                {t("hero.ctaPrimary")}
               </Button>
             </a>
           </motion.div>
@@ -260,9 +280,9 @@ export default function Index() {
         <div className="absolute inset-0 bg-gradient-to-b from-accent/[0.02] to-transparent pointer-events-none" />
         <div className="max-w-7xl mx-auto px-5 md:px-6 py-12 md:py-24 relative">
           <FadeIn>
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-accent mb-3">Por que o Urban Flex</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-accent mb-3">{t("why.eyebrow")}</p>
             <h2 className="font-display text-2xl md:text-4xl font-bold text-foreground max-w-3xl leading-tight">
-              Localização, dados e design trabalhando juntos pelo seu retorno.
+              {t("why.title")}
             </h2>
           </FadeIn>
 
@@ -270,25 +290,28 @@ export default function Index() {
             {[
               {
                 icon: MapPin,
-                title: "Localização premium",
-                desc: "Rua Bela Cintra, 209 — a 200m da Av. Paulista, entre metrô Consolação e Trianon-MASP.",
+                title: t("why.items.location.title"),
+                desc: t("why.items.location.desc"),
               },
               {
                 icon: Sparkles,
-                title: "Design orientado por dados",
-                desc: "Studios com design estratégico alcançam até 30% mais ocupação que unidades sem reforma. Cada projeto 3D foi pensado para maximizar diária e taxa de reserva.",
+                title: t("why.items.design.title"),
+                desc: t("why.items.design.desc"),
               },
               {
                 icon: Shield,
-                title: "Obra em andamento",
-                desc: "63,5% concluída, entrega prevista para dezembro de 2026. Retrofit com padrão construtivo Leal Moreira.",
+                title: t("why.items.construction.title"),
+                desc: t("why.items.construction.desc"),
               },
               {
                 icon: TrendingUp,
-                title: "Retorno validado",
+                title: t("why.items.returnValidated.title"),
                 desc: cons
-                  ? `Consolação tem ${cons.occupancyPercent}% de ocupação e diária média de ${formatBRL(cons.nightlyRateBRL)} para studios.`
-                  : "Consolação é um dos bairros com melhor yield bruto de SP para short stay.",
+                  ? t("why.items.returnValidated.descWith", {
+                      occupancy: cons.occupancyPercent,
+                      rate: formatBRL(cons.nightlyRateBRL),
+                    })
+                  : t("why.items.returnValidated.descFallback"),
               },
             ].map((item, i) => (
               <FadeIn key={item.title} delay={i * 0.06}>
@@ -311,13 +334,13 @@ export default function Index() {
           <FadeIn delay={0.3}>
             <div className="mt-6 md:mt-8 flex flex-wrap items-center gap-3 md:gap-4 text-[13px] md:text-sm text-muted-foreground">
               {[
-                "Incorporadora Leal Moreira",
-                "Operação short stay ready",
-                "Amenidades completas no empreendimento",
-              ].map((t) => (
-                <span key={t} className="flex items-center gap-1.5">
+                t("why.proof.incorporator"),
+                t("why.proof.ready"),
+                t("why.proof.amenities"),
+              ].map((label) => (
+                <span key={label} className="flex items-center gap-1.5">
                   <CheckCircle2 className="h-3.5 w-3.5 text-accent" />
-                  {t}
+                  {label}
                 </span>
               ))}
             </div>
@@ -325,7 +348,7 @@ export default function Index() {
 
           <FadeIn delay={0.35}>
             <p className="mt-4 text-[11px] text-muted-foreground/60">
-              Fonte: AirDNA Market Minder, pesquisa Bwild 2025. Dados referentes a studios 20–35 m² na região da Consolação.
+              {t("why.source")}
             </p>
           </FadeIn>
         </div>
@@ -342,20 +365,20 @@ export default function Index() {
           <FadeIn>
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary/80 mb-3">Dados de mercado</p>
             <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground max-w-2xl">
-              Consolação: um dos melhores yields de São Paulo.
+              {t("comparative.title")}
             </h2>
             <p className="mt-4 text-muted-foreground leading-relaxed max-w-2xl">
-              Diária competitiva com preço de aquisição abaixo de bairros vizinhos — a combinação que gera o melhor retorno para o investidor.
+              {t("comparative.subtitle")}
             </p>
           </FadeIn>
 
           {(() => {
             if (!cons) return null;
             const statsData = [
-              { value: cons.adrRangeLabel, label: "Diária média (studios)", detail: cons.sourceLabel },
-              { value: `${cons.occupancyPercent}%`, label: "Ocupação média anual", detail: "Acima da média de SP" },
-              { value: `${cons.listingsCount.toLocaleString("pt-BR")}+`, label: "Listings ativos", detail: "Mercado validado" },
-              { value: "R$ 10.500/m²", label: "Preço médio residencial", detail: "Abaixo de Pinheiros e Itaim" },
+              { value: cons.adrRangeLabel, label: t("comparative.stats.adrLabel"), detail: cons.sourceLabel },
+              { value: `${cons.occupancyPercent}%`, label: t("comparative.stats.occupancyLabel"), detail: t("comparative.stats.occupancyDetail") },
+              { value: `${cons.listingsCount.toLocaleString("pt-BR")}+`, label: t("comparative.stats.listingsLabel"), detail: t("comparative.stats.listingsDetail") },
+              { value: t("comparative.stats.priceValue"), label: t("comparative.stats.priceLabel"), detail: t("comparative.stats.priceDetail") },
             ];
             return (
               <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -389,14 +412,14 @@ export default function Index() {
           <FadeIn>
             <Badge className="mb-3 md:mb-4 bg-accent/10 text-accent border-accent/20 hover:bg-accent/15 text-xs font-semibold tracking-wide px-3 py-1">
               <BarChart3 className="h-3.5 w-3.5 mr-1.5" />
-              Ferramenta exclusiva
+              {t("guide.badge")}
             </Badge>
             <h2 className="font-display text-[1.5rem] md:text-5xl font-bold text-foreground leading-[1.1] tracking-tight max-w-2xl">
-              Guia do Investidor.{" "}
-              <span className="text-accent">Tudo antes de comprar.</span>
+              {t("guide.titleA")}{" "}
+              <span className="text-accent">{t("guide.titleB")}</span>
             </h2>
             <p className="mt-2 md:mt-4 text-muted-foreground leading-relaxed max-w-lg text-[14px] md:text-base">
-              Dados, critérios objetivos e análise — para decidir com segurança.
+              {t("guide.subtitle")}
             </p>
           </FadeIn>
 
@@ -453,7 +476,7 @@ export default function Index() {
           <FadeIn delay={0.2} className="mt-6 md:mt-10">
             <Link to="/urban-flex-bela-cintra">
               <Button size="lg" className="min-h-[52px] w-full sm:w-auto font-bold bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg shadow-accent/25 active:scale-[0.97] transition-transform">
-                Acessar o Guia do Investidor
+                {t("guide.cta")}
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>
@@ -466,19 +489,19 @@ export default function Index() {
         <div className="max-w-7xl mx-auto px-5 md:px-6 py-14 md:py-28">
           <FadeIn className="text-center max-w-2xl mx-auto">
             <h2 className="font-display text-2xl md:text-4xl font-bold text-foreground">
-              Cada projeto foi desenhado para performar.
+              {t("finalCta.title")}
             </h2>
             <p className="mt-3 md:mt-4 text-muted-foreground text-[15px] md:text-lg leading-relaxed">
-              Explore as plantas, veja os projetos pensados para alta rentabilidade e converse com a equipe comercial.
+              {t("finalCta.subtitle")}
             </p>
             <div className="mt-6 md:mt-8 flex flex-col sm:flex-row gap-3 justify-center">
               <Button size="lg" className="min-h-[52px] active:scale-[0.97] transition-transform" onClick={() => window.open(whatsappLink, "_blank")}>
                 <MessageCircle className="mr-2 h-4 w-4" />
-                Falar com consultor
+                {t("finalCta.talk")}
               </Button>
               <a href="#tipologias">
                 <Button size="lg" variant="outline" className="min-h-[52px] w-full sm:w-auto active:scale-[0.97] transition-transform">
-                  Ver plantas e projetos
+                  {t("finalCta.viewPlans")}
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </a>
@@ -491,10 +514,10 @@ export default function Index() {
       <footer className="border-t border-border/40 bg-muted/25">
         <div className="max-w-7xl mx-auto px-5 md:px-6 py-6 md:py-8 pb-20 md:pb-8">
           <div className="flex flex-col items-center gap-3 md:gap-4 text-[13px] md:text-sm text-muted-foreground md:flex-row md:justify-between">
-            <p>© 2026 Bwild. Todos os direitos reservados.</p>
-            <nav aria-label="Links do rodapé" className="flex items-center gap-5">
-              <Link to="/ferramentas" className="hover:text-foreground transition-colors min-h-[44px] flex items-center">Ferramentas</Link>
-              <Link to="/urban-flex-bela-cintra" className="hover:text-foreground transition-colors min-h-[44px] flex items-center">Guia do Investidor</Link>
+            <p>{t("footer.rights")}</p>
+            <nav aria-label={t("footer.ariaLabel")} className="flex items-center gap-5">
+              <Link to="/ferramentas" className="hover:text-foreground transition-colors min-h-[44px] flex items-center">{t("footer.tools")}</Link>
+              <Link to="/urban-flex-bela-cintra" className="hover:text-foreground transition-colors min-h-[44px] flex items-center">{t("footer.guide")}</Link>
             </nav>
           </div>
         </div>
@@ -514,7 +537,7 @@ export default function Index() {
             <a href="#tipologias" className="block">
               <Button size="lg" className="w-full min-h-[50px] text-[15px] bg-accent hover:bg-accent/90 text-accent-foreground font-bold shadow-lg shadow-accent/25 active:scale-[0.97] transition-transform">
                 <Eye className="mr-2 h-5 w-5" />
-                Ver plantas e projetos 3D
+                {t("hero.ctaPrimary")}
               </Button>
             </a>
           </motion.div>
