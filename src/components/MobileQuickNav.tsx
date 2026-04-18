@@ -1,17 +1,18 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-
-const NAV_ITEMS = [
-  { id: "tipologias", label: "Plantas" },
-  { id: "comparativo", label: "Comparativo" },
-  { id: "guia", label: "Guia" },
-] as const;
+import { useTranslation } from "react-i18next";
 
 const HEADER_HEIGHT = 64; // sticky header h-16
 const NAV_HEIGHT = 44;
 const SCROLL_OFFSET = HEADER_HEIGHT + NAV_HEIGHT + 8;
 
 export default function MobileQuickNav() {
+  const { t } = useTranslation();
+  const NAV_ITEMS = [
+    { id: "tipologias", label: t("quickNav.plantas") },
+    { id: "comparativo", label: t("quickNav.comparativo") },
+    { id: "guia", label: t("quickNav.guia") },
+  ] as const;
   const [visible, setVisible] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
   const navRef = useRef<HTMLDivElement>(null);
@@ -80,7 +81,7 @@ export default function MobileQuickNav() {
           transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
           className="fixed top-16 inset-x-0 z-30 md:hidden"
         >
-          <nav className="glass-nav border-b border-border/40 px-5 py-2" aria-label="Navegação rápida da página">
+          <nav className="glass-nav border-b border-border/40 px-5 py-2" aria-label={t("quickNav.ariaLabel")}>
             <div className="flex gap-1.5 justify-center" role="tablist">
               {NAV_ITEMS.map((item) => {
                 const isActive = activeId === item.id;
@@ -89,7 +90,7 @@ export default function MobileQuickNav() {
                     key={item.id}
                     role="tab"
                     aria-selected={isActive}
-                    aria-label={`Ir para ${item.label}`}
+                    aria-label={t("quickNav.goTo", { label: item.label })}
                     onClick={() => scrollTo(item.id)}
                     className={`relative px-5 py-2.5 rounded-full text-xs font-semibold transition-all min-h-[40px] focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none active:scale-[0.95] ${
                       isActive
