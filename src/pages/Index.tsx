@@ -365,20 +365,20 @@ export default function Index() {
           <FadeIn>
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary/80 mb-3">Dados de mercado</p>
             <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground max-w-2xl">
-              Consolação: um dos melhores yields de São Paulo.
+              {t("comparative.title")}
             </h2>
             <p className="mt-4 text-muted-foreground leading-relaxed max-w-2xl">
-              Diária competitiva com preço de aquisição abaixo de bairros vizinhos — a combinação que gera o melhor retorno para o investidor.
+              {t("comparative.subtitle")}
             </p>
           </FadeIn>
 
           {(() => {
             if (!cons) return null;
             const statsData = [
-              { value: cons.adrRangeLabel, label: "Diária média (studios)", detail: cons.sourceLabel },
-              { value: `${cons.occupancyPercent}%`, label: "Ocupação média anual", detail: "Acima da média de SP" },
-              { value: `${cons.listingsCount.toLocaleString("pt-BR")}+`, label: "Listings ativos", detail: "Mercado validado" },
-              { value: "R$ 10.500/m²", label: "Preço médio residencial", detail: "Abaixo de Pinheiros e Itaim" },
+              { value: cons.adrRangeLabel, label: t("comparative.stats.adrLabel"), detail: cons.sourceLabel },
+              { value: `${cons.occupancyPercent}%`, label: t("comparative.stats.occupancyLabel"), detail: t("comparative.stats.occupancyDetail") },
+              { value: `${cons.listingsCount.toLocaleString("pt-BR")}+`, label: t("comparative.stats.listingsLabel"), detail: t("comparative.stats.listingsDetail") },
+              { value: t("comparative.stats.priceValue"), label: t("comparative.stats.priceLabel"), detail: t("comparative.stats.priceDetail") },
             ];
             return (
               <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -412,14 +412,14 @@ export default function Index() {
           <FadeIn>
             <Badge className="mb-3 md:mb-4 bg-accent/10 text-accent border-accent/20 hover:bg-accent/15 text-xs font-semibold tracking-wide px-3 py-1">
               <BarChart3 className="h-3.5 w-3.5 mr-1.5" />
-              Ferramenta exclusiva
+              {t("guide.badge")}
             </Badge>
             <h2 className="font-display text-[1.5rem] md:text-5xl font-bold text-foreground leading-[1.1] tracking-tight max-w-2xl">
-              Guia do Investidor.{" "}
-              <span className="text-accent">Tudo antes de comprar.</span>
+              {t("guide.titleA")}{" "}
+              <span className="text-accent">{t("guide.titleB")}</span>
             </h2>
             <p className="mt-2 md:mt-4 text-muted-foreground leading-relaxed max-w-lg text-[14px] md:text-base">
-              Dados, critérios objetivos e análise — para decidir com segurança.
+              {t("guide.subtitle")}
             </p>
           </FadeIn>
 
@@ -476,7 +476,7 @@ export default function Index() {
           <FadeIn delay={0.2} className="mt-6 md:mt-10">
             <Link to="/urban-flex-bela-cintra">
               <Button size="lg" className="min-h-[52px] w-full sm:w-auto font-bold bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg shadow-accent/25 active:scale-[0.97] transition-transform">
-                Acessar o Guia do Investidor
+                {t("guide.cta")}
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>
@@ -489,19 +489,19 @@ export default function Index() {
         <div className="max-w-7xl mx-auto px-5 md:px-6 py-14 md:py-28">
           <FadeIn className="text-center max-w-2xl mx-auto">
             <h2 className="font-display text-2xl md:text-4xl font-bold text-foreground">
-              Cada projeto foi desenhado para performar.
+              {t("finalCta.title")}
             </h2>
             <p className="mt-3 md:mt-4 text-muted-foreground text-[15px] md:text-lg leading-relaxed">
-              Explore as plantas, veja os projetos pensados para alta rentabilidade e converse com a equipe comercial.
+              {t("finalCta.subtitle")}
             </p>
             <div className="mt-6 md:mt-8 flex flex-col sm:flex-row gap-3 justify-center">
               <Button size="lg" className="min-h-[52px] active:scale-[0.97] transition-transform" onClick={() => window.open(whatsappLink, "_blank")}>
                 <MessageCircle className="mr-2 h-4 w-4" />
-                Falar com consultor
+                {t("finalCta.talk")}
               </Button>
               <a href="#tipologias">
                 <Button size="lg" variant="outline" className="min-h-[52px] w-full sm:w-auto active:scale-[0.97] transition-transform">
-                  Ver plantas e projetos
+                  {t("finalCta.viewPlans")}
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </a>
@@ -514,10 +514,10 @@ export default function Index() {
       <footer className="border-t border-border/40 bg-muted/25">
         <div className="max-w-7xl mx-auto px-5 md:px-6 py-6 md:py-8 pb-20 md:pb-8">
           <div className="flex flex-col items-center gap-3 md:gap-4 text-[13px] md:text-sm text-muted-foreground md:flex-row md:justify-between">
-            <p>© 2026 Bwild. Todos os direitos reservados.</p>
-            <nav aria-label="Links do rodapé" className="flex items-center gap-5">
-              <Link to="/ferramentas" className="hover:text-foreground transition-colors min-h-[44px] flex items-center">Ferramentas</Link>
-              <Link to="/urban-flex-bela-cintra" className="hover:text-foreground transition-colors min-h-[44px] flex items-center">Guia do Investidor</Link>
+            <p>{t("footer.rights")}</p>
+            <nav aria-label={t("footer.ariaLabel")} className="flex items-center gap-5">
+              <Link to="/ferramentas" className="hover:text-foreground transition-colors min-h-[44px] flex items-center">{t("footer.tools")}</Link>
+              <Link to="/urban-flex-bela-cintra" className="hover:text-foreground transition-colors min-h-[44px] flex items-center">{t("footer.guide")}</Link>
             </nav>
           </div>
         </div>
