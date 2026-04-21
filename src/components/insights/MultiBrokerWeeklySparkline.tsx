@@ -185,12 +185,30 @@ function CompareTooltip({ active, payload, label, series, metric }: any) {
 
 export default function MultiBrokerWeeklySparkline({ series }: { series: BrokerSeries[] }) {
   const [metric, setMetric] = useState<Metric>("meetings");
-  const data = useMemo(() => mergeWeekly(series), [series]);
-  const hasAny = data.some((row) =>
-    series.some((_, idx) => {
-      const v = row[`${metric}_${idx}`];
-      return typeof v === "number" && v > 0;
-    })
+
+  // Stable signature derived from data content. Using it as the useMemo
+  // dependency means we only rebuild when the actual broker data changes —
+  // not on every parent render that happens to pass a fresh array reference.
+  const seriesSignature = useMemo(() => buildSeriesSignature(series), [series]);
+
+  // memoizedMergeWeekly itself caches by ref + signature, so this useMemo
+  // is mostly belt-and-suspenders to keep React's commit phase cheap.
+  const data = useMemo(
+    () => memoizedMergeWeekly(series),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [seriesSignature]
+  );
+
+  const hasAny = useMemo(
+    () =>
+      data.some((row) =>
+        series.some((_, idx) => {
+          const v = row[`${metric}_${idx}`];
+          return typeof v === "number" && v > 0;
+        })
+      ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [data, metric, series.length]
   );
 
   if (data.length === 0) {
