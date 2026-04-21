@@ -26,11 +26,88 @@
  */
 import { writeFileSync, mkdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
+import { execSync } from "node:child_process";
 import {
   mergeWeekly,
   type BrokerSeries,
 } from "../src/components/insights/MultiBrokerWeeklySparkline";
 import { loadArtifact, type CanonicalArtifact } from "./bench-artifact-loader";
+
+/**
+ * Capture git metadata for traceability: every artifact links back to the
+ * exact commit that produced its timings.
+ *
+ * Resolution order per field:
+ *   1. Explicit env var (GIT_COMMIT / GIT_BRANCH / GIT_SHA) — set by CI
+ *      providers (GitHub Actions, GitLab, CircleCI all expose at least one).
+ *   2. CI-provider conventions (GITHUB_SHA, GITHUB_REF_NAME, etc.)
+ *   3. Local `git` CLI fallback — works for dev runs in a checkout.
+ *
+ * Returns `null` for any field that cannot be resolved (e.g. tarball builds,
+ * no git binary, detached HEAD with no branch). Never throws.
+ */
+export interface GitInfo {
+  commit: string | null;       // Full 40-char SHA when available
+  shortSha: string | null;     // 7-char abbreviation; useful for human display
+  branch: string | null;       // Branch name; null on detached HEAD
+  dirty: boolean | null;       // true if working tree has uncommitted changes
+  source: "env" | "git" | "mixed" | "none"; // Where the data came from
+}
+
+function tryGit(args: string): string | null {
+  try {
+    const out = execSync(`git ${args}`, {
+      stdio: ["ignore", "pipe", "ignore"],
+      encoding: "utf8",
+      timeout: 1500,
+    }).trim();
+    return out.length > 0 ? out : null;
+  } catch {
+    return null;
+  }
+}
+
+function captureGitInfo(): GitInfo {
+  // 1. Env-var precedence — CI sets these without spawning git.
+  const envCommit =
+    process.env.GIT_COMMIT ||
+    process.env.GIT_SHA ||
+    process.env.GITHUB_SHA ||
+    process.env.CI_COMMIT_SHA ||           // GitLab
+    process.env.CIRCLE_SHA1 ||             // CircleCI
+    process.env.BITBUCKET_COMMIT ||        // Bitbucket
+    null;
+  const envBranch =
+    process.env.GIT_BRANCH ||
+    process.env.GITHUB_REF_NAME ||
+    process.env.CI_COMMIT_REF_NAME ||      // GitLab
+    process.env.CIRCLE_BRANCH ||           // CircleCI
+    process.env.BITBUCKET_BRANCH ||        // Bitbucket
+    null;
+
+  // 2. Git CLI fallback.
+  const gitCommit = envCommit ? null : tryGit("rev-parse HEAD");
+  const gitBranch = envBranch ? null : tryGit("rev-parse --abbrev-ref HEAD");
+
+  const commit = envCommit ?? gitCommit;
+  const branch = envBranch ?? gitBranch;
+  // Detached-HEAD reports "HEAD" — normalize to null so consumers don't treat
+  // it as a real branch name.
+  const branchNormalized = branch === "HEAD" ? null : branch;
+  const shortSha = commit ? commit.slice(0, 7) : null;
+
+  // Dirty check is git-only; skip if we have no working tree.
+  let dirty: boolean | null = null;
+  const status = tryGit("status --porcelain");
+  if (status !== null) dirty = status.length > 0;
+
+  let source: GitInfo["source"] = "none";
+  if (envCommit && (gitCommit || gitBranch)) source = "mixed";
+  else if (envCommit || envBranch) source = "env";
+  else if (gitCommit || gitBranch) source = "git";
+
+  return { commit, shortSha, branch: branchNormalized, dirty, source };
+}
 
 // ─── Naïve reference (kept in lock-step with tests) ─────────────────────────
 function mergeWeeklyNaive(series: BrokerSeries[]) {
@@ -186,8 +263,28 @@ export interface DiffArtifact {
   schemaVersion: 1;
   kind: "mergeWeekly-diff";
   generatedAt: string;
-  baseline: { path: string; rawSchemaVersion: number; startedAt: string; status: string };
-  candidate: { path: string; rawSchemaVersion: number; startedAt: string; status: string };
+  baseline: {
+    path: string;
+    rawSchemaVersion: number;
+    startedAt: string;
+    status: string;
+    /** Git metadata of the baseline run, when present in the artifact. */
+    git?: NonNullable<CanonicalArtifact["env"]["git"]> | null;
+  };
+  candidate: {
+    path: string;
+    rawSchemaVersion: number;
+    startedAt: string;
+    status: string;
+    git?: NonNullable<CanonicalArtifact["env"]["git"]> | null;
+  };
+  /** Convenience top-level summary of git context for quick scanning. */
+  gitContext?: {
+    sameCommit: boolean;
+    commitRange: string | null; // `git log` invocation when SHAs differ
+    baselineDirty: boolean | null;
+    candidateDirty: boolean | null;
+  };
   config: {
     sameScale: boolean;
     baseline: { weeks: number; brokers: number; gapMod: number; runs: number };
@@ -257,10 +354,23 @@ async function runJsonDiff(
   const b: CanonicalArtifact = cand.artifact;
 
   console.log("\n▶ mergeWeekly bench — JSON diff");
+  const fmtGit = (art: CanonicalArtifact) => {
+    const g = art.env?.git;
+    if (!g) return "git=(unknown)";
+    return `git=${g.shortSha ?? "(unknown)"}${g.dirty ? "-dirty" : ""}/${g.branch ?? "(detached)"}`;
+  };
   console.log(`  baseline : ${base.path}`);
-  console.log(`             v${base.rawSchemaVersion}  ${a.startedAt}  status=${a.status ?? "(legacy)"}`);
+  console.log(`             v${base.rawSchemaVersion}  ${a.startedAt}  status=${a.status ?? "(legacy)"}  ${fmtGit(a)}`);
   console.log(`  candidate: ${cand.path}`);
-  console.log(`             v${cand.rawSchemaVersion}  ${b.startedAt}  status=${b.status ?? "(legacy)"}\n`);
+  console.log(`             v${cand.rawSchemaVersion}  ${b.startedAt}  status=${b.status ?? "(legacy)"}  ${fmtGit(b)}`);
+  // Quick reachability hint: if both artifacts have full SHAs, give the user
+  // a one-shot `git log` invocation to see what changed between them.
+  if (a.env?.git?.commit && b.env?.git?.commit && a.env.git.commit !== b.env.git.commit) {
+    console.log(`             commit range: git log --oneline ${a.env.git.commit}..${b.env.git.commit}`);
+  } else if (a.env?.git?.commit && a.env.git.commit === b.env?.git?.commit) {
+    console.log(`             ⚠ both artifacts share the same commit (${a.env.git.shortSha}) — timing diff reflects environmental noise, not code changes`);
+  }
+  console.log("");
 
   // Refuse to proceed on crash artifacts — there's nothing to compare.
   if (a.status === "crashed" || b.status === "crashed") {
@@ -463,12 +573,26 @@ async function runJsonDiff(
         rawSchemaVersion: base.rawSchemaVersion,
         startedAt: a.startedAt,
         status: a.status ?? "(legacy)",
+        git: a.env?.git ?? null,
       },
       candidate: {
         path: cand.path,
         rawSchemaVersion: cand.rawSchemaVersion,
         startedAt: b.startedAt,
         status: b.status ?? "(legacy)",
+        git: b.env?.git ?? null,
+      },
+      gitContext: {
+        sameCommit:
+          !!a.env?.git?.commit &&
+          !!b.env?.git?.commit &&
+          a.env.git.commit === b.env.git.commit,
+        commitRange:
+          a.env?.git?.commit && b.env?.git?.commit && a.env.git.commit !== b.env.git.commit
+            ? `git log --oneline ${a.env.git.commit}..${b.env.git.commit}`
+            : null,
+        baselineDirty: a.env?.git?.dirty ?? null,
+        candidateDirty: b.env?.git?.dirty ?? null,
       },
       config: { sameScale, baseline: a.config, candidate: b.config },
       limits: { medianPct: medianPctLimit, p95Pct: p95PctLimit, ratioDrop: ratioDropLimit },
@@ -644,6 +768,11 @@ async function main() {
   const BUDGET_MS = num("BENCH_BUDGET_MS", 75); // per-call median ceiling
   const MIN_RATIO = num("BENCH_MIN_RATIO", 1.2); // naive/optimized speedup
 
+  // Capture git metadata ONCE at the start of the timed section, so a long
+  // run that spans a `git checkout` still attributes timings to the revision
+  // we actually benchmarked (not whatever HEAD points to at write time).
+  const gitInfo = captureGitInfo();
+
   // ─── Env snapshot ─────────────────────────────────────────────────────────
   // Capture the EXACT effective value of every knob the bench AND the
   // companion vitest perf suite recognize, plus whether each one was
@@ -696,6 +825,10 @@ async function main() {
   console.log(`  config: weeks=${WEEKS}  brokers=${BROKERS}  gapMod=${GAP_MOD}  runs=${RUNS}`);
   console.log(`  thresholds: budget=${BUDGET_MS}ms/call  minSpeedup=${MIN_RATIO.toFixed(2)}×`);
   console.log(`  node:   ${process.version}  platform=${process.platform}/${process.arch}`);
+  console.log(
+    `  git:    ${gitInfo.shortSha ?? "(unknown)"}${gitInfo.dirty ? "-dirty" : ""}` +
+      `  branch=${gitInfo.branch ?? "(detached/unknown)"}  source=${gitInfo.source}`
+  );
   console.log(`  CI=${process.env.CI ?? "(unset)"}  VERBOSE=${process.env.VERBOSE ?? "(unset)"}\n`);
 
   // ─── Override coherence validation ──────────────────────────────────────
@@ -938,6 +1071,11 @@ async function main() {
         platform: process.platform,
         arch: process.arch,
         ci: process.env.CI ?? null,
+        // Git metadata: commit/branch/dirty so a regression in this artifact
+        // can be traced back to a specific revision. Captured at run start
+        // (above) so a long-running bench reflects the code that was timed,
+        // not whatever HEAD points to when the JSON is written.
+        git: gitInfo,
         // Snapshot every relevant knob — set or default — so future diffs
         // can flag config drift, not just timing drift.
         knobs: Object.fromEntries(
@@ -1076,6 +1214,9 @@ main().catch((err) => {
         platform: process.platform,
         arch: process.arch,
         ci: process.env.CI ?? null,
+        // Capture git metadata even on crash — the whole point is to trace a
+        // bad revision, and a crash IS the regression we want to investigate.
+        git: captureGitInfo(),
         // Knobs are captured raw here (we may not have parsed/validated them).
         knobs: Object.fromEntries(
           Object.entries(process.env)

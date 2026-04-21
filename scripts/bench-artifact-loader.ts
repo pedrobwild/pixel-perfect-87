@@ -87,6 +87,19 @@ export interface CanonicalArtifact {
     platform: string;
     arch: string;
     ci: string | null;
+    /**
+     * Git metadata captured at run start. Optional because legacy artifacts
+     * (pre-git-tracking) and tarball builds without a `.git` directory will
+     * not have it. Inner fields are individually nullable so consumers can
+     * degrade gracefully (e.g. show "(unknown)" instead of crashing).
+     */
+    git?: {
+      commit: string | null;
+      shortSha: string | null;
+      branch: string | null;
+      dirty: boolean | null;
+      source: "env" | "git" | "mixed" | "none";
+    };
     knobs: Record<string, CanonicalKnob>;
   };
   /** Absent on crash artifacts written before config parsing completed. */
@@ -414,6 +427,12 @@ function cliInspect(target: string): number {
   console.log(`  schema       : v${r.rawSchemaVersion}${r.migrationsApplied.length > 0 ? ` → v${CURRENT_SCHEMA_VERSION} (migrated)` : ""}`);
   console.log(`  startedAt    : ${a.startedAt}`);
   console.log(`  node/platform: ${a.env.node}  ${a.env.platform}/${a.env.arch}  CI=${a.env.ci ?? "(unset)"}`);
+  if (a.env.git) {
+    const g = a.env.git;
+    console.log(
+      `  git          : ${g.shortSha ?? "(unknown)"}${g.dirty ? "-dirty" : ""}  branch=${g.branch ?? "(detached)"}  source=${g.source}`
+    );
+  }
   console.log(`  config       : weeks=${a.config.weeks} brokers=${a.config.brokers} gapMod=${a.config.gapMod} runs=${a.config.runs}`);
   console.log(`  thresholds   : budget=${a.thresholds.budgetMs}ms minRatio=${a.thresholds.minRatio}×`);
   console.log(`  optimized    : median=${a.timings.optimized.medianMs.toFixed(3)}ms p95=${a.timings.optimized.p95Ms.toFixed(3)}ms`);
