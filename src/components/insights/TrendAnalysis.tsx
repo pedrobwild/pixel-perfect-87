@@ -1,7 +1,18 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { TrendingUp, TrendingDown, Minus, CalendarRange, AlertTriangle, Activity, Download } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, CalendarRange, AlertTriangle, Activity, Download, LineChart as LineChartIcon } from "lucide-react";
+import {
+  ResponsiveContainer,
+  ComposedChart,
+  Area,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+  Legend,
+} from "recharts";
 
 interface TrendWindow {
   windowDays: 30 | 60 | 90;
@@ -11,6 +22,13 @@ interface TrendWindow {
   topObjections: { objection: string; count: number }[];
 }
 
+interface WeeklyPoint {
+  weekStart: string;
+  label: string;
+  meetings: number;
+  avgScore: number;
+}
+
 interface TrendsPayload {
   windows: TrendWindow[];
   delta30vs60: {
@@ -18,6 +36,7 @@ interface TrendsPayload {
     avgScore: number;
     positiveSentimentPct: number;
   };
+  weekly?: WeeklyPoint[];
 }
 
 function DeltaPill({ value, suffix = "", invert = false }: { value: number; suffix?: string; invert?: boolean }) {
