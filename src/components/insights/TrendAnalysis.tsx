@@ -176,9 +176,13 @@ function SparkTooltip({ active, payload, label, mode }: any) {
 }
 
 function WeeklySparkline({ weekly }: { weekly: WeeklyPoint[] }) {
+  const [mode, setMode] = useState<MeetingsMode>("total");
   const data = buildSparklineData(weekly);
   const totalMeetings = data.reduce((s, w) => s + w.meetings, 0);
   if (totalMeetings === 0) return null;
+
+  const meetingsKey = mode === "avg" ? "meetingsAvg4" : "meetings";
+  const meetingsName = mode === "avg" ? "Reuniões (média 4 sem.)" : "Reuniões";
 
   return (
     <div className="rounded-lg border border-border/60 p-4 space-y-2 bg-card">
@@ -187,10 +191,40 @@ function WeeklySparkline({ weekly }: { weekly: WeeklyPoint[] }) {
         <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           Evolução semanal · últimas 12 semanas
         </span>
-        <div className="ml-auto flex items-center gap-3 text-[10px] text-muted-foreground">
+        <div
+          className="ml-auto inline-flex rounded-md border border-border/60 p-0.5 bg-muted/30"
+          role="group"
+          aria-label="Modo de exibição de reuniões"
+        >
+          <button
+            type="button"
+            onClick={() => setMode("total")}
+            aria-pressed={mode === "total"}
+            className={`px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider rounded-sm transition-colors ${
+              mode === "total"
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Total
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode("avg")}
+            aria-pressed={mode === "avg"}
+            className={`px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider rounded-sm transition-colors ${
+              mode === "avg"
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Média 4s
+          </button>
+        </div>
+        <div className="basis-full flex items-center gap-3 text-[10px] text-muted-foreground">
           <span className="inline-flex items-center gap-1.5">
             <span className="inline-block h-2 w-3 rounded-sm bg-primary/60" aria-hidden />
-            <span>Reuniões <span className="text-muted-foreground/60">(esq.)</span></span>
+            <span>{meetingsName} <span className="text-muted-foreground/60">(esq.)</span></span>
           </span>
           <span className="inline-flex items-center gap-1.5">
             <span className="inline-block h-0.5 w-3 bg-[hsl(var(--accent-foreground))]" aria-hidden />
@@ -198,11 +232,11 @@ function WeeklySparkline({ weekly }: { weekly: WeeklyPoint[] }) {
           </span>
           <span className="inline-flex items-center gap-1.5">
             <span
-              className="inline-block h-0.5 w-3 bg-muted-foreground"
-              style={{ backgroundImage: "repeating-linear-gradient(90deg, hsl(var(--muted-foreground)) 0 3px, transparent 3px 6px)", backgroundColor: "transparent" }}
+              className="inline-block h-0.5 w-3"
+              style={{ backgroundImage: "repeating-linear-gradient(90deg, hsl(var(--muted-foreground)) 0 3px, transparent 3px 6px)" }}
               aria-hidden
             />
-            <span>MA 4 sem.</span>
+            <span>MA Score 4 sem.</span>
           </span>
         </div>
       </div>
@@ -229,7 +263,7 @@ function WeeklySparkline({ weekly }: { weekly: WeeklyPoint[] }) {
               tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
               axisLine={false}
               tickLine={false}
-              allowDecimals={false}
+              allowDecimals={mode === "avg"}
               width={28}
             />
             <YAxis
@@ -241,17 +275,19 @@ function WeeklySparkline({ weekly }: { weekly: WeeklyPoint[] }) {
               tickLine={false}
               width={28}
             />
-            <Tooltip content={<SparkTooltip />} cursor={{ stroke: "hsl(var(--border))", strokeWidth: 1 }} />
+            <Tooltip content={<SparkTooltip mode={mode} />} cursor={{ stroke: "hsl(var(--border))", strokeWidth: 1 }} />
             <Area
               yAxisId="left"
               type="monotone"
-              dataKey="meetings"
-              name="Reuniões"
+              dataKey={meetingsKey}
+              name={meetingsName}
               stroke="hsl(var(--primary))"
               strokeWidth={2}
               fill="url(#meetingsArea)"
               dot={false}
               activeDot={{ r: 3 }}
+              isAnimationActive={false}
+              connectNulls
             />
             <Line
               yAxisId="right"
