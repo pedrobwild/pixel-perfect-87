@@ -155,8 +155,14 @@ async function main() {
   const BROKERS = Math.max(1, Math.round(num("BENCH_BROKERS", 12)));
   const GAP_MOD = Math.max(2, Math.round(num("BENCH_GAP_MOD", 10)));
 
+  // Pass/fail thresholds — match the test suite defaults so a green bench
+  // implies a green test (large bucket). Override via env to mirror CI.
+  const BUDGET_MS = num("BENCH_BUDGET_MS", 75); // per-call median ceiling
+  const MIN_RATIO = num("BENCH_MIN_RATIO", 1.2); // naive/optimized speedup
+
   console.log("\n▶ mergeWeekly micro-benchmark");
   console.log(`  config: weeks=${WEEKS}  brokers=${BROKERS}  gapMod=${GAP_MOD}  runs=${RUNS}`);
+  console.log(`  thresholds: budget=${BUDGET_MS}ms/call  minSpeedup=${MIN_RATIO.toFixed(2)}×`);
   console.log(`  node:   ${process.version}  platform=${process.platform}/${process.arch}\n`);
 
   const series = makeSeries(WEEKS, BROKERS, GAP_MOD);
@@ -196,20 +202,63 @@ async function main() {
   console.log("  timing:");
   printTable([opt, nai]);
 
+  // Use median for thresholds — matches the test suite, robust to outliers.
+  const optMedian = opt.p50Ms;
+  const naiMedian = nai.p50Ms;
   const ratio = nai.avgMs / opt.avgMs;
-  console.log("");
-  console.log(`  speedup (avg)  : ${ratio.toFixed(2)}× faster than naive`);
-  console.log(
-    `  verdict        : ${
-      ratio >= 1.2 && shapeMatches
-        ? "✓ healthy (≥1.2× and identical output)"
-        : "⚠ regression suspected — review mergeWeekly"
-    }\n`
-  );
+  const ratioMedian = naiMedian / optMedian;
+  const requiredOptMaxMs = naiMedian / MIN_RATIO;
 
-  // Non-zero exit if either correctness OR a clear perf regression is detected,
-  // so this script can be wired into pre-push hooks if desired.
-  if (!shapeMatches || ratio < 1.0) process.exit(1);
+  // ─── Pass/fail evaluation ───────────────────────────────────────────────
+  const failures: string[] = [];
+  if (!shapeMatches) failures.push("output shape diverged from naive");
+  if (optMedian >= BUDGET_MS) {
+    failures.push(
+      `optimized median ${optMedian.toFixed(3)}ms ≥ budget ${BUDGET_MS}ms`
+    );
+  }
+  if (ratioMedian < MIN_RATIO) {
+    failures.push(
+      `median speedup ${ratioMedian.toFixed(2)}× < required ${MIN_RATIO.toFixed(2)}×`
+    );
+  }
+  const failed = failures.length > 0;
+
+  console.log("");
+  console.log(`  speedup (avg)  : ${ratio.toFixed(2)}×  |  median: ${ratioMedian.toFixed(2)}×`);
+
+  if (failed) {
+    // Detailed regression report — printed prominently when something fails
+    // so CI logs and pre-push hooks surface the exact numbers + thresholds.
+    console.error("");
+    console.error("  ╔══════════════════════════════════════════════════════════════╗");
+    console.error("  ║  ✗ REGRESSION DETECTED — mergeWeekly benchmark failed        ║");
+    console.error("  ╚══════════════════════════════════════════════════════════════╝");
+    console.error("");
+    console.error("  measured:");
+    console.error(`    optimized   median=${optMedian.toFixed(3)}ms  avg=${opt.avgMs.toFixed(3)}ms  p95=${opt.p95Ms.toFixed(3)}ms  min=${opt.minMs.toFixed(3)}ms  max=${opt.maxMs.toFixed(3)}ms`);
+    console.error(`    naive       median=${naiMedian.toFixed(3)}ms  avg=${nai.avgMs.toFixed(3)}ms  p95=${nai.p95Ms.toFixed(3)}ms  min=${nai.minMs.toFixed(3)}ms  max=${nai.maxMs.toFixed(3)}ms`);
+    console.error(`    speedup     median=${ratioMedian.toFixed(2)}×   avg=${ratio.toFixed(2)}×`);
+    console.error(`    output      ${shapeMatches ? "shape OK" : "✗ DIVERGED — opt=" + optimizedBytes + "B vs nai=" + naiveBytes + "B"}`);
+    console.error("");
+    console.error("  thresholds (computed):");
+    console.error(`    budget ceiling          : ${BUDGET_MS} ms/call  ${optMedian < BUDGET_MS ? "✓" : "✗"}  (override: BENCH_BUDGET_MS)`);
+    console.error(`    required min speedup    : ${MIN_RATIO.toFixed(2)}×  → optimized median must be < ${requiredOptMaxMs.toFixed(3)} ms  ${optMedian < requiredOptMaxMs ? "✓" : "✗"}  (override: BENCH_MIN_RATIO)`);
+    console.error(`    output shape parity     : required identical to naive  ${shapeMatches ? "✓" : "✗"}`);
+    console.error("");
+    console.error("  failures:");
+    for (const f of failures) console.error(`    ✗ ${f}`);
+    console.error("");
+    console.error("  reproduce / tune:");
+    console.error(`    BENCH_RUNS=${RUNS} BENCH_WEEKS=${WEEKS} BENCH_BROKERS=${BROKERS} BENCH_GAP_MOD=${GAP_MOD} \\`);
+    console.error(`      BENCH_BUDGET_MS=${BUDGET_MS} BENCH_MIN_RATIO=${MIN_RATIO} npm run bench:merge-weekly`);
+    console.error("");
+    process.exit(1);
+  }
+
+  console.log(
+    `  verdict        : ✓ healthy (median ${optMedian.toFixed(2)}ms < ${BUDGET_MS}ms budget, ${ratioMedian.toFixed(2)}× ≥ ${MIN_RATIO}× required)\n`
+  );
 }
 
 main().catch((err) => {
