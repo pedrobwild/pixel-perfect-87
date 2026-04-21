@@ -107,87 +107,144 @@ describe("mergeWeekly", () => {
     });
   });
 
-  it("is faster than the naïve O(W·B·P) implementation on a large dataset", () => {
-    // ─── Configurable thresholds ────────────────────────────────────────────
-    // Override per-environment via env vars to absorb slow/noisy CI runners
-    // without weakening the regression signal locally.
-    //
-    //   MERGE_WEEKLY_PERF_BUDGET_MS    hard per-run ceiling for optimized impl
-    //                                   (median ms per single mergeWeekly call;
-    //                                   default 75ms local / 200ms on CI)
-    //   MERGE_WEEKLY_PERF_RATIO        minimum naive/optimized speedup ratio,
-    //                                   computed on medians (default 1.2 local
-    //                                   / 1.05 CI). Median + RSE gating make
-    //                                   1.2× safe even under modest jitter.
-    //   MERGE_WEEKLY_PERF_MIN_RUNS     minimum iterations before adaptive
-    //                                   stopping is allowed (default 12)
-    //   MERGE_WEEKLY_PERF_MAX_RUNS     hard cap on iterations (default 80)
-    //   MERGE_WEEKLY_PERF_TARGET_RSE   relative standard error of the mean we
-    //                                   consider "stable" (default 0.05 = 5%)
-    //   CI=true                         auto-relaxes defaults
-    //
-    // Reading process.env directly keeps this dependency-free and works in
-    // both Node and Vitest's jsdom environment.
-    const env = (typeof process !== "undefined" ? process.env : {}) ?? {};
-    const isCI = env.CI === "true" || env.CI === "1";
+});
 
-    const num = (key: string, fallback: number): number => {
-      const raw = env[key];
-      if (!raw) return fallback;
-      const parsed = Number(raw);
-      return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
-    };
+// ─── Adaptive perf suite, parametrized by dataset size ──────────────────────
+// Splitting into small / medium / large helps localize regressions:
+//   - SMALL fails alone  → constant-overhead regression (Map alloc, sort cost)
+//   - MEDIUM fails alone → mid-range scaling regression (gap handling, label map)
+//   - LARGE  fails alone → asymptotic regression back to O(W·B·P)
+// Each size has its OWN env-configurable budget so flakiness in one bucket
+// can be tuned without weakening the others.
+//
+// Per-size env vars (UPPER):
+//   MERGE_WEEKLY_PERF_BUDGET_MS_<SIZE>    per-call median ceiling (ms)
+//   MERGE_WEEKLY_PERF_RATIO_<SIZE>        required naive/optimized speedup
+//
+// Global env vars (apply to every size unless overridden by the per-size var):
+//   MERGE_WEEKLY_PERF_BUDGET_MS, MERGE_WEEKLY_PERF_RATIO
+//   MERGE_WEEKLY_PERF_MIN_RUNS, MERGE_WEEKLY_PERF_MAX_RUNS
+//   MERGE_WEEKLY_PERF_TARGET_RSE
+//   CI=true → relaxes defaults
+//   VERBOSE=1 → always print diagnostics
 
-    // CI defaults: per-run budget + slightly higher RSE tolerance, more runs.
-    const defaultBudgetMs = isCI ? 200 : 75;
-    const defaultRatio = isCI ? 1.05 : 1.2;
-    const defaultMinRuns = 12;
-    const defaultMaxRuns = isCI ? 120 : 80;
-    const defaultTargetRSE = isCI ? 0.07 : 0.05;
+interface PerfSize {
+  name: "small" | "medium" | "large";
+  weeks: number;
+  brokers: number;
+  // Per-size defaults: tighter for small (overhead-only), looser for large.
+  defaultBudgetLocalMs: number;
+  defaultBudgetCIMs: number;
+  defaultRatioLocal: number;
+  defaultRatioCI: number;
+}
 
-    const budgetMs = num("MERGE_WEEKLY_PERF_BUDGET_MS", defaultBudgetMs);
-    const minRatio = num("MERGE_WEEKLY_PERF_RATIO", defaultRatio);
-    const minRuns = Math.max(3, Math.round(num("MERGE_WEEKLY_PERF_MIN_RUNS", defaultMinRuns)));
-    const maxRuns = Math.max(minRuns, Math.round(num("MERGE_WEEKLY_PERF_MAX_RUNS", defaultMaxRuns)));
-    const targetRSE = num("MERGE_WEEKLY_PERF_TARGET_RSE", defaultTargetRSE);
+const PERF_SIZES: PerfSize[] = [
+  // Small: ~25 weeks × 3 brokers — should be sub-millisecond. Budget catches
+  // overhead regressions (extra allocations, redundant sorts).
+  {
+    name: "small",
+    weeks: 25,
+    brokers: 3,
+    defaultBudgetLocalMs: 5,
+    defaultBudgetCIMs: 15,
+    defaultRatioLocal: 1.05,
+    defaultRatioCI: 1.0, // at small sizes ratio is dominated by overhead noise
+  },
+  // Medium: ~150 weeks × 6 brokers — typical "12-week × multi-broker" page load
+  // amplified ~10× to make timing measurable.
+  {
+    name: "medium",
+    weeks: 150,
+    brokers: 6,
+    defaultBudgetLocalMs: 20,
+    defaultBudgetCIMs: 60,
+    defaultRatioLocal: 1.2,
+    defaultRatioCI: 1.05,
+  },
+  // Large: 800 weeks × 12 brokers — stress-test where the algorithmic win
+  // (O(N+W·B) vs O(W·B·P)) dominates. Most likely to catch a true regression.
+  {
+    name: "large",
+    weeks: 800,
+    brokers: 12,
+    defaultBudgetLocalMs: 75,
+    defaultBudgetCIMs: 200,
+    defaultRatioLocal: 1.2,
+    defaultRatioCI: 1.05,
+  },
+];
 
-    // Bigger W and B so the per-row Array.find cost (O(P) per broker) actually
-    // dominates and the algorithmic win shows above measurement noise.
-    const series = makeSeries(800, 12);
+describe("mergeWeekly — adaptive performance (per dataset size)", () => {
+  const env = (typeof process !== "undefined" ? process.env : {}) ?? {};
+  const isCI = env.CI === "true" || env.CI === "1";
 
-    // ─── Stats helpers ────────────────────────────────────────────────────────
-    const median = (xs: number[]): number => {
-      const s = [...xs].sort((a, b) => a - b);
-      const m = Math.floor(s.length / 2);
-      return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
-    };
-    const stdev = (xs: number[]): number => {
-      if (xs.length < 2) return 0;
-      const mean = xs.reduce((a, b) => a + b, 0) / xs.length;
-      const variance =
-        xs.reduce((acc, v) => acc + (v - mean) ** 2, 0) / (xs.length - 1);
-      return Math.sqrt(variance);
-    };
-    // Relative standard error of the mean — a unitless stability measure.
-    // SEM = stdev/√n; RSE = SEM/mean. Drops as we collect more samples or as
-    // the underlying distribution tightens.
-    const rse = (xs: number[]): number => {
-      if (xs.length < 2) return Infinity;
-      const mean = xs.reduce((a, b) => a + b, 0) / xs.length;
-      if (mean === 0) return Infinity;
-      return stdev(xs) / Math.sqrt(xs.length) / mean;
-    };
+  const num = (key: string, fallback: number): number => {
+    const raw = env[key];
+    if (!raw) return fallback;
+    const parsed = Number(raw);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+  };
 
-    // Adaptive sampler: collect per-call timings until BOTH series have
-    // RSE ≤ targetRSE (with at least minRuns each), or maxRuns is reached.
-    // Interleaving the two impls per iteration keeps any transient CPU jitter
-    // (GC pause, OS scheduler hiccup) symmetric across both samples so the
-    // ratio remains meaningful even on noisy runners.
-    const adaptiveSample = () => {
+  // Global knobs (shared across sizes — adaptive sampler config).
+  const globalMinRuns = Math.max(3, Math.round(num("MERGE_WEEKLY_PERF_MIN_RUNS", 12)));
+  const globalMaxRuns = Math.max(
+    globalMinRuns,
+    Math.round(num("MERGE_WEEKLY_PERF_MAX_RUNS", isCI ? 120 : 80))
+  );
+  const globalTargetRSE = num("MERGE_WEEKLY_PERF_TARGET_RSE", isCI ? 0.07 : 0.05);
+
+  // Stats helpers — local to keep this block self-contained.
+  const median = (xs: number[]): number => {
+    const s = [...xs].sort((a, b) => a - b);
+    const m = Math.floor(s.length / 2);
+    return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+  };
+  const stdev = (xs: number[]): number => {
+    if (xs.length < 2) return 0;
+    const mean = xs.reduce((a, b) => a + b, 0) / xs.length;
+    const variance =
+      xs.reduce((acc, v) => acc + (v - mean) ** 2, 0) / (xs.length - 1);
+    return Math.sqrt(variance);
+  };
+  const rse = (xs: number[]): number => {
+    if (xs.length < 2) return Infinity;
+    const mean = xs.reduce((a, b) => a + b, 0) / xs.length;
+    if (mean === 0) return Infinity;
+    return stdev(xs) / Math.sqrt(xs.length) / mean;
+  };
+
+  // Per-size loop — `it.each` keeps each size as its own test case so a
+  // failure points directly at the offending bucket in the test output.
+  it.each(PERF_SIZES)(
+    "$name dataset stays within budget and beats naive impl",
+    (sizeCfg) => {
+      const SIZE = sizeCfg.name.toUpperCase();
+
+      // Per-size override → global override → per-size CI/local default.
+      const budgetMs = num(
+        `MERGE_WEEKLY_PERF_BUDGET_MS_${SIZE}`,
+        num(
+          "MERGE_WEEKLY_PERF_BUDGET_MS",
+          isCI ? sizeCfg.defaultBudgetCIMs : sizeCfg.defaultBudgetLocalMs
+        )
+      );
+      const minRatio = num(
+        `MERGE_WEEKLY_PERF_RATIO_${SIZE}`,
+        num(
+          "MERGE_WEEKLY_PERF_RATIO",
+          isCI ? sizeCfg.defaultRatioCI : sizeCfg.defaultRatioLocal
+        )
+      );
+
+      const series = makeSeries(sizeCfg.weeks, sizeCfg.brokers);
+
+      // Adaptive sampler: interleave both impls per iteration so transient
+      // CPU jitter (GC, OS preemption) hits both samples symmetrically.
       const opt: number[] = [];
       const nai: number[] = [];
 
-      // Warm-up: stabilize JIT before recording samples.
+      // Warm-up to stabilize JIT.
       for (let i = 0; i < 3; i++) {
         mergeWeekly(series);
         mergeWeeklyNaive(series);
@@ -195,7 +252,7 @@ describe("mergeWeekly", () => {
 
       let iters = 0;
       let stoppedEarly = false;
-      while (iters < maxRuns) {
+      while (iters < globalMaxRuns) {
         const a0 = performance.now();
         mergeWeekly(series);
         opt.push(performance.now() - a0);
@@ -206,70 +263,52 @@ describe("mergeWeekly", () => {
 
         iters++;
         if (
-          iters >= minRuns &&
-          rse(opt) <= targetRSE &&
-          rse(nai) <= targetRSE
+          iters >= globalMinRuns &&
+          rse(opt) <= globalTargetRSE &&
+          rse(nai) <= globalTargetRSE
         ) {
           stoppedEarly = true;
           break;
         }
       }
-      return { opt, nai, iters, stoppedEarly };
-    };
 
-    const { opt, nai, iters, stoppedEarly } = adaptiveSample();
+      const optMedian = median(opt);
+      const naiMedian = median(nai);
+      const optRSE = rse(opt);
+      const naiRSE = rse(nai);
+      const ratio = naiMedian / optMedian;
+      const requiredOptimizedMaxMs = naiMedian / minRatio;
 
-    // Use medians for the assertion. Median is robust to single-iteration
-    // outliers (GC pause, OS preemption) that would skew a mean — exactly
-    // the kind of noise that causes flaky CI failures.
-    const optMedian = median(opt);
-    const naiMedian = median(nai);
-    const optRSE = rse(opt);
-    const naiRSE = rse(nai);
-    const ratio = naiMedian / optMedian;
-    const requiredOptimizedMaxMs = naiMedian / minRatio;
+      const fmtMs = (n: number) => `${n.toFixed(3)} ms`;
+      const fmtPct = (n: number) =>
+        Number.isFinite(n) ? `${(n * 100).toFixed(2)}%` : "n/a";
 
-    const fmtMs = (n: number) => `${n.toFixed(3)} ms`;
-    const fmtPct = (n: number) =>
-      Number.isFinite(n) ? `${(n * 100).toFixed(2)}%` : "n/a";
+      const diagnostics = [
+        "",
+        `  ── mergeWeekly perf [${sizeCfg.name}] (W=${sizeCfg.weeks}, B=${sizeCfg.brokers}) ──`,
+        `  iterations                 : ${iters} (min=${globalMinRuns}, max=${globalMaxRuns}, stoppedEarly=${stoppedEarly})`,
+        `  optimized median           : ${fmtMs(optMedian)}  RSE=${fmtPct(optRSE)}  min=${fmtMs(Math.min(...opt))}  max=${fmtMs(Math.max(...opt))}`,
+        `  naive median               : ${fmtMs(naiMedian)}  RSE=${fmtPct(naiRSE)}  min=${fmtMs(Math.min(...nai))}  max=${fmtMs(Math.max(...nai))}`,
+        `  speedup (naive/optimized)  : ${ratio.toFixed(2)}×  (median-based)`,
+        "  ── thresholds ──",
+        `  per-call budget            : ${budgetMs} ms  ${optMedian < budgetMs ? "✓" : "✗"}`,
+        `  required min speedup       : ${minRatio.toFixed(2)}×  (optimized median must be < ${fmtMs(requiredOptimizedMaxMs)})  ${optMedian < requiredOptimizedMaxMs ? "✓" : "✗"}`,
+        `  target RSE                 : ${fmtPct(globalTargetRSE)}  (opt=${fmtPct(optRSE)} ${optRSE <= globalTargetRSE ? "✓" : "✗"}, nai=${fmtPct(naiRSE)} ${naiRSE <= globalTargetRSE ? "✓" : "✗"})`,
+        `  environment                : CI=${isCI}`,
+        "  ── overrides for this size ──",
+        `  MERGE_WEEKLY_PERF_BUDGET_MS_${SIZE}   per-call ceiling (ms)`,
+        `  MERGE_WEEKLY_PERF_RATIO_${SIZE}       required min speedup`,
+        "  (or use the global MERGE_WEEKLY_PERF_BUDGET_MS / _RATIO to apply to all sizes)",
+        "",
+      ].join("\n");
 
-    // Single, copy-pasteable diagnostic block. Used as the message for BOTH
-    // assertions so a failed CI run surfaces the exact timings, the active
-    // thresholds, and the env knobs needed to reproduce or relax the budget.
-    const diagnostics = [
-      "",
-      "  ── mergeWeekly adaptive perf diagnostics ──",
-      `  iterations                 : ${iters} (min=${minRuns}, max=${maxRuns}, stoppedEarly=${stoppedEarly})`,
-      `  optimized median           : ${fmtMs(optMedian)}  RSE=${fmtPct(optRSE)}  min=${fmtMs(Math.min(...opt))}  max=${fmtMs(Math.max(...opt))}`,
-      `  naive median               : ${fmtMs(naiMedian)}  RSE=${fmtPct(naiRSE)}  min=${fmtMs(Math.min(...nai))}  max=${fmtMs(Math.max(...nai))}`,
-      `  speedup (naive/optimized)  : ${ratio.toFixed(2)}×  (median-based)`,
-      "  ── thresholds ──",
-      `  per-run budget             : ${budgetMs} ms  ${optMedian < budgetMs ? "✓" : "✗"} (optimized median=${fmtMs(optMedian)})`,
-      `  required min speedup       : ${minRatio.toFixed(2)}×  (optimized median must be < ${fmtMs(requiredOptimizedMaxMs)})  ${optMedian < requiredOptimizedMaxMs ? "✓" : "✗"}`,
-      `  target RSE                 : ${fmtPct(targetRSE)}  (opt=${fmtPct(optRSE)} ${optRSE <= targetRSE ? "✓" : "✗"}, naive=${fmtPct(naiRSE)} ${naiRSE <= targetRSE ? "✓" : "✗"})`,
-      `  environment                : CI=${isCI} (defaults: budget=${defaultBudgetMs}ms, ratio=${defaultRatio}×, RSE=${(defaultTargetRSE * 100).toFixed(0)}%, runs=${defaultMinRuns}–${defaultMaxRuns})`,
-      "  ── overrides ──",
-      "  MERGE_WEEKLY_PERF_BUDGET_MS   per-run ceiling (ms)",
-      "  MERGE_WEEKLY_PERF_RATIO       required min speedup (e.g. 1.05)",
-      "  MERGE_WEEKLY_PERF_MIN_RUNS    floor on iterations before stopping",
-      "  MERGE_WEEKLY_PERF_MAX_RUNS    hard cap on iterations",
-      "  MERGE_WEEKLY_PERF_TARGET_RSE  stability target (0.05 = 5%)",
-      "",
-    ].join("\n");
+      if (env.VERBOSE === "1" || env.VERBOSE === "true") {
+        // eslint-disable-next-line no-console
+        console.log(diagnostics);
+      }
 
-    // Always emit on VERBOSE so trends can be tracked across green runs too.
-    if (env.VERBOSE === "1" || env.VERBOSE === "true") {
-      // eslint-disable-next-line no-console
-      console.log(diagnostics);
+      expect(optMedian, diagnostics).toBeLessThan(budgetMs);
+      expect(optMedian, diagnostics).toBeLessThan(requiredOptimizedMaxMs);
     }
-
-    // Hard per-run ceiling: catches algorithmic regressions even if the naïve
-    // baseline also slows down (e.g., if both got worse together).
-    expect(optMedian, diagnostics).toBeLessThan(budgetMs);
-
-    // Median-based speedup gate: catches a true regression back to O(W·B·P)
-    // while being insensitive to the per-iteration jitter that broke the old
-    // sum-of-runs comparison on noisy CI.
-    expect(optMedian, diagnostics).toBeLessThan(requiredOptimizedMaxMs);
-  });
+  );
 });
