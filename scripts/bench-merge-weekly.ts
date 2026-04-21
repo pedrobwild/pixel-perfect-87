@@ -573,12 +573,26 @@ async function runJsonDiff(
         rawSchemaVersion: base.rawSchemaVersion,
         startedAt: a.startedAt,
         status: a.status ?? "(legacy)",
+        git: a.env?.git ?? null,
       },
       candidate: {
         path: cand.path,
         rawSchemaVersion: cand.rawSchemaVersion,
         startedAt: b.startedAt,
         status: b.status ?? "(legacy)",
+        git: b.env?.git ?? null,
+      },
+      gitContext: {
+        sameCommit:
+          !!a.env?.git?.commit &&
+          !!b.env?.git?.commit &&
+          a.env.git.commit === b.env.git.commit,
+        commitRange:
+          a.env?.git?.commit && b.env?.git?.commit && a.env.git.commit !== b.env.git.commit
+            ? `git log --oneline ${a.env.git.commit}..${b.env.git.commit}`
+            : null,
+        baselineDirty: a.env?.git?.dirty ?? null,
+        candidateDirty: b.env?.git?.dirty ?? null,
       },
       config: { sameScale, baseline: a.config, candidate: b.config },
       limits: { medianPct: medianPctLimit, p95Pct: p95PctLimit, ratioDrop: ratioDropLimit },
