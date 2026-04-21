@@ -224,13 +224,6 @@ function WeeklySparkline({ weekly }: { weekly: WeeklyPoint[] }) {
               width={28}
             />
             <Tooltip content={<SparkTooltip />} cursor={{ stroke: "hsl(var(--border))", strokeWidth: 1 }} />
-            <Legend
-              verticalAlign="top"
-              align="right"
-              height={20}
-              iconSize={8}
-              wrapperStyle={{ fontSize: 10, color: "hsl(var(--muted-foreground))" }}
-            />
             <Area
               yAxisId="left"
               type="monotone"
