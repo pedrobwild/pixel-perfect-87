@@ -778,6 +778,10 @@ async function main() {
   console.log(`  config: weeks=${WEEKS}  brokers=${BROKERS}  gapMod=${GAP_MOD}  runs=${RUNS}`);
   console.log(`  thresholds: budget=${BUDGET_MS}ms/call  minSpeedup=${MIN_RATIO.toFixed(2)}×`);
   console.log(`  node:   ${process.version}  platform=${process.platform}/${process.arch}`);
+  console.log(
+    `  git:    ${gitInfo.shortSha ?? "(unknown)"}${gitInfo.dirty ? "-dirty" : ""}` +
+      `  branch=${gitInfo.branch ?? "(detached/unknown)"}  source=${gitInfo.source}`
+  );
   console.log(`  CI=${process.env.CI ?? "(unset)"}  VERBOSE=${process.env.VERBOSE ?? "(unset)"}\n`);
 
   // ─── Override coherence validation ──────────────────────────────────────
