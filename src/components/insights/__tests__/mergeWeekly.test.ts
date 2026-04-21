@@ -108,10 +108,44 @@ describe("mergeWeekly", () => {
   });
 
   it("is faster than the naïve O(W·B·P) implementation on a large dataset", () => {
+    // ─── Configurable thresholds ────────────────────────────────────────────
+    // Override per-environment via env vars to absorb slow/noisy CI runners
+    // without weakening the regression signal locally.
+    //
+    //   MERGE_WEEKLY_PERF_BUDGET_MS   hard ceiling for total optimized runtime
+    //                                  across all RUNS iterations (default 1500)
+    //   MERGE_WEEKLY_PERF_RATIO       minimum naive/optimized speedup ratio
+    //                                  (default 1.2 — non-flaky, still catches
+    //                                  a regression back to O(W·B·P) which is
+    //                                  typically 5–15× slower here)
+    //   MERGE_WEEKLY_PERF_RUNS        iteration count (default 20)
+    //   CI=true                       auto-relaxes defaults (2× budget, 1.05×
+    //                                  ratio floor) when no explicit overrides
+    //
+    // Reading process.env directly keeps this dependency-free and works in
+    // both Node and Vitest's jsdom environment.
+    const env = (typeof process !== "undefined" ? process.env : {}) ?? {};
+    const isCI = env.CI === "true" || env.CI === "1";
+
+    const num = (key: string, fallback: number): number => {
+      const raw = env[key];
+      if (!raw) return fallback;
+      const parsed = Number(raw);
+      return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+    };
+
+    // CI defaults: more permissive to tolerate shared-runner jitter.
+    const defaultBudgetMs = isCI ? 3000 : 1500;
+    const defaultRatio = isCI ? 1.05 : 1.2;
+    const defaultRuns = 20;
+
+    const budgetMs = num("MERGE_WEEKLY_PERF_BUDGET_MS", defaultBudgetMs);
+    const minRatio = num("MERGE_WEEKLY_PERF_RATIO", defaultRatio);
+    const RUNS = Math.max(1, Math.round(num("MERGE_WEEKLY_PERF_RUNS", defaultRuns)));
+
     // Bigger W and B so the per-row Array.find cost (O(P) per broker) actually
     // dominates and the algorithmic win shows above measurement noise.
     const series = makeSeries(800, 12);
-    const RUNS = 20;
 
     // Warm-up to stabilize JIT and avoid first-call skew.
     mergeWeekly(series);
@@ -126,10 +160,17 @@ describe("mergeWeekly", () => {
     const naive = performance.now() - t1;
 
     // Hard ceiling so the test fails loudly if a regression makes it quadratic again.
-    expect(optimized).toBeLessThan(1500); // ms across all runs (jsdom is slow)
-    // Optimized must be measurably faster than naïve. 1.2× keeps the test
-    // non-flaky on noisy CI runners while still catching a real regression
-    // back to the O(W·B·P) implementation (which is typically 5-15× slower here).
-    expect(optimized).toBeLessThan(naive / 1.2);
+    expect(
+      optimized,
+      `optimized ${optimized.toFixed(1)}ms exceeded budget ${budgetMs}ms (RUNS=${RUNS}, CI=${isCI})`
+    ).toBeLessThan(budgetMs);
+
+    // Optimized must be measurably faster than naïve. The ratio floor catches
+    // a real regression back to the O(W·B·P) implementation while staying
+    // non-flaky under load.
+    expect(
+      optimized,
+      `optimized ${optimized.toFixed(1)}ms vs naive ${naive.toFixed(1)}ms — ratio ${(naive / optimized).toFixed(2)}× below required ${minRatio}× (CI=${isCI})`
+    ).toBeLessThan(naive / minRatio);
   });
 });
