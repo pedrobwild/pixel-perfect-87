@@ -30,6 +30,7 @@ import {
   mergeWeekly,
   type BrokerSeries,
 } from "../src/components/insights/MultiBrokerWeeklySparkline";
+import { loadArtifact, type CanonicalArtifact } from "./bench-artifact-loader";
 
 // ─── Naïve reference (kept in lock-step with tests) ─────────────────────────
 function mergeWeeklyNaive(series: BrokerSeries[]) {
