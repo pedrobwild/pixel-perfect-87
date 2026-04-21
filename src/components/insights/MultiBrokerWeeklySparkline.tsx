@@ -35,7 +35,7 @@ const SERIES_COLORS = [
   "hsl(155 65% 40%)", // green — fallback for 4th broker
 ];
 
-interface MergedRow {
+export interface MergedRow {
   label: string;
   weekStart: string;
   // dynamic per-broker keys: e.g. broker_0, broker_1
@@ -55,7 +55,7 @@ interface MergedRow {
  * Complexity: O(N + W·B) where N = total points across brokers, W = unique weeks,
  * B = brokers. Previous implementation was O(W·B·Pmax) due to Array.find lookups.
  */
-function mergeWeekly(series: BrokerSeries[]): MergedRow[] {
+export function mergeWeekly(series: BrokerSeries[]): MergedRow[] {
   // 1) Build per-broker Map<weekStart, point> + collect unique weekStart→label.
   const labelByKey = new Map<string, string>();
   const pointByKeyPerBroker: Array<Map<string, WeeklyPoint>> = series.map((s) => {
