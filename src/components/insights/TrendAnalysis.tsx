@@ -356,8 +356,14 @@ export default function TrendAnalysis({
           {w60 && <WindowCard win={w60} />}
           {w90 && <WindowCard win={w90} />}
         </div>
+        {trends.weekly && trends.weekly.length > 0 && (
+          <div className="mt-4">
+            <WeeklySparkline weekly={trends.weekly} />
+          </div>
+        )}
         <p className="text-[10px] text-muted-foreground/70 mt-3 leading-relaxed">
           Janelas cumulativas a partir de hoje. Os deltas (▲▼) comparam os últimos 30 dias com os 30 dias imediatamente anteriores.
+          A linha tracejada no gráfico é a média móvel ponderada de 4 semanas.
         </p>
       </CardContent>
     </Card>
