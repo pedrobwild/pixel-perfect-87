@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Loader2, Users, RefreshCw, Sparkles, CalendarRange, Database,
-  Brain, ShieldAlert, MessageCircleQuestion, Eye, Target
+  Brain, ShieldAlert, MessageCircleQuestion, Eye, Target, UserX,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -20,6 +20,9 @@ interface ConsolidatedData {
   dashboard: any;
   cached: boolean;
   cacheAge?: number;
+  noShowCount: number;
+  scheduledCount: number;
+  noShowRate: number;
 }
 
 export default function ConsolidatedInsights() {

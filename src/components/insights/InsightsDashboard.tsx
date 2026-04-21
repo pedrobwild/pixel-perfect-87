@@ -409,7 +409,14 @@ export default function InsightsDashboard({ data }: { data: any }) {
           <CardContent className="pt-4 space-y-3">
             {data.hiddenObjections.map((h: any, i: number) => (
               <div key={i} className="rounded-lg border border-border/60 p-4 space-y-3">
-                <p className="text-sm font-medium text-foreground">{safeText(h.objection)}</p>
+                <div className="flex items-start justify-between gap-3">
+                  <p className="text-sm font-medium text-foreground">{safeText(h.objection)}</p>
+                  {h.evidenceCount > 0 && totalForFrequency > 0 && (
+                    <span className="shrink-0 text-[10px] text-muted-foreground">
+                      {h.evidenceCount}/{totalForFrequency}
+                    </span>
+                  )}
+                </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   <div className="rounded-md bg-amber-500/5 p-3">
                     <p className="text-[10px] uppercase tracking-wider text-amber-700 font-medium mb-1.5 flex items-center gap-1">
@@ -423,6 +430,13 @@ export default function InsightsDashboard({ data }: { data: any }) {
                     </p>
                     <p className="text-xs text-emerald-800 dark:text-emerald-300 leading-relaxed">{safeText(h.approach)}</p>
                   </div>
+                </div>
+                <div className="flex justify-end">
+                  <EvidenceDialog
+                    title={safeText(h.objection)}
+                    evidence={h.evidence || []}
+                    totalMeetings={totalForFrequency}
+                  />
                 </div>
               </div>
             ))}
@@ -475,6 +489,15 @@ export default function InsightsDashboard({ data }: { data: any }) {
                   <p className="text-xs text-muted-foreground ml-4 leading-relaxed">
                     <span className="font-medium">→ Ação:</span> {safeText(s.action)}
                   </p>
+                  {s.evidence?.length > 0 && (
+                    <div className="ml-4 pt-1">
+                      <EvidenceDialog
+                        title={safeText(s.signal)}
+                        evidence={s.evidence}
+                        totalMeetings={totalForFrequency}
+                      />
+                    </div>
+                  )}
                 </div>
               ))}
             </CardContent>
