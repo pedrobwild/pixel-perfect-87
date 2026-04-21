@@ -701,10 +701,24 @@ async function main() {
   // human-readable report. Resolved AFTER the loop so it pairs with whichever
   // form of --json-diff the user picked.
   let diffJsonOut: string | null = null;
+  // `--json-slim[=mode]` controls how `samplesMs` is stored in the artifact.
+  // Goal: keep CI run-history JSONs small (1 run × 30 samples × 2 impls is
+  // tiny, but BENCH_RUNS=10000 across hundreds of runs balloons quickly).
+  // Modes:
+  //   "full"           — default; store every sample (back-compat).
+  //   "omit"           — drop samplesMs entirely; medians/p95 still present.
+  //   "downsample:<N>" — keep N evenly-spaced samples PLUS min and max so
+  //                      shape is preserved and percentile sanity checks
+  //                      still work. Bare --json-slim → "downsample:32".
+  //   "summary"        — keep only 5-point summary (min/p25/p50/p75/max);
+  //                      most aggressive without losing distribution shape.
+  let jsonSlimRaw: string | null = null;
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     if (arg === "--json") jsonPath = "default";
     else if (arg.startsWith("--json=")) jsonPath = arg.slice("--json=".length).trim() || "default";
+    else if (arg === "--json-slim") jsonSlimRaw = "downsample:32";
+    else if (arg.startsWith("--json-slim=")) jsonSlimRaw = arg.slice("--json-slim=".length).trim() || "downsample:32";
     else if (arg === "--json-diff") {
       // Form: --json-diff <baseline> <candidate>
       const baseline = argv[i + 1];
@@ -728,10 +742,11 @@ async function main() {
     } else if (arg.startsWith("--diff-json=")) {
       diffJsonOut = arg.slice("--diff-json=".length).trim() || "default";
     } else if (arg === "-h" || arg === "--help") {
-      console.log("Usage: tsx scripts/bench-merge-weekly.ts [--json[=path]]");
+      console.log("Usage: tsx scripts/bench-merge-weekly.ts [--json[=path]] [--json-slim[=mode]]");
       console.log("       tsx scripts/bench-merge-weekly.ts --json-diff <baseline> <candidate> [--diff-json[=path]]");
+      console.log("Slim modes: full | omit | downsample:N (default 32) | summary");
       console.log("Env: BENCH_RUNS, BENCH_WEEKS, BENCH_BROKERS, BENCH_GAP_MOD,");
-      console.log("     BENCH_BUDGET_MS, BENCH_MIN_RATIO, BENCH_JSON, VERBOSE=1");
+      console.log("     BENCH_BUDGET_MS, BENCH_MIN_RATIO, BENCH_JSON, BENCH_JSON_SLIM, VERBOSE=1");
       console.log("     BENCH_DIFF_MEDIAN_PCT (default 10), BENCH_DIFF_P95_PCT (default 15)");
       console.log("     BENCH_DIFF_RATIO_DROP (default 0.5), BENCH_DIFF_JSON=<path>");
       process.exit(0);
@@ -740,9 +755,16 @@ async function main() {
   if (!jsonPath && process.env.BENCH_JSON) {
     jsonPath = process.env.BENCH_JSON.trim() || "default";
   }
+  if (!jsonSlimRaw && process.env.BENCH_JSON_SLIM) {
+    jsonSlimRaw = process.env.BENCH_JSON_SLIM.trim() || "downsample:32";
+  }
   if (!diffJsonOut && process.env.BENCH_DIFF_JSON) {
     diffJsonOut = process.env.BENCH_DIFF_JSON.trim() || "default";
   }
+
+  // Parse + validate slim mode once, fail fast on typos so a CI cron doesn't
+  // silently keep writing fat artifacts because someone typo'd "downsamp:32".
+  const slimMode = parseSlimMode(jsonSlimRaw);
 
   // ─── --json-diff short-circuit ──────────────────────────────────────────
   // Skip the bench entirely: load two existing artifacts via the schema-aware
