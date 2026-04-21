@@ -187,7 +187,7 @@ export default function ConsolidatedInsights() {
       {data && (
         <div className="space-y-6">
           {/* Summary KPIs */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
             <Card className="border-border/60">
               <CardContent className="p-4 text-center">
                 <p className="text-2xl font-bold text-primary tabular-nums">{data.totalMeetings}</p>
@@ -210,6 +210,19 @@ export default function ConsolidatedInsights() {
                 <p className="text-xs text-muted-foreground mt-1">corretores</p>
               </CardContent>
             </Card>
+            {data.scheduledCount > 0 && (
+              <Card className="border-border/60">
+                <CardContent className="p-4 text-center">
+                  <p className="text-2xl font-bold text-amber-600 tabular-nums flex items-center justify-center gap-1.5">
+                    <UserX className="h-5 w-5" />
+                    {data.noShowRate}%
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    no-show ({data.noShowCount}/{data.scheduledCount})
+                  </p>
+                </CardContent>
+              </Card>
+            )}
             {data.latestMeeting && (
               <Card className="border-border/60">
                 <CardContent className="p-4 text-center">
@@ -388,6 +401,8 @@ function mergeCacheEntries(caches: any[]): ConsolidatedData {
     ? Math.round((Date.now() - oldestUpdate.getTime()) / 60000)
     : undefined;
 
+  const noShowRate = scheduledCount > 0 ? Math.round((noShowCount / scheduledCount) * 100) : 0;
+
   return {
     totalMeetings,
     totalDurationMinutes: totalDuration,
@@ -396,5 +411,8 @@ function mergeCacheEntries(caches: any[]): ConsolidatedData {
     dashboard: mergedDashboard,
     cached: true,
     cacheAge,
+    noShowCount,
+    scheduledCount,
+    noShowRate,
   };
 }
