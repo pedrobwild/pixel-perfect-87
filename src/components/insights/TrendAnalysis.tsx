@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { TrendingUp, TrendingDown, Minus, CalendarRange, AlertTriangle, Activity, Download, LineChart as LineChartIcon } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, CalendarRange, AlertTriangle, Activity, Download, LineChart as LineChartIcon, Pin, X } from "lucide-react";
 import {
   ResponsiveContainer,
   ComposedChart,
@@ -13,6 +13,7 @@ import {
   Tooltip,
   CartesianGrid,
   Legend,
+  ReferenceDot,
 } from "recharts";
 
 interface TrendWindow {
@@ -214,9 +215,11 @@ function SparkTooltip({ active, payload, label, mode }: any) {
 
 function WeeklySparkline({ weekly }: { weekly: WeeklyPoint[] }) {
   const [mode, setMode] = useState<MeetingsMode>("total");
+  const [pinnedIndex, setPinnedIndex] = useState<number | null>(null);
   const data = buildSparklineData(weekly);
   const totalMeetings = data.reduce((s, w) => s + w.meetings, 0);
   if (totalMeetings === 0) return null;
+  const pinned = pinnedIndex != null ? data[pinnedIndex] : null;
 
   const meetingsKey = mode === "avg" ? "meetingsAvg4" : "meetings";
   const meetingsName = mode === "avg" ? "Reuniões (média 4 sem.)" : "Reuniões";
@@ -258,6 +261,18 @@ function WeeklySparkline({ weekly }: { weekly: WeeklyPoint[] }) {
             Média 4s
           </button>
         </div>
+        {pinned && (
+          <button
+            type="button"
+            onClick={() => setPinnedIndex(null)}
+            className="inline-flex items-center gap-1 rounded-md border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary hover:bg-primary/15 transition-colors"
+            aria-label="Desafixar semana"
+          >
+            <Pin className="h-3 w-3" />
+            <span>Fixado: {pinned.label}</span>
+            <X className="h-3 w-3" />
+          </button>
+        )}
         <div className="basis-full flex items-center gap-3 text-[10px] text-muted-foreground">
           <span className="inline-flex items-center gap-1.5">
             <span className="inline-block h-2 w-3 rounded-sm bg-primary/60" aria-hidden />
@@ -277,9 +292,18 @@ function WeeklySparkline({ weekly }: { weekly: WeeklyPoint[] }) {
           </span>
         </div>
       </div>
-      <div className="h-40 w-full">
+      <div className="relative h-40 w-full">
         <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={data} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
+          <ComposedChart
+            data={data}
+            margin={{ top: 8, right: 8, left: -16, bottom: 0 }}
+            onClick={(state: any) => {
+              const idx = state?.activeTooltipIndex;
+              if (typeof idx !== "number") return;
+              setPinnedIndex((prev) => (prev === idx ? null : idx));
+            }}
+            style={{ cursor: "pointer" }}
+          >
             <defs>
               <linearGradient id="meetingsArea" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.35} />
@@ -312,7 +336,11 @@ function WeeklySparkline({ weekly }: { weekly: WeeklyPoint[] }) {
               tickLine={false}
               width={28}
             />
-            <Tooltip content={<SparkTooltip mode={mode} />} cursor={{ stroke: "hsl(var(--border))", strokeWidth: 1 }} />
+            <Tooltip
+              content={<SparkTooltip mode={mode} />}
+              cursor={{ stroke: "hsl(var(--border))", strokeWidth: 1 }}
+              wrapperStyle={pinned ? { display: "none" } : undefined}
+            />
             <Area
               yAxisId="left"
               type="monotone"
@@ -349,9 +377,55 @@ function WeeklySparkline({ weekly }: { weekly: WeeklyPoint[] }) {
               activeDot={false}
               connectNulls
             />
+            {pinned && (
+              <>
+                <ReferenceDot
+                  x={pinned.label}
+                  y={(pinned as any)[meetingsKey] ?? 0}
+                  yAxisId="left"
+                  r={4}
+                  fill="hsl(var(--primary))"
+                  stroke="hsl(var(--background))"
+                  strokeWidth={2}
+                  isFront
+                />
+                {pinned.avgScore > 0 && (
+                  <ReferenceDot
+                    x={pinned.label}
+                    y={pinned.avgScore}
+                    yAxisId="right"
+                    r={4}
+                    fill="hsl(var(--accent-foreground))"
+                    stroke="hsl(var(--background))"
+                    strokeWidth={2}
+                    isFront
+                  />
+                )}
+              </>
+            )}
           </ComposedChart>
         </ResponsiveContainer>
+        {pinned && (
+          <div className="pointer-events-none absolute top-2 right-2 z-10">
+            <div className="pointer-events-auto">
+              <SparkTooltip
+                active
+                mode={mode}
+                label={pinned.label}
+                payload={[
+                  { dataKey: "meetings", value: pinned.meetings },
+                  { dataKey: "meetingsAvg4", value: pinned.meetingsAvg4 },
+                  { dataKey: "avgScore", value: pinned.avgScore },
+                  { dataKey: "scoreMA4", value: pinned.scoreMA4 },
+                ]}
+              />
+            </div>
+          </div>
+        )}
       </div>
+      <p className="text-[10px] text-muted-foreground/70 leading-relaxed">
+        Clique em uma semana para fixar o tooltip · clique novamente (ou no chip acima) para desafixar.
+      </p>
     </div>
   );
 }
