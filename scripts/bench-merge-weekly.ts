@@ -227,33 +227,72 @@ async function main() {
   console.log("");
   console.log(`  speedup (avg)  : ${ratio.toFixed(2)}×  |  median: ${ratioMedian.toFixed(2)}×`);
 
+  // VERBOSE controls whether the full diagnostic block is also printed when
+  // the bench passes. The same block is always printed (to stderr) on failure.
+  const VERBOSE = process.env.VERBOSE === "1" || process.env.VERBOSE === "true";
+
+  // Shared report builder — identical content for pass+VERBOSE and failure
+  // paths so a green VERBOSE run is directly comparable to a red CI log.
+  const buildReport = (kind: "pass" | "fail"): string[] => {
+    const lines: string[] = [""];
+    if (kind === "fail") {
+      lines.push(
+        "  ╔══════════════════════════════════════════════════════════════╗",
+        "  ║  ✗ REGRESSION DETECTED — mergeWeekly benchmark failed        ║",
+        "  ╚══════════════════════════════════════════════════════════════╝",
+        ""
+      );
+    } else {
+      lines.push(
+        "  ── verbose diagnostics (VERBOSE=1) ──",
+        ""
+      );
+    }
+    lines.push(
+      "  measured:",
+      `    optimized   median=${optMedian.toFixed(3)}ms  avg=${opt.avgMs.toFixed(3)}ms  p95=${opt.p95Ms.toFixed(3)}ms  min=${opt.minMs.toFixed(3)}ms  max=${opt.maxMs.toFixed(3)}ms`,
+      `    naive       median=${naiMedian.toFixed(3)}ms  avg=${nai.avgMs.toFixed(3)}ms  p95=${nai.p95Ms.toFixed(3)}ms  min=${nai.minMs.toFixed(3)}ms  max=${nai.maxMs.toFixed(3)}ms`,
+      `    speedup     median=${ratioMedian.toFixed(2)}×   avg=${ratio.toFixed(2)}×`,
+      `    output      ${shapeMatches ? "shape OK" : "✗ DIVERGED — opt=" + optimizedBytes + "B vs nai=" + naiveBytes + "B"}`,
+      "",
+      "  thresholds (computed):",
+      `    budget ceiling          : ${BUDGET_MS} ms/call  ${optMedian < BUDGET_MS ? "✓" : "✗"}  (override: BENCH_BUDGET_MS)`,
+      `    required min speedup    : ${MIN_RATIO.toFixed(2)}×  → optimized median must be < ${requiredOptMaxMs.toFixed(3)} ms  ${optMedian < requiredOptMaxMs ? "✓" : "✗"}  (override: BENCH_MIN_RATIO)`,
+      `    output shape parity     : required identical to naive  ${shapeMatches ? "✓" : "✗"}`,
+      "",
+      "  overrides:",
+      "    BENCH_RUNS         iterations per impl (default 30)",
+      "    BENCH_WEEKS        weeks per series (default 800)",
+      "    BENCH_BROKERS      number of brokers (default 12)",
+      "    BENCH_GAP_MOD      every Nth week is a gap per broker (default 10)",
+      "    BENCH_BUDGET_MS    per-call median ceiling (default 75)",
+      "    BENCH_MIN_RATIO    required naive/optimized speedup (default 1.2)",
+      "    VERBOSE=1          always print this block, even when green",
+      ""
+    );
+    if (kind === "fail") {
+      lines.push(
+        "  failures:",
+        ...failures.map((f) => `    ✗ ${f}`),
+        "",
+        "  reproduce / tune:",
+        `    BENCH_RUNS=${RUNS} BENCH_WEEKS=${WEEKS} BENCH_BROKERS=${BROKERS} BENCH_GAP_MOD=${GAP_MOD} \\`,
+        `      BENCH_BUDGET_MS=${BUDGET_MS} BENCH_MIN_RATIO=${MIN_RATIO} npm run bench:merge-weekly`,
+        ""
+      );
+    }
+    return lines;
+  };
+
   if (failed) {
-    // Detailed regression report — printed prominently when something fails
-    // so CI logs and pre-push hooks surface the exact numbers + thresholds.
-    console.error("");
-    console.error("  ╔══════════════════════════════════════════════════════════════╗");
-    console.error("  ║  ✗ REGRESSION DETECTED — mergeWeekly benchmark failed        ║");
-    console.error("  ╚══════════════════════════════════════════════════════════════╝");
-    console.error("");
-    console.error("  measured:");
-    console.error(`    optimized   median=${optMedian.toFixed(3)}ms  avg=${opt.avgMs.toFixed(3)}ms  p95=${opt.p95Ms.toFixed(3)}ms  min=${opt.minMs.toFixed(3)}ms  max=${opt.maxMs.toFixed(3)}ms`);
-    console.error(`    naive       median=${naiMedian.toFixed(3)}ms  avg=${nai.avgMs.toFixed(3)}ms  p95=${nai.p95Ms.toFixed(3)}ms  min=${nai.minMs.toFixed(3)}ms  max=${nai.maxMs.toFixed(3)}ms`);
-    console.error(`    speedup     median=${ratioMedian.toFixed(2)}×   avg=${ratio.toFixed(2)}×`);
-    console.error(`    output      ${shapeMatches ? "shape OK" : "✗ DIVERGED — opt=" + optimizedBytes + "B vs nai=" + naiveBytes + "B"}`);
-    console.error("");
-    console.error("  thresholds (computed):");
-    console.error(`    budget ceiling          : ${BUDGET_MS} ms/call  ${optMedian < BUDGET_MS ? "✓" : "✗"}  (override: BENCH_BUDGET_MS)`);
-    console.error(`    required min speedup    : ${MIN_RATIO.toFixed(2)}×  → optimized median must be < ${requiredOptMaxMs.toFixed(3)} ms  ${optMedian < requiredOptMaxMs ? "✓" : "✗"}  (override: BENCH_MIN_RATIO)`);
-    console.error(`    output shape parity     : required identical to naive  ${shapeMatches ? "✓" : "✗"}`);
-    console.error("");
-    console.error("  failures:");
-    for (const f of failures) console.error(`    ✗ ${f}`);
-    console.error("");
-    console.error("  reproduce / tune:");
-    console.error(`    BENCH_RUNS=${RUNS} BENCH_WEEKS=${WEEKS} BENCH_BROKERS=${BROKERS} BENCH_GAP_MOD=${GAP_MOD} \\`);
-    console.error(`      BENCH_BUDGET_MS=${BUDGET_MS} BENCH_MIN_RATIO=${MIN_RATIO} npm run bench:merge-weekly`);
-    console.error("");
+    // Detailed regression report — stderr so CI logs and pre-push hooks
+    // surface the exact numbers + thresholds prominently.
+    for (const line of buildReport("fail")) console.error(line);
     process.exit(1);
+  }
+
+  if (VERBOSE) {
+    for (const line of buildReport("pass")) console.log(line);
   }
 
   console.log(
