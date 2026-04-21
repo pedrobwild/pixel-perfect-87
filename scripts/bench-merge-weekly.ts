@@ -214,6 +214,99 @@ async function main() {
   console.log(`  node:   ${process.version}  platform=${process.platform}/${process.arch}`);
   console.log(`  CI=${process.env.CI ?? "(unset)"}  VERBOSE=${process.env.VERBOSE ?? "(unset)"}\n`);
 
+  // ─── Override coherence validation ──────────────────────────────────────
+  // The vitest perf suite uses MERGE_WEEKLY_PERF_* overrides scaled for its
+  // 3 baked-in dataset sizes (small W=25/B=3, medium W=150/B=6, large W=800/B=12).
+  // The bench uses arbitrary BENCH_WEEKS/BENCH_BROKERS. If the user pins a
+  // perf override expecting one scale and runs the bench at a very different
+  // scale, the override is misleading. We don't fail — just warn loudly.
+  //
+  // Reference points (median ms on a typical local machine):
+  //   small ≈ 0.05 ms/call   medium ≈ 0.5 ms/call   large ≈ 5 ms/call
+  // Cost scales roughly linearly with WEEKS × BROKERS.
+  const SMALL_WB = 25 * 3;
+  const LARGE_WB = 800 * 12;
+  const benchScale = WEEKS * BROKERS;
+  const benchVsSmall = benchScale / SMALL_WB;
+  const benchVsLarge = benchScale / LARGE_WB;
+
+  const overrideBudget = process.env.MERGE_WEEKLY_PERF_BUDGET_MS;
+  const overrideRatio = process.env.MERGE_WEEKLY_PERF_RATIO;
+
+  const warnings: string[] = [];
+
+  if (overrideBudget !== undefined) {
+    const v = Number(overrideBudget);
+    if (!Number.isFinite(v) || v <= 0) {
+      warnings.push(
+        `MERGE_WEEKLY_PERF_BUDGET_MS="${overrideBudget}" is not a positive number — the perf test will ignore it and fall back to defaults.`
+      );
+    } else {
+      // Tighter than ~5ms forces the LARGE bucket (~5ms baseline) to fail.
+      if (v < 5 && benchVsLarge >= 0.5) {
+        warnings.push(
+          `MERGE_WEEKLY_PERF_BUDGET_MS=${v}ms is TOO STRICT for the large bucket — the optimized impl typically runs ~5-10 ms/call there. Expect false positives.`
+        );
+      }
+      if (v > 1000) {
+        warnings.push(
+          `MERGE_WEEKLY_PERF_BUDGET_MS=${v}ms is TOO LAX — even an O(W·B·P) regression would fit under it. The perf test becomes a no-op.`
+        );
+      }
+      // Coherence with bench's own knob.
+      const benchBudgetSet = process.env.BENCH_BUDGET_MS !== undefined;
+      if (benchBudgetSet && Math.abs(v - BUDGET_MS) / BUDGET_MS > 2) {
+        warnings.push(
+          `MERGE_WEEKLY_PERF_BUDGET_MS=${v}ms diverges by >2× from BENCH_BUDGET_MS=${BUDGET_MS}ms — the bench and the perf test will disagree on what counts as a regression.`
+        );
+      }
+    }
+  }
+
+  if (overrideRatio !== undefined) {
+    const r = Number(overrideRatio);
+    if (!Number.isFinite(r) || r <= 0) {
+      warnings.push(
+        `MERGE_WEEKLY_PERF_RATIO="${overrideRatio}" is not a positive number — the perf test will ignore it and fall back to defaults.`
+      );
+    } else {
+      if (r < 1.0) {
+        warnings.push(
+          `MERGE_WEEKLY_PERF_RATIO=${r}× is < 1.0 — this REQUIRES the optimized impl to be SLOWER than naive. Almost certainly a typo (intended ≥1.05×?).`
+        );
+      } else if (r < 1.05) {
+        warnings.push(
+          `MERGE_WEEKLY_PERF_RATIO=${r}× is below the CI floor (1.05×) — the perf test loses its ability to detect a real algorithmic regression.`
+        );
+      } else if (r > 5) {
+        warnings.push(
+          `MERGE_WEEKLY_PERF_RATIO=${r}× is unrealistically strict — even healthy runs only achieve 3-6× on the large bucket. Expect chronic flakiness.`
+        );
+      }
+      const benchRatioSet = process.env.BENCH_MIN_RATIO !== undefined;
+      if (benchRatioSet && Math.abs(r - MIN_RATIO) > 0.5) {
+        warnings.push(
+          `MERGE_WEEKLY_PERF_RATIO=${r}× diverges by >0.5 from BENCH_MIN_RATIO=${MIN_RATIO}× — the bench and the perf test will report different verdicts.`
+        );
+      }
+    }
+  }
+
+  // Scale-mismatch hint: a perf override + a bench close to SMALL means
+  // the bench will look fine but the LARGE bucket of the perf test won't.
+  if (overrideBudget !== undefined && benchVsSmall < 5) {
+    const factor = benchVsLarge < 1 ? `~${(1 / benchVsLarge).toFixed(0)}×` : "";
+    warnings.push(
+      `Bench scale (W×B=${benchScale}) is close to the SMALL perf bucket (W×B=${SMALL_WB}). MERGE_WEEKLY_PERF_BUDGET_MS applies to all 3 buckets — green here doesn't predict the LARGE bucket (W×B=${LARGE_WB}, ${factor} heavier).`
+    );
+  }
+
+  if (warnings.length > 0) {
+    console.warn("  ⚠ override coherence warnings:");
+    for (const w of warnings) console.warn(`    • ${w}`);
+    console.warn("");
+  }
+
   const series = makeSeries(WEEKS, BROKERS, GAP_MOD);
 
   // Warm-up: stabilize JIT before timing.
