@@ -8,6 +8,24 @@ import {
 } from "lucide-react";
 import ScriptBuilder from "./ScriptBuilder";
 import LeadRanking from "./LeadRanking";
+import EvidenceDialog from "./EvidenceDialog";
+
+/** Render frequency badge: "alta · 7/23 (30%)" when count info is available */
+function FrequencyBadge({ frequency, count, total, pct }: { frequency: string; count?: number; total?: number; pct?: number }) {
+  const colorClass = freqColor[frequency] || "";
+  if (count !== undefined && total !== undefined && total > 0) {
+    return (
+      <Badge variant="outline" className={`shrink-0 text-[10px] uppercase tracking-wider ${colorClass}`} title="Frequência calculada a partir de evidências literais">
+        {frequency} · {count}/{total} ({pct ?? Math.round((count / total) * 100)}%)
+      </Badge>
+    );
+  }
+  return (
+    <Badge variant="outline" className={`shrink-0 text-[10px] uppercase tracking-wider ${colorClass}`}>
+      {frequency}
+    </Badge>
+  );
+}
 
 /** Safely convert any value to a renderable string */
 function safeText(value: unknown): string {
@@ -49,6 +67,8 @@ export default function InsightsDashboard({ data }: { data: any }) {
   if (!data) return null;
 
   const metrics = data.metrics;
+  // Total used as denominator for evidence-based frequency badges
+  const totalForFrequency: number = metrics?.totalForFrequency ?? data.totalMeetings ?? 0;
 
   return (
     <div className="space-y-6">
@@ -305,18 +325,28 @@ export default function InsightsDashboard({ data }: { data: any }) {
                     <HelpCircle className="h-4 w-4 text-primary mt-0.5 shrink-0" />
                     <p className="text-sm font-medium text-foreground leading-snug">"{safeText(q.question)}"</p>
                   </div>
-                  <Badge variant="outline" className={`shrink-0 text-[10px] uppercase tracking-wider ${freqColor[safeText(q.frequency)] || ""}`}>
-                    {safeText(q.frequency)}
-                  </Badge>
+                  <FrequencyBadge
+                    frequency={safeText(q.frequency)}
+                    count={q.evidenceCount}
+                    total={totalForFrequency}
+                    pct={q.frequencyPct}
+                  />
                 </div>
                 <div className="ml-6 space-y-2">
                   <div className="rounded-md bg-emerald-500/5 p-3">
                     <p className="text-[10px] uppercase tracking-wider text-emerald-700 font-medium mb-1">Resposta recomendada</p>
                     <p className="text-xs text-emerald-800 dark:text-emerald-300 leading-relaxed">{safeText(q.idealAnswer)}</p>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    <span className="font-medium">Quando surge:</span> {safeText(q.context)}
-                  </p>
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-xs text-muted-foreground">
+                      <span className="font-medium">Quando surge:</span> {safeText(q.context)}
+                    </p>
+                    <EvidenceDialog
+                      title={safeText(q.question)}
+                      evidence={q.evidence || []}
+                      totalMeetings={totalForFrequency}
+                    />
+                  </div>
                 </div>
               </div>
             ))}
@@ -342,13 +372,23 @@ export default function InsightsDashboard({ data }: { data: any }) {
                     <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
                     <p className="text-sm font-medium text-foreground leading-snug">{safeText(o.objection)}</p>
                   </div>
-                  <Badge variant="outline" className={`shrink-0 text-[10px] uppercase tracking-wider ${freqColor[safeText(o.frequency)] || ""}`}>
-                    {safeText(o.frequency)}
-                  </Badge>
+                  <FrequencyBadge
+                    frequency={safeText(o.frequency)}
+                    count={o.evidenceCount}
+                    total={totalForFrequency}
+                    pct={o.frequencyPct}
+                  />
                 </div>
                 <div className="flex items-start gap-2.5 bg-emerald-500/5 rounded-md p-3 ml-6">
                   <ArrowRight className="h-3.5 w-3.5 text-emerald-600 mt-0.5 shrink-0" />
                   <p className="text-sm text-emerald-800 dark:text-emerald-300 leading-relaxed">{safeText(o.rebuttal)}</p>
+                </div>
+                <div className="flex justify-end ml-6">
+                  <EvidenceDialog
+                    title={safeText(o.objection)}
+                    evidence={o.evidence || []}
+                    totalMeetings={totalForFrequency}
+                  />
                 </div>
               </div>
             ))}
@@ -369,7 +409,14 @@ export default function InsightsDashboard({ data }: { data: any }) {
           <CardContent className="pt-4 space-y-3">
             {data.hiddenObjections.map((h: any, i: number) => (
               <div key={i} className="rounded-lg border border-border/60 p-4 space-y-3">
-                <p className="text-sm font-medium text-foreground">{safeText(h.objection)}</p>
+                <div className="flex items-start justify-between gap-3">
+                  <p className="text-sm font-medium text-foreground">{safeText(h.objection)}</p>
+                  {h.evidenceCount > 0 && totalForFrequency > 0 && (
+                    <span className="shrink-0 text-[10px] text-muted-foreground">
+                      {h.evidenceCount}/{totalForFrequency}
+                    </span>
+                  )}
+                </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   <div className="rounded-md bg-amber-500/5 p-3">
                     <p className="text-[10px] uppercase tracking-wider text-amber-700 font-medium mb-1.5 flex items-center gap-1">
@@ -383,6 +430,13 @@ export default function InsightsDashboard({ data }: { data: any }) {
                     </p>
                     <p className="text-xs text-emerald-800 dark:text-emerald-300 leading-relaxed">{safeText(h.approach)}</p>
                   </div>
+                </div>
+                <div className="flex justify-end">
+                  <EvidenceDialog
+                    title={safeText(h.objection)}
+                    evidence={h.evidence || []}
+                    totalMeetings={totalForFrequency}
+                  />
                 </div>
               </div>
             ))}
@@ -435,6 +489,15 @@ export default function InsightsDashboard({ data }: { data: any }) {
                   <p className="text-xs text-muted-foreground ml-4 leading-relaxed">
                     <span className="font-medium">→ Ação:</span> {safeText(s.action)}
                   </p>
+                  {s.evidence?.length > 0 && (
+                    <div className="ml-4 pt-1">
+                      <EvidenceDialog
+                        title={safeText(s.signal)}
+                        evidence={s.evidence}
+                        totalMeetings={totalForFrequency}
+                      />
+                    </div>
+                  )}
                 </div>
               ))}
             </CardContent>

@@ -12,7 +12,7 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Loader2, Users, RefreshCw, CalendarRange, Database,
-  UserCircle, ArrowLeftRight,
+  UserCircle, ArrowLeftRight, UserX,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -230,7 +230,7 @@ export default function CorretorPerformance() {
                 )}
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <Card className="border-border/60">
                   <CardContent className="p-4 text-center">
                     <p className="text-2xl font-bold text-primary tabular-nums">{data.totalMeetings}</p>
@@ -245,6 +245,19 @@ export default function CorretorPerformance() {
                     <p className="text-xs text-muted-foreground mt-1">tempo total gravado</p>
                   </CardContent>
                 </Card>
+                {data.dashboard?.metrics?.scheduledCount > 0 && (
+                  <Card className="border-border/60">
+                    <CardContent className="p-4 text-center">
+                      <p className="text-2xl font-bold text-amber-600 tabular-nums flex items-center justify-center gap-1.5">
+                        <UserX className="h-5 w-5" />
+                        {data.dashboard.metrics.noShowRate}%
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        no-show ({data.dashboard.metrics.noShowCount}/{data.dashboard.metrics.scheduledCount})
+                      </p>
+                    </CardContent>
+                  </Card>
+                )}
                 {data.latestMeeting && (
                   <Card className="border-border/60">
                     <CardContent className="p-4 text-center">

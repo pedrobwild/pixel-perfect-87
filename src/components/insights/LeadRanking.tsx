@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Flame, TrendingDown, AlertTriangle, Clock, CalendarRange, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import ScoreBreakdown, { type ScoreFactor } from "./ScoreBreakdown";
 
 interface LeadScore {
   title: string;
@@ -10,6 +11,7 @@ interface LeadScore {
   durationMinutes: number;
   sentiment: string | null;
   score: number;
+  scoreBreakdown?: ScoreFactor[];
   objectionCount: number;
   competitorMentions: number;
   summary: string | null;
@@ -73,7 +75,6 @@ export default function LeadRanking({ leads }: { leads: LeadScore[] }) {
                 className="flex items-center gap-3 p-3 cursor-pointer"
                 onClick={() => setExpandedIndex(isExpanded ? null : i)}
               >
-                {/* Score */}
                 <div className="relative shrink-0 w-12 h-12 flex items-center justify-center">
                   <svg viewBox="0 0 36 36" className="w-12 h-12 -rotate-90">
                     <circle cx="18" cy="18" r="15.5" fill="none" stroke="hsl(var(--border))" strokeWidth="3" />
@@ -86,7 +87,6 @@ export default function LeadRanking({ leads }: { leads: LeadScore[] }) {
                   <span className="absolute text-xs font-bold tabular-nums text-foreground">{lead.score}</span>
                 </div>
 
-                {/* Info */}
                 <div className="flex-1 min-w-0 space-y-1">
                   <div className="flex items-center gap-2">
                     <p className="text-sm font-medium text-foreground truncate">{lead.title}</p>
@@ -117,20 +117,21 @@ export default function LeadRanking({ leads }: { leads: LeadScore[] }) {
                   </div>
                 </div>
 
-                {/* Score bar + expand */}
                 <div className="hidden sm:block w-24 shrink-0">
                   <div className="h-1.5 rounded-full bg-muted overflow-hidden">
                     <div className={`h-full rounded-full transition-all ${tier.color}`} style={{ width: `${lead.score}%` }} />
                   </div>
                 </div>
-                <Button variant="ghost" size="icon" className="shrink-0 h-8 w-8">
+                <Button variant="ghost" size="icon" className="shrink-0 h-8 w-8" aria-label={isExpanded ? "Recolher detalhes" : "Expandir detalhes"}>
                   {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                 </Button>
               </div>
 
-              {/* Expanded details */}
               {isExpanded && (
-                <div className="px-4 pb-4 pt-1 border-t border-border/40 space-y-3 animate-in fade-in-0 slide-in-from-top-1 duration-200">
+                <div className="px-4 pb-4 pt-1 border-t border-border/40 space-y-4 animate-in fade-in-0 slide-in-from-top-1 duration-200">
+                  {/* Score breakdown — NEW */}
+                  <ScoreBreakdown breakdown={lead.scoreBreakdown || []} />
+
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
                     <div className="rounded-md bg-muted/50 p-2.5">
                       <span className="text-muted-foreground block mb-0.5">Duração</span>

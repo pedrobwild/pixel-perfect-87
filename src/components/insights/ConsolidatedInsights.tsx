@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Loader2, Users, RefreshCw, Sparkles, CalendarRange, Database,
-  Brain, ShieldAlert, MessageCircleQuestion, Eye, Target
+  Brain, ShieldAlert, MessageCircleQuestion, Eye, Target, UserX,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -20,6 +20,9 @@ interface ConsolidatedData {
   dashboard: any;
   cached: boolean;
   cacheAge?: number;
+  noShowCount: number;
+  scheduledCount: number;
+  noShowRate: number;
 }
 
 export default function ConsolidatedInsights() {
@@ -184,7 +187,7 @@ export default function ConsolidatedInsights() {
       {data && (
         <div className="space-y-6">
           {/* Summary KPIs */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
             <Card className="border-border/60">
               <CardContent className="p-4 text-center">
                 <p className="text-2xl font-bold text-primary tabular-nums">{data.totalMeetings}</p>
@@ -207,6 +210,19 @@ export default function ConsolidatedInsights() {
                 <p className="text-xs text-muted-foreground mt-1">corretores</p>
               </CardContent>
             </Card>
+            {data.scheduledCount > 0 && (
+              <Card className="border-border/60">
+                <CardContent className="p-4 text-center">
+                  <p className="text-2xl font-bold text-amber-600 tabular-nums flex items-center justify-center gap-1.5">
+                    <UserX className="h-5 w-5" />
+                    {data.noShowRate}%
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    no-show ({data.noShowCount}/{data.scheduledCount})
+                  </p>
+                </CardContent>
+              </Card>
+            )}
             {data.latestMeeting && (
               <Card className="border-border/60">
                 <CardContent className="p-4 text-center">
@@ -251,6 +267,8 @@ function mergeCacheEntries(caches: any[]): ConsolidatedData {
   let totalDuration = 0;
   let latestMeeting: string | null = null;
   let oldestUpdate: Date | null = null;
+  let noShowCount = 0;
+  let scheduledCount = 0;
 
   const allLeads: any[] = [];
   const sentimentTotals: Record<string, number[]> = {};
@@ -282,6 +300,10 @@ function mergeCacheEntries(caches: any[]): ConsolidatedData {
 
     const d = cache.charts_data;
     if (!d) continue;
+
+    // No-show aggregation
+    if (typeof d.metrics?.noShowCount === "number") noShowCount += d.metrics.noShowCount;
+    if (typeof d.metrics?.scheduledCount === "number") scheduledCount += d.metrics.scheduledCount;
 
     // Quantitative
     if (Array.isArray(d.leadScores)) allLeads.push(...d.leadScores);
@@ -379,6 +401,8 @@ function mergeCacheEntries(caches: any[]): ConsolidatedData {
     ? Math.round((Date.now() - oldestUpdate.getTime()) / 60000)
     : undefined;
 
+  const noShowRate = scheduledCount > 0 ? Math.round((noShowCount / scheduledCount) * 100) : 0;
+
   return {
     totalMeetings,
     totalDurationMinutes: totalDuration,
@@ -387,5 +411,8 @@ function mergeCacheEntries(caches: any[]): ConsolidatedData {
     dashboard: mergedDashboard,
     cached: true,
     cacheAge,
+    noShowCount,
+    scheduledCount,
+    noShowRate,
   };
 }
