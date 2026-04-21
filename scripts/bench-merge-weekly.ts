@@ -721,6 +721,11 @@ async function main() {
   const BUDGET_MS = num("BENCH_BUDGET_MS", 75); // per-call median ceiling
   const MIN_RATIO = num("BENCH_MIN_RATIO", 1.2); // naive/optimized speedup
 
+  // Capture git metadata ONCE at the start of the timed section, so a long
+  // run that spans a `git checkout` still attributes timings to the revision
+  // we actually benchmarked (not whatever HEAD points to at write time).
+  const gitInfo = captureGitInfo();
+
   // ─── Env snapshot ─────────────────────────────────────────────────────────
   // Capture the EXACT effective value of every knob the bench AND the
   // companion vitest perf suite recognize, plus whether each one was
