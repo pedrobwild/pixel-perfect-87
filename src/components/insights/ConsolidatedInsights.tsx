@@ -294,6 +294,8 @@ function mergeCacheEntries(caches: any[]): ConsolidatedData {
     90: { meetingsTotal: 0, scoreSum: 0, scoreCount: 0, positiveSum: 0, positiveCount: 0, objections: {} },
   };
   const deltaAgg = { meetings: 0, scoreSum: 0, scoreCount: 0, positiveSum: 0, positiveCount: 0 };
+  // Weekly aggregation: weekStart -> { label, meetings, scoreSum (weighted by meetings) }
+  const weeklyAgg = new Map<string, { label: string; meetings: number; scoreSum: number }>();
 
   for (const cache of caches) {
     totalMeetings += cache.total_meetings;
