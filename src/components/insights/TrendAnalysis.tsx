@@ -215,9 +215,11 @@ function SparkTooltip({ active, payload, label, mode }: any) {
 
 function WeeklySparkline({ weekly }: { weekly: WeeklyPoint[] }) {
   const [mode, setMode] = useState<MeetingsMode>("total");
+  const [pinnedIndex, setPinnedIndex] = useState<number | null>(null);
   const data = buildSparklineData(weekly);
   const totalMeetings = data.reduce((s, w) => s + w.meetings, 0);
   if (totalMeetings === 0) return null;
+  const pinned = pinnedIndex != null ? data[pinnedIndex] : null;
 
   const meetingsKey = mode === "avg" ? "meetingsAvg4" : "meetings";
   const meetingsName = mode === "avg" ? "Reuniões (média 4 sem.)" : "Reuniões";
