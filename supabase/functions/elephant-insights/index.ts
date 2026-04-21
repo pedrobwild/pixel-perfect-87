@@ -233,6 +233,105 @@ export function computeLeadScore(t: TranscribeEntry): { score: number; breakdown
   return { score: finalScore, breakdown };
 }
 
+// ─── TREND ANALYSIS (30/60/90d) ──────────────────────────────────
+
+interface TrendWindow {
+  windowDays: 30 | 60 | 90;
+  meetings: number;
+  avgScore: number;
+  positiveSentimentPct: number;
+  topObjections: { objection: string; count: number }[];
+}
+
+interface TrendsPayload {
+  windows: TrendWindow[];
+  // Deltas comparing 30d vs preceding 30d (i.e., 30d window vs days 31-60)
+  delta30vs60: {
+    meetings: number;
+    avgScore: number;
+    positiveSentimentPct: number;
+  };
+}
+
+function buildTrends(transcribes: any[]): TrendsPayload {
+  const now = Date.now();
+  const dayMs = 86_400_000;
+
+  const inWindow = (t: any, days: number) => {
+    if (!t.dateIncluded) return false;
+    const ts = new Date(t.dateIncluded).getTime();
+    if (Number.isNaN(ts)) return false;
+    return now - ts <= days * dayMs;
+  };
+
+  const inRange = (t: any, fromDays: number, toDays: number) => {
+    if (!t.dateIncluded) return false;
+    const ts = new Date(t.dateIncluded).getTime();
+    if (Number.isNaN(ts)) return false;
+    const age = now - ts;
+    return age > fromDays * dayMs && age <= toDays * dayMs;
+  };
+
+  const computeWindow = (subset: any[], windowDays: 30 | 60 | 90): TrendWindow => {
+    if (subset.length === 0) {
+      return { windowDays, meetings: 0, avgScore: 0, positiveSentimentPct: 0, topObjections: [] };
+    }
+
+    let totalScore = 0;
+    let positiveTotal = 0;
+    let positiveCount = 0;
+    const objectionCount: Record<string, number> = {};
+
+    for (const t of subset) {
+      const { score } = computeLeadScore(t);
+      totalScore += score;
+      const breakdown = extractSentimentBreakdown(t.sentimentAnalysis?.totalSentiment);
+      if (typeof breakdown.positive === "number") {
+        positiveTotal += breakdown.positive;
+        positiveCount++;
+      }
+      for (const r of t.reasons || []) {
+        if (r.type === "objection" && r.description) {
+          const key = r.description.substring(0, 80);
+          objectionCount[key] = (objectionCount[key] || 0) + 1;
+        }
+      }
+    }
+
+    const topObjections = Object.entries(objectionCount)
+      .map(([objection, count]) => ({ objection, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 3);
+
+    return {
+      windowDays,
+      meetings: subset.length,
+      avgScore: Math.round(totalScore / subset.length),
+      positiveSentimentPct: positiveCount > 0 ? Math.round(positiveTotal / positiveCount) : 0,
+      topObjections,
+    };
+  };
+
+  const win30 = transcribes.filter((t) => inWindow(t, 30));
+  const win60 = transcribes.filter((t) => inWindow(t, 60));
+  const win90 = transcribes.filter((t) => inWindow(t, 90));
+  const prev30 = transcribes.filter((t) => inRange(t, 30, 60));
+
+  const w30 = computeWindow(win30, 30);
+  const w60 = computeWindow(win60, 60);
+  const w90 = computeWindow(win90, 90);
+  const wPrev = computeWindow(prev30, 30);
+
+  return {
+    windows: [w30, w60, w90],
+    delta30vs60: {
+      meetings: w30.meetings - wPrev.meetings,
+      avgScore: w30.avgScore - wPrev.avgScore,
+      positiveSentimentPct: w30.positiveSentimentPct - wPrev.positiveSentimentPct,
+    },
+  };
+}
+
 function processMeetings(transcribes: any[]) {
   const sentimentTotals: Record<string, number> = {};
   let totalDuration = 0;
@@ -687,6 +786,7 @@ REGRAS:
     }
 
     // ─── BUILD COMBINED DASHBOARD ───────────────────────────────
+    const trends = buildTrends(filteredTranscribes);
     const dashboard = {
       metrics: {
         avgSentiment: metrics.avgSentiment,
@@ -699,6 +799,7 @@ REGRAS:
         scheduledCount,
         totalForFrequency,
       },
+      trends,
       leadScores: metrics.leads,
       ...(aiDashboard || {}),
     };

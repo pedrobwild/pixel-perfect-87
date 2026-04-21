@@ -9,6 +9,7 @@ import {
 import ScriptBuilder from "./ScriptBuilder";
 import LeadRanking from "./LeadRanking";
 import EvidenceDialog from "./EvidenceDialog";
+import TrendAnalysis from "./TrendAnalysis";
 
 /** Render frequency badge: "alta · 7/23 (30%)" when count info is available */
 function FrequencyBadge({ frequency, count, total, pct }: { frequency: string; count?: number; total?: number; pct?: number }) {
@@ -72,6 +73,9 @@ export default function InsightsDashboard({ data }: { data: any }) {
 
   return (
     <div className="space-y-6">
+      {/* ─── TEMPORAL TRENDS (30/60/90d) ───────────────────────────── */}
+      <TrendAnalysis trends={data.trends} />
+
       {/* ─── REAL METRICS FROM API ─────────────────────────────────── */}
 
       {/* Sentiment Breakdown */}

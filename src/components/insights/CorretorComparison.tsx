@@ -399,6 +399,116 @@ export default function CorretorComparison({ corretores, loadingUsers }: Correto
               </CardContent>
             </Card>
           )}
+
+          {/* Distribuição de Objeções compartilhadas */}
+          {(() => {
+            const objA = (dataA.dashboard?.objections as any[]) || [];
+            const objB = (dataB.dashboard?.objections as any[]) || [];
+            if (objA.length === 0 && objB.length === 0) return null;
+
+            // Build map: objection text -> {a, b} counts (using evidenceCount as proxy)
+            const map = new Map<string, { a: number; b: number; key: string }>();
+            const norm = (s: string) => s.toLowerCase().trim().substring(0, 60);
+
+            for (const o of objA) {
+              const text = o.objection || "";
+              if (!text) continue;
+              const key = norm(text);
+              map.set(key, { ...(map.get(key) || { a: 0, b: 0, key: text }), key: text, a: o.evidenceCount || 1 });
+            }
+            for (const o of objB) {
+              const text = o.objection || "";
+              if (!text) continue;
+              const key = norm(text);
+              const existing = map.get(key) || { a: 0, b: 0, key: text };
+              map.set(key, { ...existing, key: text, b: o.evidenceCount || 1 });
+            }
+
+            const rows = Array.from(map.values())
+              .sort((x, y) => (y.a + y.b) - (x.a + x.b))
+              .slice(0, 8);
+
+            if (rows.length === 0) return null;
+
+            return (
+              <Card className="border-border/60 overflow-hidden">
+                <CardHeader className="pb-3 bg-muted/30">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <ShieldAlert className="h-4.5 w-4.5 text-primary" />
+                    Distribuição de Objeções
+                    <Badge variant="outline" className="ml-auto text-xs font-normal">top {rows.length}</Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-4 space-y-2.5">
+                  {rows.map((row, i) => {
+                    const exclusiveA = row.a > 0 && row.b === 0;
+                    const exclusiveB = row.b > 0 && row.a === 0;
+                    return (
+                      <div key={i} className="flex items-start gap-3 p-2.5 rounded-md border border-border/40">
+                        <p className="text-xs text-foreground leading-snug flex-1 min-w-0 line-clamp-2">{row.key}</p>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <Badge
+                            variant="outline"
+                            className={`text-[10px] tabular-nums ${exclusiveA ? "bg-primary/15 text-primary border-primary/30" : row.a > 0 ? "bg-primary/8 text-primary border-primary/20" : "opacity-40"}`}
+                            title={`${nameA}: ${row.a} evidência(s)`}
+                          >
+                            {nameA.split(" ")[0]} · {row.a}
+                          </Badge>
+                          <Badge
+                            variant="outline"
+                            className={`text-[10px] tabular-nums ${exclusiveB ? "bg-foreground/10 text-foreground border-foreground/30" : row.b > 0 ? "border-border" : "opacity-40"}`}
+                            title={`${nameB}: ${row.b} evidência(s)`}
+                          >
+                            {nameB.split(" ")[0]} · {row.b}
+                          </Badge>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <p className="text-[10px] text-muted-foreground/70 pt-1 leading-relaxed">
+                    Cor sólida indica objeção exclusiva daquele corretor. Contagens baseadas em evidências literais extraídas das reuniões.
+                  </p>
+                </CardContent>
+              </Card>
+            );
+          })()}
+
+          {/* Trends Comparativos lado a lado */}
+          {(dataA.dashboard?.trends && dataB.dashboard?.trends) && (
+            <Card className="border-border/60 overflow-hidden">
+              <CardHeader className="pb-3 bg-muted/30">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <TrendingUp className="h-4.5 w-4.5 text-primary" />
+                  Tendência (últimos 30 dias)
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4">
+                {(() => {
+                  const tA = dataA.dashboard.trends.windows?.find((w: any) => w.windowDays === 30);
+                  const tB = dataB.dashboard.trends.windows?.find((w: any) => w.windowDays === 30);
+                  if (!tA || !tB) return <p className="text-xs text-muted-foreground">Sem dados nos últimos 30 dias.</p>;
+                  return (
+                    <div className="space-y-3">
+                      {[
+                        { label: "Reuniões", a: tA.meetings, b: tB.meetings },
+                        { label: "Score médio", a: tA.avgScore, b: tB.avgScore },
+                        { label: "Sentimento positivo", a: tA.positiveSentimentPct, b: tB.positiveSentimentPct, suffix: "%" },
+                      ].map((row, i) => (
+                        <div key={i} className="grid grid-cols-[1fr_80px_80px_60px] gap-2 items-center px-2">
+                          <span className="text-xs text-muted-foreground">{row.label}</span>
+                          <span className="text-sm font-bold text-primary tabular-nums text-center">{row.a}{row.suffix || ""}</span>
+                          <span className="text-sm font-bold text-foreground tabular-nums text-center">{row.b}{row.suffix || ""}</span>
+                          <div className="flex justify-center">
+                            <DeltaIndicator a={row.a} b={row.b} suffix={row.suffix} />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+              </CardContent>
+            </Card>
+          )}
         </>
       )}
 
