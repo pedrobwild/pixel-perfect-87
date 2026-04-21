@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, TrendingDown, Minus, CalendarRange, AlertTriangle, Activity } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { TrendingUp, TrendingDown, Minus, CalendarRange, AlertTriangle, Activity, Download } from "lucide-react";
 
 interface TrendWindow {
   windowDays: 30 | 60 | 90;
@@ -95,7 +96,60 @@ function WindowCard({ win, delta, isPrimary }: { win: TrendWindow; delta?: Trend
   );
 }
 
-export default function TrendAnalysis({ trends }: { trends: TrendsPayload | undefined }) {
+function escapeCsv(value: string | number): string {
+  const s = String(value ?? "");
+  if (s.includes(",") || s.includes('"') || s.includes("\n")) {
+    return `"${s.replace(/"/g, '""')}"`;
+  }
+  return s;
+}
+
+function exportTrendsCsv(trends: TrendsPayload, scopeLabel: string) {
+  const rows: string[] = [];
+  rows.push("section,window_days,metric,value,unit");
+
+  // Windows section
+  for (const w of trends.windows) {
+    rows.push(`window,${w.windowDays},meetings,${w.meetings},count`);
+    rows.push(`window,${w.windowDays},avg_score,${w.avgScore},score`);
+    rows.push(`window,${w.windowDays},positive_sentiment_pct,${w.positiveSentimentPct},%`);
+  }
+
+  // Delta section
+  rows.push(`delta_30_vs_prev_30,30,meetings_delta,${trends.delta30vs60.meetings},count`);
+  rows.push(`delta_30_vs_prev_30,30,avg_score_delta,${trends.delta30vs60.avgScore},score`);
+  rows.push(`delta_30_vs_prev_30,30,positive_sentiment_pct_delta,${trends.delta30vs60.positiveSentimentPct},%`);
+
+  // Top objections section (separate header for clarity)
+  rows.push("");
+  rows.push("section,window_days,objection,count,");
+  for (const w of trends.windows) {
+    for (const o of w.topObjections) {
+      rows.push(`top_objection,${w.windowDays},${escapeCsv(o.objection)},${o.count},`);
+    }
+  }
+
+  const csv = rows.join("\n");
+  const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  const today = new Date().toISOString().slice(0, 10);
+  const safeScope = scopeLabel.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "tendencias";
+  a.href = url;
+  a.download = `tendencias-${safeScope}-${today}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+export default function TrendAnalysis({
+  trends,
+  scopeLabel = "consolidado",
+}: {
+  trends: TrendsPayload | undefined;
+  scopeLabel?: string;
+}) {
   if (!trends?.windows?.length) return null;
   const w30 = trends.windows.find((w) => w.windowDays === 30);
   const w60 = trends.windows.find((w) => w.windowDays === 60);
@@ -112,6 +166,17 @@ export default function TrendAnalysis({ trends }: { trends: TrendsPayload | unde
           <Activity className="h-4.5 w-4.5 text-primary" />
           Tendências Temporais
           <Badge variant="outline" className="ml-auto text-xs font-normal">30 / 60 / 90 dias</Badge>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-7 px-2 text-xs gap-1"
+            onClick={() => exportTrendsCsv(trends, scopeLabel)}
+            aria-label="Exportar tendências em CSV"
+          >
+            <Download className="h-3 w-3" />
+            CSV
+          </Button>
         </CardTitle>
       </CardHeader>
       <CardContent className="pt-4">
