@@ -47,20 +47,34 @@ interface MergedRow {
  * Aligns on weekStart (ISO week-anchored Monday). Missing weeks for a broker = null
  * so the line connects across gaps via `connectNulls`.
  */
+/**
+ * Merges weekly arrays from multiple brokers into a single chart dataset.
+ * Aligns on weekStart (ISO week-anchored Monday). Missing weeks for a broker = null
+ * so the line connects across gaps via `connectNulls`.
+ *
+ * Complexity: O(N + W·B) where N = total points across brokers, W = unique weeks,
+ * B = brokers. Previous implementation was O(W·B·Pmax) due to Array.find lookups.
+ */
 function mergeWeekly(series: BrokerSeries[]): MergedRow[] {
-  const allKeys = new Set<string>();
+  // 1) Build per-broker Map<weekStart, point> + collect unique weekStart→label.
   const labelByKey = new Map<string, string>();
-  for (const s of series) {
+  const pointByKeyPerBroker: Array<Map<string, WeeklyPoint>> = series.map((s) => {
+    const m = new Map<string, WeeklyPoint>();
     for (const w of s.weekly ?? []) {
-      allKeys.add(w.weekStart);
-      labelByKey.set(w.weekStart, w.label);
+      m.set(w.weekStart, w);
+      if (!labelByKey.has(w.weekStart)) labelByKey.set(w.weekStart, w.label);
     }
-  }
-  const sortedKeys = Array.from(allKeys).sort();
+    return m;
+  });
+
+  // 2) Sort unique week keys once.
+  const sortedKeys = Array.from(labelByKey.keys()).sort();
+
+  // 3) Materialize rows with O(1) lookups per (week, broker).
   return sortedKeys.map((weekStart) => {
     const row: MergedRow = { weekStart, label: labelByKey.get(weekStart) ?? weekStart };
-    series.forEach((s, idx) => {
-      const point = s.weekly?.find((w) => w.weekStart === weekStart);
+    for (let idx = 0; idx < series.length; idx++) {
+      const point = pointByKeyPerBroker[idx].get(weekStart);
       // Avoid plotting score=0 when no meetings happened (would drag line to 0)
       if (!point || point.meetings === 0) {
         row[`meetings_${idx}`] = point ? point.meetings : null;
@@ -69,7 +83,7 @@ function mergeWeekly(series: BrokerSeries[]): MergedRow[] {
         row[`meetings_${idx}`] = point.meetings;
         row[`avgScore_${idx}`] = point.avgScore;
       }
-    });
+    }
     return row;
   });
 }
