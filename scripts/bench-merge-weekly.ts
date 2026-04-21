@@ -268,6 +268,12 @@ async function main() {
       "    BENCH_BUDGET_MS    per-call median ceiling (default 75)",
       "    BENCH_MIN_RATIO    required naive/optimized speedup (default 1.2)",
       "    VERBOSE=1          always print this block, even when green",
+      "",
+      // Environment snapshot — exact values used for THIS run, marked as
+      // (set) if explicitly provided via env or (default) if we fell back.
+      // Lets you reproduce a CI-only flake locally with one copy-paste.
+      "  environment snapshot (this run):",
+      ...envRows,
       ""
     );
     if (kind === "fail") {
