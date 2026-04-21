@@ -8,6 +8,24 @@ import {
 } from "lucide-react";
 import ScriptBuilder from "./ScriptBuilder";
 import LeadRanking from "./LeadRanking";
+import EvidenceDialog from "./EvidenceDialog";
+
+/** Render frequency badge: "alta · 7/23 (30%)" when count info is available */
+function FrequencyBadge({ frequency, count, total, pct }: { frequency: string; count?: number; total?: number; pct?: number }) {
+  const colorClass = freqColor[frequency] || "";
+  if (count !== undefined && total !== undefined && total > 0) {
+    return (
+      <Badge variant="outline" className={`shrink-0 text-[10px] uppercase tracking-wider ${colorClass}`} title="Frequência calculada a partir de evidências literais">
+        {frequency} · {count}/{total} ({pct ?? Math.round((count / total) * 100)}%)
+      </Badge>
+    );
+  }
+  return (
+    <Badge variant="outline" className={`shrink-0 text-[10px] uppercase tracking-wider ${colorClass}`}>
+      {frequency}
+    </Badge>
+  );
+}
 
 /** Safely convert any value to a renderable string */
 function safeText(value: unknown): string {
