@@ -424,6 +424,14 @@ function mergeCacheEntries(caches: any[]): ConsolidatedData {
       avgScore: deltaAgg.scoreCount > 0 ? Math.round(deltaAgg.scoreSum / deltaAgg.scoreCount) : 0,
       positiveSentimentPct: deltaAgg.positiveCount > 0 ? Math.round(deltaAgg.positiveSum / deltaAgg.positiveCount) : 0,
     },
+    weekly: Object.values(weeklyAgg)
+      .sort((a, b) => a.weekStart.localeCompare(b.weekStart))
+      .map((w) => ({
+        weekStart: w.weekStart,
+        label: w.label,
+        meetings: w.meetings,
+        avgScore: w.scoreCount > 0 ? Math.round(w.scoreSum / w.scoreCount) : 0,
+      })),
   };
 
   // Build merged metrics
