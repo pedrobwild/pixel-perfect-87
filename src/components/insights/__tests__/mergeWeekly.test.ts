@@ -159,18 +159,42 @@ describe("mergeWeekly", () => {
     for (let i = 0; i < RUNS; i++) mergeWeeklyNaive(series);
     const naive = performance.now() - t1;
 
+    const ratio = naive / optimized;
+    const requiredOptimizedMaxMs = naive / minRatio;
+
+    // Single, copy-pasteable diagnostic block. Used as the message for BOTH
+    // assertions so a failed CI run surfaces the exact timings, the active
+    // thresholds, and the env knobs needed to reproduce or relax the budget.
+    const diagnostics = [
+      "",
+      "  ── mergeWeekly perf diagnostics ──",
+      `  RUNS                       : ${RUNS}`,
+      `  optimized total            : ${optimized.toFixed(2)} ms  (avg ${(optimized / RUNS).toFixed(3)} ms/run)`,
+      `  naive total                : ${naive.toFixed(2)} ms  (avg ${(naive / RUNS).toFixed(3)} ms/run)`,
+      `  speedup (naive/optimized)  : ${ratio.toFixed(2)}×`,
+      "  ── thresholds ──",
+      `  budget ceiling             : ${budgetMs} ms  ${optimized < budgetMs ? "✓" : "✗"} (optimized=${optimized.toFixed(2)} ms)`,
+      `  required min speedup       : ${minRatio.toFixed(2)}×  (optimized must be < ${requiredOptimizedMaxMs.toFixed(2)} ms)  ${optimized < requiredOptimizedMaxMs ? "✓" : "✗"}`,
+      `  environment                : CI=${isCI} (defaults: budget=${defaultBudgetMs}ms, ratio=${defaultRatio}×)`,
+      "  ── overrides ──",
+      "  MERGE_WEEKLY_PERF_BUDGET_MS  raise budget ceiling (ms)",
+      "  MERGE_WEEKLY_PERF_RATIO      lower required speedup (e.g. 1.05)",
+      "  MERGE_WEEKLY_PERF_RUNS       change iteration count",
+      "",
+    ].join("\n");
+
+    // Always emit on VERBOSE so trends can be tracked across green runs too.
+    if (env.VERBOSE === "1" || env.VERBOSE === "true") {
+      // eslint-disable-next-line no-console
+      console.log(diagnostics);
+    }
+
     // Hard ceiling so the test fails loudly if a regression makes it quadratic again.
-    expect(
-      optimized,
-      `optimized ${optimized.toFixed(1)}ms exceeded budget ${budgetMs}ms (RUNS=${RUNS}, CI=${isCI})`
-    ).toBeLessThan(budgetMs);
+    expect(optimized, diagnostics).toBeLessThan(budgetMs);
 
     // Optimized must be measurably faster than naïve. The ratio floor catches
     // a real regression back to the O(W·B·P) implementation while staying
     // non-flaky under load.
-    expect(
-      optimized,
-      `optimized ${optimized.toFixed(1)}ms vs naive ${naive.toFixed(1)}ms — ratio ${(naive / optimized).toFixed(2)}× below required ${minRatio}× (CI=${isCI})`
-    ).toBeLessThan(naive / minRatio);
+    expect(optimized, diagnostics).toBeLessThan(requiredOptimizedMaxMs);
   });
 });
