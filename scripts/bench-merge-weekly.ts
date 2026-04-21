@@ -263,8 +263,28 @@ export interface DiffArtifact {
   schemaVersion: 1;
   kind: "mergeWeekly-diff";
   generatedAt: string;
-  baseline: { path: string; rawSchemaVersion: number; startedAt: string; status: string };
-  candidate: { path: string; rawSchemaVersion: number; startedAt: string; status: string };
+  baseline: {
+    path: string;
+    rawSchemaVersion: number;
+    startedAt: string;
+    status: string;
+    /** Git metadata of the baseline run, when present in the artifact. */
+    git?: NonNullable<CanonicalArtifact["env"]["git"]> | null;
+  };
+  candidate: {
+    path: string;
+    rawSchemaVersion: number;
+    startedAt: string;
+    status: string;
+    git?: NonNullable<CanonicalArtifact["env"]["git"]> | null;
+  };
+  /** Convenience top-level summary of git context for quick scanning. */
+  gitContext?: {
+    sameCommit: boolean;
+    commitRange: string | null; // `git log` invocation when SHAs differ
+    baselineDirty: boolean | null;
+    candidateDirty: boolean | null;
+  };
   config: {
     sameScale: boolean;
     baseline: { weeks: number; brokers: number; gapMod: number; runs: number };
