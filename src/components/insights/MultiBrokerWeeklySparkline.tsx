@@ -35,7 +35,7 @@ const SERIES_COLORS = [
   "hsl(155 65% 40%)", // green — fallback for 4th broker
 ];
 
-interface MergedRow {
+export interface MergedRow {
   label: string;
   weekStart: string;
   // dynamic per-broker keys: e.g. broker_0, broker_1
