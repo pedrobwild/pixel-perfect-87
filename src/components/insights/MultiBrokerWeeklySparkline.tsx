@@ -199,7 +199,24 @@ export default function MultiBrokerWeeklySparkline({ series }: { series: BrokerS
     [seriesSignature]
   );
 
-  const hasAny = useMemo(
+  // Per-broker availability flag. We treat "no weekly array" and "weekly array
+  // present but every meetings === 0" both as "no data" so the legend signals
+  // it explicitly instead of showing a phantom line.
+  const brokerHasData = useMemo(
+    () =>
+      series.map((s) => {
+        const w = s.weekly;
+        if (!w || w.length === 0) return false;
+        return w.some((p) => p.meetings > 0);
+      }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [seriesSignature]
+  );
+
+  const allEmpty =
+    series.length === 0 || brokerHasData.every((v) => !v) || data.length === 0;
+
+  const hasAnyForMetric = useMemo(
     () =>
       data.some((row) =>
         series.some((_, idx) => {
@@ -211,20 +228,28 @@ export default function MultiBrokerWeeklySparkline({ series }: { series: BrokerS
     [data, metric, series.length]
   );
 
-  if (data.length === 0) {
+  // Card-level empty state — no series, all-empty series, or merge produced no rows.
+  if (allEmpty) {
     return (
       <div className="rounded-lg border border-dashed border-border/60 bg-muted/20 p-6">
         <div className="flex items-start gap-3">
           <div className="rounded-md bg-background/60 p-2 border border-border/40">
             <GitCompareArrows className="h-4 w-4 text-muted-foreground" aria-hidden />
           </div>
-          <div className="space-y-1">
+          <div className="space-y-1 flex-1 min-w-0">
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Evolução semanal comparada
             </p>
             <p className="text-sm text-muted-foreground/90">
-              Dados semanais ainda não disponíveis para os corretores selecionados.
+              {series.length === 0
+                ? "Selecione corretores para comparar a evolução semanal."
+                : "Nenhum dos corretores selecionados possui reuniões nas últimas 12 semanas."}
             </p>
+            {series.length > 0 && (
+              <p className="text-[10px] text-muted-foreground/70 leading-relaxed">
+                {series.map((s) => s.name).join(" · ")} — sem dados disponíveis no período.
+              </p>
+            )}
           </div>
         </div>
       </div>
