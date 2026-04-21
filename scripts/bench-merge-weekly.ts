@@ -4,18 +4,28 @@
  * Run:
  *   npm run bench:merge-weekly
  *   # or directly:
- *   npx tsx scripts/bench-merge-weekly.ts
+ *   npx tsx scripts/bench-merge-weekly.ts [--json[=path]]
+ *
+ * Optional CLI flags:
+ *   --json              write JSON artifact to ./bench-results/merge-weekly-<ts>.json
+ *   --json=<path>       write JSON artifact to <path>
  *
  * Optional env vars:
  *   BENCH_RUNS=50            iterations per scenario (default 30)
  *   BENCH_WEEKS=800          weeks per series (default 800)
  *   BENCH_BROKERS=12         number of brokers (default 12)
  *   BENCH_GAP_MOD=10         every Nth week is a gap per broker (default 10)
+ *   BENCH_BUDGET_MS=75       per-call median ceiling (ms)
+ *   BENCH_MIN_RATIO=1.2      required naive/optimized speedup
+ *   BENCH_JSON=<path>        same as --json=<path>
+ *   VERBOSE=1                always print full diagnostic block
  *
  * Reports per-iteration timing (avg / p50 / p95 / min / max), throughput,
  * the optimized-vs-naive speedup ratio, and the resulting dataset size so
  * regressions in either runtime OR output shape are obvious at a glance.
  */
+import { writeFileSync, mkdirSync } from "node:fs";
+import { dirname, resolve } from "node:path";
 import {
   mergeWeekly,
   type BrokerSeries,
@@ -150,6 +160,27 @@ function num(key: string, fallback: number): number {
 }
 
 async function main() {
+  // ─── CLI parsing ────────────────────────────────────────────────────────
+  // Supports `--json` (default path) or `--json=<path>` (custom path).
+  // Env var BENCH_JSON works the same way for non-interactive use (e.g. CI).
+  // The artifact contains every field needed to compare runs over time:
+  // config, env snapshot, raw + summary timings, computed thresholds, verdict.
+  const argv = process.argv.slice(2);
+  let jsonPath: string | null = null;
+  for (const arg of argv) {
+    if (arg === "--json") jsonPath = "default";
+    else if (arg.startsWith("--json=")) jsonPath = arg.slice("--json=".length).trim() || "default";
+    else if (arg === "-h" || arg === "--help") {
+      console.log("Usage: tsx scripts/bench-merge-weekly.ts [--json[=path]]");
+      console.log("Env: BENCH_RUNS, BENCH_WEEKS, BENCH_BROKERS, BENCH_GAP_MOD,");
+      console.log("     BENCH_BUDGET_MS, BENCH_MIN_RATIO, BENCH_JSON, VERBOSE=1");
+      process.exit(0);
+    }
+  }
+  if (!jsonPath && process.env.BENCH_JSON) {
+    jsonPath = process.env.BENCH_JSON.trim() || "default";
+  }
+
   const RUNS = Math.max(1, Math.round(num("BENCH_RUNS", 30)));
   const WEEKS = Math.max(1, Math.round(num("BENCH_WEEKS", 800)));
   const BROKERS = Math.max(1, Math.round(num("BENCH_BROKERS", 12)));
@@ -436,6 +467,94 @@ async function main() {
     }
     return lines;
   };
+
+  // ─── JSON artifact (for cross-run comparison) ───────────────────────────
+  // Schema is intentionally flat-ish so it's diff-friendly. `samplesMs` keeps
+  // the raw per-iteration numbers so a future tool can recompute medians,
+  // percentiles, or trend deltas across many runs without re-running anything.
+  if (jsonPath) {
+    const startedAt = new Date().toISOString();
+    const resolvedPath =
+      jsonPath === "default"
+        ? resolve(`bench-results/merge-weekly-${startedAt.replace(/[:.]/g, "-")}.json`)
+        : resolve(jsonPath);
+
+    const artifact = {
+      schemaVersion: 1,
+      kind: "mergeWeekly-bench",
+      startedAt,
+      durationMs: opt.totalMs + nai.totalMs,
+      env: {
+        node: process.version,
+        platform: process.platform,
+        arch: process.arch,
+        ci: process.env.CI ?? null,
+        // Snapshot every relevant knob — set or default — so future diffs
+        // can flag config drift, not just timing drift.
+        knobs: Object.fromEntries(
+          trackedEnv.map((e) => [
+            e.key,
+            {
+              value: e.effective,
+              isSet:
+                process.env[e.key] !== undefined && process.env[e.key] !== "",
+            },
+          ])
+        ),
+      },
+      config: { runs: RUNS, weeks: WEEKS, brokers: BROKERS, gapMod: GAP_MOD },
+      thresholds: {
+        budgetMs: BUDGET_MS,
+        minRatio: MIN_RATIO,
+        requiredOptimizedMaxMs: requiredOptMaxMs,
+      },
+      output: {
+        rows,
+        colsPerRow,
+        optimizedJsonBytes: optimizedBytes,
+        naiveJsonBytes: naiveBytes,
+        shapeMatches,
+      },
+      timings: {
+        optimized: {
+          medianMs: opt.p50Ms,
+          avgMs: opt.avgMs,
+          p95Ms: opt.p95Ms,
+          minMs: opt.minMs,
+          maxMs: opt.maxMs,
+          opsPerSec: opt.opsPerSec,
+          samplesMs: optSamples,
+        },
+        naive: {
+          medianMs: nai.p50Ms,
+          avgMs: nai.avgMs,
+          p95Ms: nai.p95Ms,
+          minMs: nai.minMs,
+          maxMs: nai.maxMs,
+          opsPerSec: nai.opsPerSec,
+          samplesMs: naiSamples,
+        },
+        speedup: { median: ratioMedian, mean: ratio },
+      },
+      verdict: {
+        passed: !failed,
+        failures,
+        reproduceCmd,
+      },
+    };
+
+    try {
+      mkdirSync(dirname(resolvedPath), { recursive: true });
+      writeFileSync(resolvedPath, JSON.stringify(artifact, null, 2) + "\n", "utf8");
+      console.log(`  json artifact  : ${resolvedPath}`);
+    } catch (err) {
+      console.error(
+        `  ⚠ failed to write JSON artifact to ${resolvedPath}: ${(err as Error).message}`
+      );
+      // Don't mask the actual bench verdict on a write failure — keep going
+      // and let the failed/healthy exit path decide the final status.
+    }
+  }
 
   if (failed) {
     // Detailed regression report — stderr so CI logs and pre-push hooks
