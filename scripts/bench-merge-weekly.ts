@@ -1158,6 +1158,9 @@ main().catch((err) => {
         platform: process.platform,
         arch: process.arch,
         ci: process.env.CI ?? null,
+        // Capture git metadata even on crash — the whole point is to trace a
+        // bad revision, and a crash IS the regression we want to investigate.
+        git: captureGitInfo(),
         // Knobs are captured raw here (we may not have parsed/validated them).
         knobs: Object.fromEntries(
           Object.entries(process.env)
