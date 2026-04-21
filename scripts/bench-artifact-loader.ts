@@ -475,6 +475,16 @@ function cliInspect(target: string): number {
   }
   console.log(`  config       : weeks=${a.config.weeks} brokers=${a.config.brokers} gapMod=${a.config.gapMod} runs=${a.config.runs}`);
   console.log(`  thresholds   : budget=${a.thresholds.budgetMs}ms minRatio=${a.thresholds.minRatio}×`);
+  if (a.samplesPolicy && a.samplesPolicy.mode !== "full") {
+    const m = a.timings?.optimized.samplesMeta;
+    const policy =
+      a.samplesPolicy.mode === "downsample"
+        ? `downsample:${a.samplesPolicy.n}`
+        : a.samplesPolicy.mode;
+    console.log(
+      `  samples      : ${policy}  (kept ${m?.kept ?? "?"} of ${m?.originalLength ?? "?"} per impl)`
+    );
+  }
   console.log(`  optimized    : median=${a.timings.optimized.medianMs.toFixed(3)}ms p95=${a.timings.optimized.p95Ms.toFixed(3)}ms`);
   console.log(`  naive        : median=${a.timings.naive.medianMs.toFixed(3)}ms p95=${a.timings.naive.p95Ms.toFixed(3)}ms`);
   console.log(`  speedup      : median=${a.timings.speedup.median.toFixed(2)}× mean=${a.timings.speedup.mean.toFixed(2)}×`);
