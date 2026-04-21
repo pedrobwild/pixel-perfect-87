@@ -11,6 +11,13 @@ interface TrendWindow {
   topObjections: { objection: string; count: number }[];
 }
 
+interface WeeklyPoint {
+  weekStart: string;
+  label: string;
+  meetings: number;
+  avgScore: number;
+}
+
 interface TrendsPayload {
   windows: TrendWindow[];
   delta30vs60: {
@@ -18,6 +25,7 @@ interface TrendsPayload {
     avgScore: number;
     positiveSentimentPct: number;
   };
+  weekly?: WeeklyPoint[];
 }
 
 function DeltaPill({ value, suffix = "", invert = false }: { value: number; suffix?: string; invert?: boolean }) {
