@@ -12,8 +12,8 @@ const CACHE_TTL_HOURS = 6;
 
 // ─── Simple in-memory rate limiter ──────────────────────────────
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
-const RATE_LIMIT_WINDOW_MS = 60_000; // 1 minute
-const RATE_LIMIT_MAX = 10; // max requests per window
+const RATE_LIMIT_WINDOW_MS = 60_000;
+const RATE_LIMIT_MAX = 10;
 
 function checkRateLimit(key: string): boolean {
   const now = Date.now();
@@ -27,7 +27,7 @@ function checkRateLimit(key: string): boolean {
   return true;
 }
 
-// ─── Input validation helpers ───────────────────────────────────
+// ─── Input validation ───────────────────────────────────────────
 const VALID_ACTIONS = new Set(["list-users", "executive-summary", null]);
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -43,7 +43,25 @@ async function elephanFetch(path: string, apiKey: string) {
   return res.json();
 }
 
-// ─── DATA EXTRACTION (real metrics from API) ────────────────────────────
+// ─── Normalization (shared with frontend src/lib/insights/normalize.ts) ──
+function normalizeKey(s: string): string {
+  if (!s || typeof s !== "string") return "";
+  return s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function frequencyBand(pct: number): "alta" | "média" | "baixa" {
+  if (pct >= 0.4) return "alta";
+  if (pct >= 0.15) return "média";
+  return "baixa";
+}
+
+// ─── DATA EXTRACTION ─────────────────────────────────────────────
 
 interface SentimentEntry { sentimental: string; perc: number; total: number; }
 
@@ -114,56 +132,104 @@ interface TranscribeEntry {
   answers?: AnswerEntry[];
   deal?: { crmUrl?: string; id?: string };
 }
+interface ReasonEntry { type?: string; description?: string; details?: unknown; }
+interface CompetitorEntry { word?: string; name?: string; count?: number; }
+interface AnswerEntry { question?: string; score?: number; yesNo?: string | boolean; }
 
-interface ReasonEntry {
-  type?: string;
-  description?: string;
-  details?: unknown;
-}
+// ─── LEAD SCORE WITH BREAKDOWN ───────────────────────────────────
 
-interface CompetitorEntry {
-  word?: string;
-  name?: string;
-  count?: number;
-}
+export type ScoreFactorCategory = "sentiment" | "duration" | "reasons" | "competitors" | "answers";
+export interface ScoreFactor { label: string; delta: number; category: ScoreFactorCategory; }
 
-interface AnswerEntry {
-  question?: string;
-  score?: number;
-  yesNo?: string | boolean;
-}
+const BASE_SCORE = 50;
 
-export function computeLeadScore(t: TranscribeEntry): number {
-  let score = 50;
+export function computeLeadScore(t: TranscribeEntry): { score: number; breakdown: ScoreFactor[] } {
+  const breakdown: ScoreFactor[] = [];
+  let score = BASE_SCORE;
+
+  // Sentiment
   const dominant = extractDominantSentiment(t.sentimentAnalysis?.totalSentiment);
-  if (dominant === "positive") score += 20;
-  else if (dominant === "negative") score -= 15;
-  else if (dominant === "neutral") score += 5;
+  if (dominant === "positive") {
+    score += 20;
+    breakdown.push({ label: "Sentimento positivo dominante", delta: 20, category: "sentiment" });
+  } else if (dominant === "negative") {
+    score -= 15;
+    breakdown.push({ label: "Sentimento negativo dominante", delta: -15, category: "sentiment" });
+  } else if (dominant === "neutral") {
+    score += 5;
+    breakdown.push({ label: "Sentimento neutro", delta: 5, category: "sentiment" });
+  }
 
+  // Duration
   const durationMin = Math.round((t.duration || 0) / 60);
-  if (durationMin >= 30) score += 10;
-  else if (durationMin >= 15) score += 5;
-  else if (durationMin < 5) score -= 10;
+  if (durationMin >= 30) {
+    score += 10;
+    breakdown.push({ label: `Reunião longa (${durationMin}min)`, delta: 10, category: "duration" });
+  } else if (durationMin >= 15) {
+    score += 5;
+    breakdown.push({ label: `Reunião de tamanho médio (${durationMin}min)`, delta: 5, category: "duration" });
+  } else if (durationMin < 5) {
+    score -= 10;
+    breakdown.push({ label: `Reunião muito curta (${durationMin}min)`, delta: -10, category: "duration" });
+  }
 
+  // Reasons
   const reasons = t.reasons || [];
   const objections = reasons.filter((r) => r.type === "objection").length;
   const positivePoints = reasons.filter((r) => r.type === "positive_point").length;
   const potentialLoss = reasons.filter((r) => r.type === "potential_loss").length;
-  score -= objections * 5;
-  score += positivePoints * 4;
-  score -= potentialLoss * 8;
+  if (objections > 0) {
+    const d = -objections * 5;
+    score += d;
+    breakdown.push({ label: `${objections} objeç${objections > 1 ? "ões" : "ão"} levantada${objections > 1 ? "s" : ""}`, delta: d, category: "reasons" });
+  }
+  if (positivePoints > 0) {
+    const d = positivePoints * 4;
+    score += d;
+    breakdown.push({ label: `${positivePoints} ponto${positivePoints > 1 ? "s" : ""} positivo${positivePoints > 1 ? "s" : ""}`, delta: d, category: "reasons" });
+  }
+  if (potentialLoss > 0) {
+    const d = -potentialLoss * 8;
+    score += d;
+    breakdown.push({ label: `${potentialLoss} sinal${potentialLoss > 1 ? "is" : ""} de risco de perda`, delta: d, category: "reasons" });
+  }
 
+  // Competitors
   const competitors = (t.competitors || []).reduce((s: number, c) => s + (c.count || 1), 0);
-  score -= competitors * 3;
+  if (competitors > 0) {
+    const d = -competitors * 3;
+    score += d;
+    breakdown.push({ label: `${competitors} menç${competitors > 1 ? "ões" : "ão"} a concorrentes`, delta: d, category: "competitors" });
+  }
 
+  // Answers
   const answers = extractAnswerMetrics(t.answers || []);
   const yesCount = answers.yesNoQuestions.filter((q) => q.yesNo).length;
   const noCount = answers.yesNoQuestions.filter((q) => !q.yesNo).length;
-  score += yesCount * 4;
-  score -= noCount * 3;
-  if (answers.avgScore !== null) score += Math.round((answers.avgScore - 5) * 2);
+  if (yesCount > 0) {
+    const d = yesCount * 4;
+    score += d;
+    breakdown.push({ label: `${yesCount} resposta${yesCount > 1 ? "s" : ""} "sim"`, delta: d, category: "answers" });
+  }
+  if (noCount > 0) {
+    const d = -noCount * 3;
+    score += d;
+    breakdown.push({ label: `${noCount} resposta${noCount > 1 ? "s" : ""} "não"`, delta: d, category: "answers" });
+  }
+  if (answers.avgScore !== null) {
+    const d = Math.round((answers.avgScore - 5) * 2);
+    if (d !== 0) {
+      score += d;
+      breakdown.push({
+        label: `Score médio das respostas: ${answers.avgScore}/10`,
+        delta: d,
+        category: "answers",
+      });
+    }
+  }
 
-  return Math.max(0, Math.min(100, score));
+  const finalScore = Math.max(0, Math.min(100, score));
+  return { score: finalScore, breakdown };
 }
 
 function processMeetings(transcribes: any[]) {
@@ -199,7 +265,7 @@ function processMeetings(transcribes: any[]) {
       questionScoreMap[sq.question].push(sq.score);
     }
 
-    const score = computeLeadScore(t);
+    const { score, breakdown: scoreBreakdown } = computeLeadScore(t);
     const dominant = extractDominantSentiment(t.sentimentAnalysis?.totalSentiment);
     const durationMin = Math.round((t.duration || 0) / 60);
 
@@ -210,6 +276,7 @@ function processMeetings(transcribes: any[]) {
       sentiment: dominant,
       sentimentBreakdown: breakdown,
       score,
+      scoreBreakdown,
       objectionCount: (t.reasons || []).filter((r: any) => r.type === "objection").length,
       positivePoints: (t.reasons || []).filter((r: any) => r.type === "positive_point").length,
       competitorMentions: (t.competitors || []).reduce((s: number, c: any) => s + (c.count || 1), 0),
@@ -258,15 +325,18 @@ function processMeetings(transcribes: any[]) {
       question: question.length > 80 ? question.substring(0, 77) + "…" : question,
       avg: Math.round((scores.reduce((a, b) => a + b, 0) / scores.length) * 10) / 10,
       count: scores.length,
-    })).sort((a, b) => b.count - a.count).slice(0, 10),
+    })).slice(0, 10),
   };
 }
 
-// ─── AI ANALYSIS PROMPT ─────────────────────────────────────────────────
+// ─── AI PROMPT (now requires evidence) ──────────────────────────
 
 const STRUCTURED_PROMPT = `Você é um analista de inteligência comercial da BWild, empresa de reformas de studios para investimento (Airbnb/short stay).
 
 Analise as transcrições e retorne um JSON com esta estrutura. RETORNE APENAS O JSON, sem markdown.
+
+CRÍTICO: para cada objeção, pergunta, objeção oculta e sinal de compra você DEVE incluir um array "evidence" com pelo menos 1 trecho LITERAL extraído das reuniões. NUNCA invente citações. Cada item de evidência tem o formato:
+{ "meetingTitle": "título exato da reunião", "quote": "trecho literal de no máximo 200 caracteres" }
 
 {
   "buyerPersona": {
@@ -280,19 +350,19 @@ Analise as transcrições e retorne um JSON com esta estrutura. RETORNE APENAS O
     {"type": "Nome", "description": "Como se comporta", "frequency": "alta/média/baixa", "approachStrategy": "Como atender", "pitfalls": "O que evitar"}
   ],
   "topQuestions": [
-    {"question": "Pergunta", "frequency": "alta/média/baixa", "idealAnswer": "Resposta", "context": "Quando surge"}
+    {"question": "Pergunta", "idealAnswer": "Resposta", "context": "Quando surge", "evidence": [{"meetingTitle": "...", "quote": "..."}]}
   ],
   "objections": [
-    {"objection": "Objeção", "frequency": "alta/média/baixa", "rebuttal": "Argumento"}
+    {"objection": "Objeção", "rebuttal": "Argumento", "evidence": [{"meetingTitle": "...", "quote": "..."}]}
   ],
   "hiddenObjections": [
-    {"objection": "Objeção oculta", "signals": "Como identificar", "approach": "Como resolver"}
+    {"objection": "Objeção oculta", "signals": "Como identificar", "approach": "Como resolver", "evidence": [{"meetingTitle": "...", "quote": "..."}]}
   ],
   "closingArguments": [
     {"argument": "Argumento", "effectiveness": "alta/média", "context": "Quando usar"}
   ],
   "buyingSignals": [
-    {"signal": "Sinal", "action": "O que fazer"}
+    {"signal": "Sinal", "action": "O que fazer", "evidence": [{"meetingTitle": "...", "quote": "..."}]}
   ],
   "actionItems": [
     {"action": "Ação", "priority": "alta/média/baixa", "impact": "Impacto"}
@@ -304,15 +374,72 @@ REGRAS:
 - APENAS JSON, sem texto antes/depois, sem backticks
 - Dados concretos das reuniões, nunca invente
 - Mínimo 3 objeções, 3 argumentos, 3 sinais, 2 perfis, 3 perguntas, 2 ocultas
+- TODA objeção, pergunta, objeção oculta e sinal precisa de pelo menos 1 evidência literal
 - Português do Brasil, direto e acionável`;
 
-// ─── MAIN HANDLER ───────────────────────────────────────────────────────
+// ─── EVIDENCE POST-PROCESSING ───────────────────────────────────
+
+interface ItemWithEvidence {
+  evidence?: Array<{ meetingTitle?: string; quote?: string }>;
+  frequency?: string;
+  frequencyPct?: number;
+  evidenceCount?: number;
+}
+
+/**
+ * Normaliza evidências, calcula frequência real, dropa itens sem evidência.
+ * Sobrescreve `frequency` declarado pelo LLM com banda calculada.
+ */
+function annotateWithEvidence<T extends ItemWithEvidence>(
+  items: T[] | undefined,
+  totalMeetings: number,
+  validTitles: Set<string>,
+): T[] {
+  if (!Array.isArray(items)) return [];
+  return items
+    .map((item) => {
+      const evidence = (item.evidence || [])
+        .filter((e) => e && typeof e.quote === "string" && e.quote.trim().length > 0)
+        .map((e) => ({
+          meetingTitle: typeof e.meetingTitle === "string" ? e.meetingTitle.substring(0, 200) : "",
+          quote: e.quote!.substring(0, 220).trim(),
+        }))
+        // Soft validation: if title doesn't match any real meeting, keep the quote but blank the title.
+        .map((e) => ({
+          meetingTitle: e.meetingTitle && validTitles.has(normalizeKey(e.meetingTitle)) ? e.meetingTitle : (e.meetingTitle || ""),
+          quote: e.quote,
+        }));
+      const count = evidence.length;
+      const pct = totalMeetings > 0 ? count / totalMeetings : 0;
+      return {
+        ...item,
+        evidence,
+        evidenceCount: count,
+        frequencyPct: Math.round(pct * 100),
+        frequency: frequencyBand(pct),
+      };
+    })
+    .filter((item) => (item.evidence?.length || 0) > 0);
+}
+
+/** Dedupe items by a normalized key */
+function dedupeByKey<T>(items: T[], keyFn: (it: T) => string): T[] {
+  const seen = new Set<string>();
+  return items.filter((it) => {
+    const k = normalizeKey(keyFn(it));
+    if (!k) return false;
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
+}
+
+// ─── MAIN HANDLER ───────────────────────────────────────────────
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    // Rate limit by IP
     const clientIp = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
     if (!checkRateLimit(clientIp)) {
       return new Response(JSON.stringify({ success: false, error: "Rate limit exceeded. Try again in 1 minute." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -331,22 +458,18 @@ serve(async (req) => {
     const forceRefresh = (url.searchParams.get("refresh") || bodyParams.refresh) === "true";
     const userId = url.searchParams.get("userId") || bodyParams.userId || null;
 
-    // Validate action
     if (action !== null && !VALID_ACTIONS.has(action)) {
       return new Response(JSON.stringify({ success: false, error: "Invalid action" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
-
-    // Validate userId format if provided
     if (userId && !UUID_RE.test(userId) && userId.length > 100) {
       return new Response(JSON.stringify({ success: false, error: "Invalid userId format" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const sb = getSupabaseAdmin();
-
     const apiKey = Deno.env.get("ASKELEPHANT_API_KEY");
     if (!apiKey) return new Response(JSON.stringify({ success: false, error: "ASKELEPHANT_API_KEY not configured" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-    // ─── LIST USERS ENDPOINT ──────────────────────────────────────
+    // ─── LIST USERS ──────────────────────────────────────────────
     if (action === "list-users") {
       const usersResult = await elephanFetch("/users?limit=100", apiKey);
       const users = (usersResult.data || []).map((u: any) => ({
@@ -357,7 +480,7 @@ serve(async (req) => {
       return new Response(JSON.stringify({ success: true, users }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // ─── EXECUTIVE SUMMARY ENDPOINT ─────────────────────────────────
+    // ─── EXECUTIVE SUMMARY ───────────────────────────────────────
     if (action === "executive-summary") {
       const lovableKey = Deno.env.get("LOVABLE_API_KEY");
       if (!lovableKey) return new Response(JSON.stringify({ success: false, error: "LOVABLE_API_KEY not configured" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -412,16 +535,13 @@ REGRAS:
       return new Response(JSON.stringify({ success: true, takeaways }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // ─── INSIGHTS ENDPOINT ────────────────────────────────────────
+    // ─── INSIGHTS ENDPOINT ───────────────────────────────────────
     const lovableKey = Deno.env.get("LOVABLE_API_KEY");
     if (!lovableKey) return new Response(JSON.stringify({ success: false, error: "LOVABLE_API_KEY not configured" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-    // Resolve target user
     let targetUserId: string;
     let targetUserName: string;
-
     if (userId) {
-      // Specific user requested
       const usersResult = await elephanFetch("/users?limit=100", apiKey);
       const users = usersResult.data || [];
       const found = users.find((u: any) => u.id === userId);
@@ -429,7 +549,6 @@ REGRAS:
       targetUserId = found.id;
       targetUserName = found.name || found.email || "Corretor";
     } else {
-      // Default: find Amanda
       const usersResult = await elephanFetch("/users?limit=100", apiKey);
       const users = usersResult.data || [];
       const amanda = users.find((u: any) => (u.name || "").toLowerCase().includes("amanda") || (u.email || "").toLowerCase().includes("amanda"));
@@ -440,7 +559,6 @@ REGRAS:
 
     const cacheKey = `user_${targetUserId}`;
 
-    // Check cache
     if (!forceRefresh) {
       const { data: cached } = await sb.from("elephant_insights_cache").select("*").eq("cache_key", cacheKey).single();
       if (cached) {
@@ -459,7 +577,7 @@ REGRAS:
       }
     }
 
-    // Fetch all transcribes for target user
+    // Fetch all transcribes
     const allTranscribes: any[] = [];
     let page = 1, hasNext = true;
     while (hasNext) {
@@ -469,31 +587,55 @@ REGRAS:
       page++;
     }
 
-    // Filter out meetings with 0 duration (didn't happen) and specific exclusions
+    // Filter: no-show (duration === 0) e exclusões específicas.
+    // Contamos no-shows separadamente para expor como KPI.
+    const excludedTitles: any[] = [];
+    const noShows: any[] = [];
     const filteredTranscribes = allTranscribes.filter((t: any) => {
-      const durationSec = t.duration || 0;
-      if (durationSec === 0) return false;
       const title = (t.title || "").toLowerCase();
-      if (title.includes("incorp") && title.includes("joao pedro")) return false;
-      if (title.includes("incorp") && title.includes("joão pedro")) return false;
+      const isExcludedByTitle =
+        (title.includes("incorp") && title.includes("joao pedro")) ||
+        (title.includes("incorp") && title.includes("joão pedro"));
+      if (isExcludedByTitle) {
+        excludedTitles.push(t);
+        return false;
+      }
+      if ((t.duration || 0) === 0) {
+        noShows.push(t);
+        return false;
+      }
       return true;
     });
 
+    const scheduledCount = filteredTranscribes.length + noShows.length;
+    const noShowCount = noShows.length;
+    const noShowRate = scheduledCount > 0 ? Math.round((noShowCount / scheduledCount) * 100) : 0;
+
     if (filteredTranscribes.length === 0) {
-      return new Response(JSON.stringify({ success: true, amandaName: targetUserName, totalMeetings: 0, chartsData: null }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({
+        success: true,
+        amandaName: targetUserName,
+        totalMeetings: 0,
+        chartsData: { metrics: { noShowCount, noShowRate, scheduledCount } },
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // ─── EXTRACT REAL METRICS ─────────────────────────────────────────
+    // ─── EXTRACT REAL METRICS ───────────────────────────────────
     const metrics = processMeetings(filteredTranscribes);
 
-    // ─── AI ANALYSIS (qualitative layer) ──────────────────────────────
+    // Build set of valid meeting titles for evidence validation
+    const validTitles = new Set<string>(
+      filteredTranscribes.map((t: any) => normalizeKey(t.title || ""))
+    );
+
+    // ─── AI ANALYSIS ────────────────────────────────────────────
     const meetingSummaries = filteredTranscribes.slice(0, 50).map((t: any) => {
       const reasons = (t.reasons || []).map((r: any) => `[${r.type}] ${r.description}`).join("; ");
       const dominant = extractDominantSentiment(t.sentimentAnalysis?.totalSentiment);
-      return `[${t.dateIncluded || "?"}] ${t.title || "?"} | ${Math.round((t.duration || 0) / 60)}min | Sent:${dominant}\nResumo: ${(t.summary || "").replace(/<[^>]*>/g, "").substring(0, 400)}\nObjeções/Pontos: ${reasons || "—"}`;
+      return `[${t.dateIncluded || "?"}] TÍTULO: "${t.title || "?"}" | ${Math.round((t.duration || 0) / 60)}min | Sent:${dominant}\nResumo: ${(t.summary || "").replace(/<[^>]*>/g, "").substring(0, 400)}\nObjeções/Pontos: ${reasons || "—"}`;
     }).join("\n---\n");
 
-    let aiDashboard = null;
+    let aiDashboard: any = null;
     try {
       const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
@@ -502,7 +644,7 @@ REGRAS:
           model: "google/gemini-2.5-flash",
           messages: [
             { role: "system", content: STRUCTURED_PROMPT },
-            { role: "user", content: `${filteredTranscribes.length} transcrições da ${targetUserName}:\n\n${meetingSummaries}` },
+            { role: "user", content: `${filteredTranscribes.length} transcrições de ${targetUserName}. Use o TÍTULO exato de cada reunião ao gerar evidence:\n\n${meetingSummaries}` },
           ],
         }),
       });
@@ -521,7 +663,29 @@ REGRAS:
       console.error("AI analysis failed, continuing with metrics:", err);
     }
 
-    // ─── BUILD COMBINED DASHBOARD ─────────────────────────────────────
+    // Pós-processa evidence: sobrescreve frequency com banda calculada,
+    // descarta itens sem evidência, normaliza dedupe.
+    const totalForFrequency = filteredTranscribes.length;
+    if (aiDashboard) {
+      aiDashboard.objections = dedupeByKey(
+        annotateWithEvidence(aiDashboard.objections, totalForFrequency, validTitles),
+        (o: any) => o.objection || ""
+      );
+      aiDashboard.topQuestions = dedupeByKey(
+        annotateWithEvidence(aiDashboard.topQuestions, totalForFrequency, validTitles),
+        (q: any) => q.question || ""
+      );
+      aiDashboard.hiddenObjections = dedupeByKey(
+        annotateWithEvidence(aiDashboard.hiddenObjections, totalForFrequency, validTitles),
+        (h: any) => h.objection || ""
+      );
+      aiDashboard.buyingSignals = dedupeByKey(
+        annotateWithEvidence(aiDashboard.buyingSignals, totalForFrequency, validTitles),
+        (s: any) => s.signal || ""
+      );
+    }
+
+    // ─── BUILD COMBINED DASHBOARD ───────────────────────────────
     const dashboard = {
       metrics: {
         avgSentiment: metrics.avgSentiment,
@@ -529,6 +693,10 @@ REGRAS:
         competitors: metrics.competitors,
         scoreDistribution: metrics.scoreDistribution,
         answerScores: metrics.answerScores,
+        noShowCount,
+        noShowRate,
+        scheduledCount,
+        totalForFrequency,
       },
       leadScores: metrics.leads,
       ...(aiDashboard || {}),
@@ -546,7 +714,6 @@ REGRAS:
       chartsData: dashboard,
     };
 
-    // Cache per user
     await sb.from("elephant_insights_cache").upsert({
       cache_key: cacheKey,
       insights: JSON.stringify(aiDashboard),
