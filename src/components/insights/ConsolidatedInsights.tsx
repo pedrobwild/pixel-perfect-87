@@ -254,6 +254,8 @@ function mergeCacheEntries(caches: any[]): ConsolidatedData {
   let totalDuration = 0;
   let latestMeeting: string | null = null;
   let oldestUpdate: Date | null = null;
+  let noShowCount = 0;
+  let scheduledCount = 0;
 
   const allLeads: any[] = [];
   const sentimentTotals: Record<string, number[]> = {};
@@ -285,6 +287,10 @@ function mergeCacheEntries(caches: any[]): ConsolidatedData {
 
     const d = cache.charts_data;
     if (!d) continue;
+
+    // No-show aggregation
+    if (typeof d.metrics?.noShowCount === "number") noShowCount += d.metrics.noShowCount;
+    if (typeof d.metrics?.scheduledCount === "number") scheduledCount += d.metrics.scheduledCount;
 
     // Quantitative
     if (Array.isArray(d.leadScores)) allLeads.push(...d.leadScores);
