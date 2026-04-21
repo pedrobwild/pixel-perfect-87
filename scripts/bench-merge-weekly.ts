@@ -26,11 +26,88 @@
  */
 import { writeFileSync, mkdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
+import { execSync } from "node:child_process";
 import {
   mergeWeekly,
   type BrokerSeries,
 } from "../src/components/insights/MultiBrokerWeeklySparkline";
 import { loadArtifact, type CanonicalArtifact } from "./bench-artifact-loader";
+
+/**
+ * Capture git metadata for traceability: every artifact links back to the
+ * exact commit that produced its timings.
+ *
+ * Resolution order per field:
+ *   1. Explicit env var (GIT_COMMIT / GIT_BRANCH / GIT_SHA) — set by CI
+ *      providers (GitHub Actions, GitLab, CircleCI all expose at least one).
+ *   2. CI-provider conventions (GITHUB_SHA, GITHUB_REF_NAME, etc.)
+ *   3. Local `git` CLI fallback — works for dev runs in a checkout.
+ *
+ * Returns `null` for any field that cannot be resolved (e.g. tarball builds,
+ * no git binary, detached HEAD with no branch). Never throws.
+ */
+export interface GitInfo {
+  commit: string | null;       // Full 40-char SHA when available
+  shortSha: string | null;     // 7-char abbreviation; useful for human display
+  branch: string | null;       // Branch name; null on detached HEAD
+  dirty: boolean | null;       // true if working tree has uncommitted changes
+  source: "env" | "git" | "mixed" | "none"; // Where the data came from
+}
+
+function tryGit(args: string): string | null {
+  try {
+    const out = execSync(`git ${args}`, {
+      stdio: ["ignore", "pipe", "ignore"],
+      encoding: "utf8",
+      timeout: 1500,
+    }).trim();
+    return out.length > 0 ? out : null;
+  } catch {
+    return null;
+  }
+}
+
+function captureGitInfo(): GitInfo {
+  // 1. Env-var precedence — CI sets these without spawning git.
+  const envCommit =
+    process.env.GIT_COMMIT ||
+    process.env.GIT_SHA ||
+    process.env.GITHUB_SHA ||
+    process.env.CI_COMMIT_SHA ||           // GitLab
+    process.env.CIRCLE_SHA1 ||             // CircleCI
+    process.env.BITBUCKET_COMMIT ||        // Bitbucket
+    null;
+  const envBranch =
+    process.env.GIT_BRANCH ||
+    process.env.GITHUB_REF_NAME ||
+    process.env.CI_COMMIT_REF_NAME ||      // GitLab
+    process.env.CIRCLE_BRANCH ||           // CircleCI
+    process.env.BITBUCKET_BRANCH ||        // Bitbucket
+    null;
+
+  // 2. Git CLI fallback.
+  const gitCommit = envCommit ? null : tryGit("rev-parse HEAD");
+  const gitBranch = envBranch ? null : tryGit("rev-parse --abbrev-ref HEAD");
+
+  const commit = envCommit ?? gitCommit;
+  const branch = envBranch ?? gitBranch;
+  // Detached-HEAD reports "HEAD" — normalize to null so consumers don't treat
+  // it as a real branch name.
+  const branchNormalized = branch === "HEAD" ? null : branch;
+  const shortSha = commit ? commit.slice(0, 7) : null;
+
+  // Dirty check is git-only; skip if we have no working tree.
+  let dirty: boolean | null = null;
+  const status = tryGit("status --porcelain");
+  if (status !== null) dirty = status.length > 0;
+
+  let source: GitInfo["source"] = "none";
+  if (envCommit && (gitCommit || gitBranch)) source = "mixed";
+  else if (envCommit || envBranch) source = "env";
+  else if (gitCommit || gitBranch) source = "git";
+
+  return { commit, shortSha, branch: branchNormalized, dirty, source };
+}
 
 // ─── Naïve reference (kept in lock-step with tests) ─────────────────────────
 function mergeWeeklyNaive(series: BrokerSeries[]) {
