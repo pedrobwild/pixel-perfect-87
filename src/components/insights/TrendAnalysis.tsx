@@ -132,7 +132,129 @@ export default function TrendAnalysis({ trends }: { trends: TrendsPayload | unde
         <p className="text-[10px] text-muted-foreground/70 mt-3 leading-relaxed">
           Janelas cumulativas a partir de hoje. Os deltas (▲▼) comparam os últimos 30 dias com os 30 dias imediatamente anteriores.
         </p>
+
+        {trends.weekly && trends.weekly.length > 0 && trends.weekly.some((w) => w.meetings > 0) && (
+          <WeeklySparkline weekly={trends.weekly} />
+        )}
       </CardContent>
     </Card>
+  );
+}
+
+// ─── 12-week evolution sparkline ────────────────────────────────
+
+function WeeklySparkline({ weekly }: { weekly: WeeklyPoint[] }) {
+  const totalMeetings = weekly.reduce((s, w) => s + w.meetings, 0);
+  const activeWeeks = weekly.filter((w) => w.meetings > 0);
+  const avgScore = activeWeeks.length
+    ? Math.round(activeWeeks.reduce((s, w) => s + w.avgScore, 0) / activeWeeks.length)
+    : 0;
+
+  return (
+    <div className="mt-5 pt-5 border-t border-border/50">
+      <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
+        <div className="flex items-center gap-2">
+          <LineChartIcon className="h-4 w-4 text-primary" />
+          <h4 className="text-sm font-semibold text-foreground">Evolução · 12 semanas</h4>
+        </div>
+        <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+          <span className="inline-flex items-center gap-1.5">
+            <span className="inline-block h-2 w-2 rounded-full bg-primary" />
+            Reuniões <span className="font-semibold text-foreground tabular-nums">{totalMeetings}</span>
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />
+            Score médio <span className="font-semibold text-foreground tabular-nums">{avgScore || "—"}</span>
+          </span>
+        </div>
+      </div>
+
+      <div className="h-44 w-full">
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={weekly} margin={{ top: 8, right: 12, left: -12, bottom: 0 }}>
+            <defs>
+              <linearGradient id="grad-meetings" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.45} />
+                <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+              </linearGradient>
+              <linearGradient id="grad-score" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="hsl(142 71% 45%)" stopOpacity={0.35} />
+                <stop offset="95%" stopColor="hsl(142 71% 45%)" stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.4} vertical={false} />
+            <XAxis
+              dataKey="label"
+              tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+              tickLine={false}
+              axisLine={{ stroke: "hsl(var(--border))" }}
+              interval="preserveStartEnd"
+            />
+            <YAxis
+              yAxisId="left"
+              tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+              tickLine={false}
+              axisLine={false}
+              width={30}
+              allowDecimals={false}
+            />
+            <YAxis
+              yAxisId="right"
+              orientation="right"
+              domain={[0, 100]}
+              tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+              tickLine={false}
+              axisLine={false}
+              width={28}
+            />
+            <Tooltip
+              contentStyle={{
+                background: "hsl(var(--popover))",
+                border: "1px solid hsl(var(--border))",
+                borderRadius: "0.5rem",
+                fontSize: "11px",
+                padding: "6px 10px",
+              }}
+              labelStyle={{ color: "hsl(var(--foreground))", fontWeight: 600, marginBottom: 2 }}
+              formatter={(value: number, name: string) => {
+                if (name === "Reuniões") return [value, name];
+                if (name === "Score médio") return [value || "—", name];
+                return [value, name];
+              }}
+              labelFormatter={(label, payload) => {
+                const p = payload?.[0]?.payload as WeeklyPoint | undefined;
+                return p ? `Semana de ${p.label}` : label;
+              }}
+            />
+            <Area
+              yAxisId="left"
+              type="monotone"
+              dataKey="meetings"
+              name="Reuniões"
+              stroke="hsl(var(--primary))"
+              strokeWidth={2}
+              fill="url(#grad-meetings)"
+              dot={{ r: 2.5, strokeWidth: 0, fill: "hsl(var(--primary))" }}
+              activeDot={{ r: 4 }}
+            />
+            <Area
+              yAxisId="right"
+              type="monotone"
+              dataKey="avgScore"
+              name="Score médio"
+              stroke="hsl(142 71% 45%)"
+              strokeWidth={2}
+              fill="url(#grad-score)"
+              dot={{ r: 2, strokeWidth: 0, fill: "hsl(142 71% 45%)" }}
+              activeDot={{ r: 4 }}
+            />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
+
+      <p className="text-[10px] text-muted-foreground/70 mt-2 leading-relaxed">
+        Buckets semanais (segunda a domingo). Eixo esquerdo = volume de reuniões; eixo direito = score médio (0-100).
+      </p>
+    </div>
   );
 }
