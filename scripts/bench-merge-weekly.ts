@@ -160,10 +160,59 @@ async function main() {
   const BUDGET_MS = num("BENCH_BUDGET_MS", 75); // per-call median ceiling
   const MIN_RATIO = num("BENCH_MIN_RATIO", 1.2); // naive/optimized speedup
 
+  // ─── Env snapshot ─────────────────────────────────────────────────────────
+  // Capture the EXACT effective value of every knob the bench AND the
+  // companion vitest perf suite recognize, plus whether each one was
+  // explicitly set or defaulted. Reused in the diagnostics block and to
+  // build a one-line reproduce command.
+  const trackedEnv = [
+    // Bench-only knobs (with their effective parsed values).
+    { key: "BENCH_RUNS", effective: String(RUNS), default: "30" },
+    { key: "BENCH_WEEKS", effective: String(WEEKS), default: "800" },
+    { key: "BENCH_BROKERS", effective: String(BROKERS), default: "12" },
+    { key: "BENCH_GAP_MOD", effective: String(GAP_MOD), default: "10" },
+    { key: "BENCH_BUDGET_MS", effective: String(BUDGET_MS), default: "75" },
+    { key: "BENCH_MIN_RATIO", effective: MIN_RATIO.toFixed(2), default: "1.20" },
+    // Cross-cutting knobs that influence the related vitest perf suite —
+    // shown here so a single snapshot reproduces both.
+    { key: "CI", effective: process.env.CI ?? "(unset)", default: "(unset)" },
+    { key: "VERBOSE", effective: process.env.VERBOSE ?? "(unset)", default: "(unset)" },
+    { key: "MERGE_WEEKLY_PERF_BUDGET_MS", effective: process.env.MERGE_WEEKLY_PERF_BUDGET_MS ?? "(unset)", default: "(unset)" },
+    { key: "MERGE_WEEKLY_PERF_RATIO", effective: process.env.MERGE_WEEKLY_PERF_RATIO ?? "(unset)", default: "(unset)" },
+    { key: "MERGE_WEEKLY_PERF_MIN_RUNS", effective: process.env.MERGE_WEEKLY_PERF_MIN_RUNS ?? "(unset)", default: "(unset)" },
+    { key: "MERGE_WEEKLY_PERF_MAX_RUNS", effective: process.env.MERGE_WEEKLY_PERF_MAX_RUNS ?? "(unset)", default: "(unset)" },
+    { key: "MERGE_WEEKLY_PERF_TARGET_RSE", effective: process.env.MERGE_WEEKLY_PERF_TARGET_RSE ?? "(unset)", default: "(unset)" },
+    { key: "MERGE_WEEKLY_PERF_BUDGET_MS_SMALL", effective: process.env.MERGE_WEEKLY_PERF_BUDGET_MS_SMALL ?? "(unset)", default: "(unset)" },
+    { key: "MERGE_WEEKLY_PERF_BUDGET_MS_MEDIUM", effective: process.env.MERGE_WEEKLY_PERF_BUDGET_MS_MEDIUM ?? "(unset)", default: "(unset)" },
+    { key: "MERGE_WEEKLY_PERF_BUDGET_MS_LARGE", effective: process.env.MERGE_WEEKLY_PERF_BUDGET_MS_LARGE ?? "(unset)", default: "(unset)" },
+    { key: "MERGE_WEEKLY_PERF_RATIO_SMALL", effective: process.env.MERGE_WEEKLY_PERF_RATIO_SMALL ?? "(unset)", default: "(unset)" },
+    { key: "MERGE_WEEKLY_PERF_RATIO_MEDIUM", effective: process.env.MERGE_WEEKLY_PERF_RATIO_MEDIUM ?? "(unset)", default: "(unset)" },
+    { key: "MERGE_WEEKLY_PERF_RATIO_LARGE", effective: process.env.MERGE_WEEKLY_PERF_RATIO_LARGE ?? "(unset)", default: "(unset)" },
+  ] as const;
+
+  const envRows = trackedEnv.map((e) => {
+    const isSet = process.env[e.key] !== undefined && process.env[e.key] !== "";
+    const tag = isSet ? "(set)    " : "(default)";
+    const padKey = e.key.padEnd(36, " ");
+    return `    ${padKey} = ${e.effective.padEnd(10)} ${tag}`;
+  });
+
+  // Build a copy-pasteable reproduce command from ONLY the env vars that
+  // were explicitly set — keeps the line short and faithful to what the
+  // user actually had in their shell.
+  const setEnvAssignments = trackedEnv
+    .filter((e) => process.env[e.key] !== undefined && process.env[e.key] !== "")
+    .map((e) => `${e.key}=${process.env[e.key]}`);
+  const reproduceCmd =
+    setEnvAssignments.length > 0
+      ? `${setEnvAssignments.join(" ")} npm run bench:merge-weekly`
+      : "npm run bench:merge-weekly  # all defaults — no env vars set";
+
   console.log("\n▶ mergeWeekly micro-benchmark");
   console.log(`  config: weeks=${WEEKS}  brokers=${BROKERS}  gapMod=${GAP_MOD}  runs=${RUNS}`);
   console.log(`  thresholds: budget=${BUDGET_MS}ms/call  minSpeedup=${MIN_RATIO.toFixed(2)}×`);
-  console.log(`  node:   ${process.version}  platform=${process.platform}/${process.arch}\n`);
+  console.log(`  node:   ${process.version}  platform=${process.platform}/${process.arch}`);
+  console.log(`  CI=${process.env.CI ?? "(unset)"}  VERBOSE=${process.env.VERBOSE ?? "(unset)"}\n`);
 
   const series = makeSeries(WEEKS, BROKERS, GAP_MOD);
 
