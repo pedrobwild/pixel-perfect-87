@@ -150,6 +150,27 @@ function num(key: string, fallback: number): number {
 }
 
 async function main() {
+  // ─── CLI parsing ────────────────────────────────────────────────────────
+  // Supports `--json` (default path) or `--json=<path>` (custom path).
+  // Env var BENCH_JSON works the same way for non-interactive use (e.g. CI).
+  // The artifact contains every field needed to compare runs over time:
+  // config, env snapshot, raw + summary timings, computed thresholds, verdict.
+  const argv = process.argv.slice(2);
+  let jsonPath: string | null = null;
+  for (const arg of argv) {
+    if (arg === "--json") jsonPath = "default";
+    else if (arg.startsWith("--json=")) jsonPath = arg.slice("--json=".length).trim() || "default";
+    else if (arg === "-h" || arg === "--help") {
+      console.log("Usage: tsx scripts/bench-merge-weekly.ts [--json[=path]]");
+      console.log("Env: BENCH_RUNS, BENCH_WEEKS, BENCH_BROKERS, BENCH_GAP_MOD,");
+      console.log("     BENCH_BUDGET_MS, BENCH_MIN_RATIO, BENCH_JSON, VERBOSE=1");
+      process.exit(0);
+    }
+  }
+  if (!jsonPath && process.env.BENCH_JSON) {
+    jsonPath = process.env.BENCH_JSON.trim() || "default";
+  }
+
   const RUNS = Math.max(1, Math.round(num("BENCH_RUNS", 30)));
   const WEEKS = Math.max(1, Math.round(num("BENCH_WEEKS", 800)));
   const BROKERS = Math.max(1, Math.round(num("BENCH_BROKERS", 12)));
