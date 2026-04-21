@@ -344,6 +344,17 @@ function mergeCacheEntries(caches: any[]): ConsolidatedData {
       deltaAgg.positiveCount += recentWeight;
     }
 
+    // Weekly evolution aggregation (sum meetings, weighted score by meetings)
+    if (Array.isArray(d.trends?.weekly)) {
+      for (const wk of d.trends.weekly) {
+        if (!wk?.weekStart) continue;
+        const existing = weeklyAgg.get(wk.weekStart) || { label: wk.label || wk.weekStart, meetings: 0, scoreSum: 0 };
+        existing.meetings += wk.meetings || 0;
+        existing.scoreSum += (wk.avgScore || 0) * (wk.meetings || 0);
+        weeklyAgg.set(wk.weekStart, existing);
+      }
+    }
+
     // Quantitative
     if (Array.isArray(d.leadScores)) allLeads.push(...d.leadScores);
     if (d.metrics?.avgSentiment) {
