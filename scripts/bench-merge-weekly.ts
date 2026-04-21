@@ -334,10 +334,23 @@ async function runJsonDiff(
   const b: CanonicalArtifact = cand.artifact;
 
   console.log("\n▶ mergeWeekly bench — JSON diff");
+  const fmtGit = (art: CanonicalArtifact) => {
+    const g = art.env?.git;
+    if (!g) return "git=(unknown)";
+    return `git=${g.shortSha ?? "(unknown)"}${g.dirty ? "-dirty" : ""}/${g.branch ?? "(detached)"}`;
+  };
   console.log(`  baseline : ${base.path}`);
-  console.log(`             v${base.rawSchemaVersion}  ${a.startedAt}  status=${a.status ?? "(legacy)"}`);
+  console.log(`             v${base.rawSchemaVersion}  ${a.startedAt}  status=${a.status ?? "(legacy)"}  ${fmtGit(a)}`);
   console.log(`  candidate: ${cand.path}`);
-  console.log(`             v${cand.rawSchemaVersion}  ${b.startedAt}  status=${b.status ?? "(legacy)"}\n`);
+  console.log(`             v${cand.rawSchemaVersion}  ${b.startedAt}  status=${b.status ?? "(legacy)"}  ${fmtGit(b)}`);
+  // Quick reachability hint: if both artifacts have full SHAs, give the user
+  // a one-shot `git log` invocation to see what changed between them.
+  if (a.env?.git?.commit && b.env?.git?.commit && a.env.git.commit !== b.env.git.commit) {
+    console.log(`             commit range: git log --oneline ${a.env.git.commit}..${b.env.git.commit}`);
+  } else if (a.env?.git?.commit && a.env.git.commit === b.env?.git?.commit) {
+    console.log(`             ⚠ both artifacts share the same commit (${a.env.git.shortSha}) — timing diff reflects environmental noise, not code changes`);
+  }
+  console.log("");
 
   // Refuse to proceed on crash artifacts — there's nothing to compare.
   if (a.status === "crashed" || b.status === "crashed") {
