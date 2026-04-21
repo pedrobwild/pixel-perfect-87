@@ -144,33 +144,70 @@ function buildSparklineData(weekly: WeeklyPoint[]): WeeklyChartPoint[] {
 
 type MeetingsMode = "total" | "avg";
 
+const nfInt = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 });
+const nf1 = new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+
+function fmtMeetings(value: unknown, mode: MeetingsMode): string {
+  if (value == null || Number.isNaN(value as number)) return "—";
+  const n = Number(value);
+  return mode === "avg" ? nf1.format(n) : nfInt.format(n);
+}
+function fmtScore(value: unknown): string {
+  if (value == null || Number.isNaN(value as number)) return "—";
+  const n = Number(value);
+  if (n === 0) return "—";
+  return `${nfInt.format(n)} / 100`;
+}
+
 function SparkTooltip({ active, payload, label, mode }: any) {
   if (!active || !payload?.length) return null;
-  const meetings = payload.find((p: any) => p.dataKey === "meetings")?.value ?? 0;
+  const meetings = payload.find((p: any) => p.dataKey === "meetings")?.value;
   const meetingsAvg = payload.find((p: any) => p.dataKey === "meetingsAvg4")?.value;
-  const score = payload.find((p: any) => p.dataKey === "avgScore")?.value ?? 0;
+  const score = payload.find((p: any) => p.dataKey === "avgScore")?.value;
   const ma = payload.find((p: any) => p.dataKey === "scoreMA4")?.value;
+
+  const meetingsValue = mode === "avg" ? meetingsAvg : meetings;
+  const meetingsLabel = mode === "avg" ? "Média / sem." : "Total";
+  const meetingsUnit = mode === "avg" ? "reuniões/sem." : "reuniões";
+
   return (
-    <div className="rounded-md border border-border/60 bg-popover px-3 py-2 text-xs shadow-md">
-      <p className="font-semibold text-foreground mb-1">Semana de {label}</p>
-      {mode === "avg" ? (
-        <p className="text-muted-foreground">
-          Reuniões (média 4 sem.):{" "}
-          <span className="font-bold text-foreground tabular-nums">{meetingsAvg ?? "—"}</span>
-        </p>
-      ) : (
-        <p className="text-muted-foreground">
-          Reuniões: <span className="font-bold text-foreground tabular-nums">{meetings}</span>
-        </p>
-      )}
-      <p className="text-muted-foreground">
-        Score médio: <span className="font-bold text-foreground tabular-nums">{score || "—"}</span>
+    <div className="rounded-md border border-border/60 bg-popover px-3 py-2 text-xs shadow-md min-w-[200px]">
+      <p className="font-semibold text-foreground mb-1.5 pb-1.5 border-b border-border/40">
+        Semana de {label}
       </p>
-      {ma != null && (
-        <p className="text-muted-foreground">
-          Média 4 sem.: <span className="font-bold text-foreground tabular-nums">{ma}</span>
+
+      {/* Reuniões section */}
+      <div className="space-y-0.5">
+        <p className="text-[10px] uppercase tracking-wider text-muted-foreground/70 font-medium flex items-center gap-1">
+          <span className="inline-block h-2 w-2 rounded-sm bg-primary/70" aria-hidden />
+          Reuniões
         </p>
-      )}
+        <p className="flex items-baseline justify-between gap-3 pl-3">
+          <span className="text-muted-foreground">{meetingsLabel}</span>
+          <span className="tabular-nums">
+            <span className="font-bold text-foreground">{fmtMeetings(meetingsValue, mode)}</span>
+            <span className="text-[10px] text-muted-foreground/70 ml-1">{meetingsUnit}</span>
+          </span>
+        </p>
+      </div>
+
+      {/* Score section */}
+      <div className="space-y-0.5 mt-1.5 pt-1.5 border-t border-border/40">
+        <p className="text-[10px] uppercase tracking-wider text-muted-foreground/70 font-medium flex items-center gap-1">
+          <span className="inline-block h-0.5 w-2.5 bg-[hsl(var(--accent-foreground))]" aria-hidden />
+          Score médio
+        </p>
+        <p className="flex items-baseline justify-between gap-3 pl-3">
+          <span className="text-muted-foreground">Semana</span>
+          <span className="font-bold text-foreground tabular-nums">{fmtScore(score)}</span>
+        </p>
+        {ma != null && (
+          <p className="flex items-baseline justify-between gap-3 pl-3">
+            <span className="text-muted-foreground">MA 4 sem.</span>
+            <span className="font-bold text-foreground tabular-nums">{fmtScore(ma)}</span>
+          </p>
+        )}
+      </div>
     </div>
   );
 }
