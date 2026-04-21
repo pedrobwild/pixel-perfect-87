@@ -62,6 +62,15 @@ export interface CanonicalKnob {
   isSet: boolean;
 }
 
+export interface CanonicalSamplesMeta {
+  /** How `samplesMs` was stored: full = every sample, omit = none, downsample/summary = compressed view. */
+  kind: "full" | "omit" | "downsample" | "summary";
+  /** Number of samples actually collected during the run (pre-slim). */
+  originalLength: number;
+  /** Number of entries kept in `samplesMs` (`kept === samplesMs.length`). */
+  kept: number;
+}
+
 export interface CanonicalTiming {
   medianMs: number;
   avgMs: number;
@@ -70,6 +79,13 @@ export interface CanonicalTiming {
   maxMs: number;
   opsPerSec: number;
   samplesMs: number[];
+  /**
+   * Present on artifacts written with `--json-slim`. Absent ⇒ legacy/full
+   * artifact where `samplesMs.length === config.runs`. When present, the
+   * length invariant is relaxed and `originalLength` is the source of truth
+   * for "how many iterations actually ran".
+   */
+  samplesMeta?: CanonicalSamplesMeta;
 }
 
 export interface CanonicalArtifact {
