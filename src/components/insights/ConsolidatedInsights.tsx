@@ -455,6 +455,7 @@ function mergeCacheEntries(caches: any[]): ConsolidatedData {
     sentimentSummary: sentimentSummaries[0] || null,
     metrics: { avgSentiment, reasonsByType: allReasonsByType, competitors, answerScores },
     leadScores: allLeads.sort((a, b) => b.score - a.score),
+    trends: mergedTrends,
   };
 
   const cacheAge = oldestUpdate
