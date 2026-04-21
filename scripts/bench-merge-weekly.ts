@@ -4,18 +4,28 @@
  * Run:
  *   npm run bench:merge-weekly
  *   # or directly:
- *   npx tsx scripts/bench-merge-weekly.ts
+ *   npx tsx scripts/bench-merge-weekly.ts [--json[=path]]
+ *
+ * Optional CLI flags:
+ *   --json              write JSON artifact to ./bench-results/merge-weekly-<ts>.json
+ *   --json=<path>       write JSON artifact to <path>
  *
  * Optional env vars:
  *   BENCH_RUNS=50            iterations per scenario (default 30)
  *   BENCH_WEEKS=800          weeks per series (default 800)
  *   BENCH_BROKERS=12         number of brokers (default 12)
  *   BENCH_GAP_MOD=10         every Nth week is a gap per broker (default 10)
+ *   BENCH_BUDGET_MS=75       per-call median ceiling (ms)
+ *   BENCH_MIN_RATIO=1.2      required naive/optimized speedup
+ *   BENCH_JSON=<path>        same as --json=<path>
+ *   VERBOSE=1                always print full diagnostic block
  *
  * Reports per-iteration timing (avg / p50 / p95 / min / max), throughput,
  * the optimized-vs-naive speedup ratio, and the resulting dataset size so
  * regressions in either runtime OR output shape are obvious at a glance.
  */
+import { writeFileSync, mkdirSync } from "node:fs";
+import { dirname, resolve } from "node:path";
 import {
   mergeWeekly,
   type BrokerSeries,
