@@ -187,7 +187,75 @@ function fmtDelta(curr: number, prev: number, unit = "ms", digits = 3): string {
   return `${prev.toFixed(digits)}${unit} → ${curr.toFixed(digits)}${unit}  (${sign}${d.toFixed(digits)}${unit}, ${sign}${p.toFixed(1)}%) ${arrow}`;
 }
 
-async function runJsonDiff(baselinePath: string, candidatePath: string): Promise<number> {
+/**
+ * Structured shape of the diff result. Mirrors the human-readable report 1:1
+ * so a CI script can reach the same verdict by reading either format.
+ * Bumped via `schemaVersion` independently of the bench artifact schema —
+ * downstream consumers can pin to a specific diff schema without coupling
+ * to the bench's own evolution.
+ */
+export interface DiffArtifact {
+  schemaVersion: 1;
+  kind: "mergeWeekly-diff";
+  generatedAt: string;
+  baseline: { path: string; rawSchemaVersion: number; startedAt: string; status: string };
+  candidate: { path: string; rawSchemaVersion: number; startedAt: string; status: string };
+  config: {
+    sameScale: boolean;
+    baseline: { weeks: number; brokers: number; gapMod: number; runs: number };
+    candidate: { weeks: number; brokers: number; gapMod: number; runs: number };
+  };
+  limits: { medianPct: number; p95Pct: number; ratioDrop: number };
+  deltas: {
+    optimized: {
+      median: { baselineMs: number; candidateMs: number; deltaMs: number; deltaPct: number };
+      p95: { baselineMs: number; candidateMs: number; deltaMs: number; deltaPct: number };
+    };
+    naive: {
+      median: { baselineMs: number; candidateMs: number; deltaMs: number; deltaPct: number };
+      p95: { baselineMs: number; candidateMs: number; deltaMs: number; deltaPct: number };
+    };
+    speedup: { baseline: number; candidate: number; deltaAbs: number };
+    rows: { baseline: number | null; candidate: number | null };
+    shapeMatches: { baseline: boolean | null; candidate: boolean | null };
+  };
+  thresholdBreaches: {
+    candidateOwnBudget: { breached: boolean; budgetMs: number; observedMs: number };
+    candidateOwnRatio: { breached: boolean; minRatio: number; observedRatio: number };
+    baselineBudgetVsCandidate: {
+      breached: boolean;
+      budgetMs: number;
+      observedMs: number;
+      thresholdsRelaxed: boolean;
+    };
+    baselineRatioVsCandidate: {
+      breached: boolean;
+      minRatio: number;
+      observedRatio: number;
+      thresholdsRelaxed: boolean;
+    };
+  };
+  checks: Array<{ id: string; label: string; passed: boolean; detail: string }>;
+  verdict: { passed: boolean; failedChecks: string[]; exitCode: 0 | 1 };
+}
+
+function pct(curr: number, prev: number): number {
+  return prev === 0 ? 0 : ((curr - prev) / prev) * 100;
+}
+
+function fmtDelta(curr: number, prev: number, unit = "ms", digits = 3): string {
+  const d = curr - prev;
+  const p = pct(curr, prev);
+  const sign = d >= 0 ? "+" : "";
+  const arrow = d > 0 ? "▲" : d < 0 ? "▼" : "·";
+  return `${prev.toFixed(digits)}${unit} → ${curr.toFixed(digits)}${unit}  (${sign}${d.toFixed(digits)}${unit}, ${sign}${p.toFixed(1)}%) ${arrow}`;
+}
+
+async function runJsonDiff(
+  baselinePath: string,
+  candidatePath: string,
+  diffJsonPath: string | null = null
+): Promise<number> {
   let base, cand;
   try {
     base = loadArtifact(baselinePath);
@@ -255,14 +323,15 @@ async function runJsonDiff(baselinePath: string, candidatePath: string): Promise
   );
 
   // ─── Regression checks ─────────────────────────────────────────────────
-  // Each entry records what was checked and whether it tripped, so we can
-  // print a unified ✓/✗ table at the bottom. Easier to scan in CI logs.
-  type Check = { label: string; passed: boolean; detail: string };
+  // Each entry records what was checked AND a stable `id` so machine consumers
+  // can pin behavior to specific checks across diff-schema bumps.
+  type Check = { id: string; label: string; passed: boolean; detail: string };
   const checks: Check[] = [];
 
   // Median regression
   const medPct = pct(b.timings.optimized.medianMs, a.timings.optimized.medianMs);
   checks.push({
+    id: "optimized_median_pct",
     label: `optimized median ≤ +${medianPctLimit}% vs baseline`,
     passed: medPct <= medianPctLimit,
     detail: `${medPct >= 0 ? "+" : ""}${medPct.toFixed(1)}% (limit +${medianPctLimit}%)`,
@@ -271,6 +340,7 @@ async function runJsonDiff(baselinePath: string, candidatePath: string): Promise
   // p95 regression — catches tail latency that median hides
   const p95Pct = pct(b.timings.optimized.p95Ms, a.timings.optimized.p95Ms);
   checks.push({
+    id: "optimized_p95_pct",
     label: `optimized p95 ≤ +${p95PctLimit}% vs baseline`,
     passed: p95Pct <= p95PctLimit,
     detail: `${p95Pct >= 0 ? "+" : ""}${p95Pct.toFixed(1)}% (limit +${p95PctLimit}%)`,
@@ -279,6 +349,7 @@ async function runJsonDiff(baselinePath: string, candidatePath: string): Promise
   // Speedup drop
   const ratioDelta = b.timings.speedup.median - a.timings.speedup.median;
   checks.push({
+    id: "speedup_drop_abs",
     label: `speedup drop ≤ ${ratioDropLimit}× vs baseline`,
     passed: ratioDelta >= -ratioDropLimit,
     detail: `${ratioDelta >= 0 ? "+" : ""}${ratioDelta.toFixed(2)}× (limit −${ratioDropLimit}×)`,
@@ -287,6 +358,7 @@ async function runJsonDiff(baselinePath: string, candidatePath: string): Promise
   // Shape parity must hold across runs
   if (a.output && b.output) {
     checks.push({
+      id: "output_shape_parity",
       label: "output shape parity preserved",
       passed: a.output.shapeMatches === b.output.shapeMatches && b.output.shapeMatches,
       detail: `base=${a.output.shapeMatches}, cand=${b.output.shapeMatches}`,
@@ -302,6 +374,10 @@ async function runJsonDiff(baselinePath: string, candidatePath: string): Promise
   const candRatioBreached = b.timings.speedup.median < b.thresholds.minRatio;
   const baseBudgetBreached = b.timings.optimized.medianMs >= a.thresholds.budgetMs;
   const baseRatioBreached = b.timings.speedup.median < a.thresholds.minRatio;
+  const budgetRelaxed =
+    a.thresholds.budgetMs !== b.thresholds.budgetMs && b.thresholds.budgetMs > a.thresholds.budgetMs;
+  const ratioRelaxed =
+    a.thresholds.minRatio !== b.thresholds.minRatio && b.thresholds.minRatio < a.thresholds.minRatio;
 
   console.log("  threshold check:");
   const fmtThresh = (label: string, breached: boolean, detail: string) =>
@@ -345,13 +421,14 @@ async function runJsonDiff(baselinePath: string, candidatePath: string): Promise
 
   // Fold the threshold breaches into the unified check list.
   if (candBudgetBreached) {
-    checks.push({ label: "candidate budget threshold", passed: false, detail: "see above" });
+    checks.push({ id: "candidate_own_budget", label: "candidate budget threshold", passed: false, detail: "see above" });
   }
   if (candRatioBreached) {
-    checks.push({ label: "candidate minRatio threshold", passed: false, detail: "see above" });
+    checks.push({ id: "candidate_own_ratio", label: "candidate minRatio threshold", passed: false, detail: "see above" });
   }
   if (baseBudgetBreached && !candBudgetBreached) {
     checks.push({
+      id: "baseline_budget_vs_candidate",
       label: "candidate would FAIL baseline's stricter budget",
       passed: false,
       detail: "thresholds were relaxed",
@@ -359,6 +436,7 @@ async function runJsonDiff(baselinePath: string, candidatePath: string): Promise
   }
   if (baseRatioBreached && !candRatioBreached) {
     checks.push({
+      id: "baseline_ratio_vs_candidate",
       label: "candidate would FAIL baseline's stricter minRatio",
       passed: false,
       detail: "thresholds were relaxed",
@@ -369,14 +447,132 @@ async function runJsonDiff(baselinePath: string, candidatePath: string): Promise
   const failed = checks.filter((c) => !c.passed);
   console.log("\n  summary:");
   for (const c of checks) console.log(`    ${c.passed ? "✓" : "✗"} ${c.label} — ${c.detail}`);
-  if (failed.length === 0) {
+  const exitCode: 0 | 1 = failed.length === 0 ? 0 : 1;
+  if (exitCode === 0) {
     console.log("\n  verdict: ✓ no regression detected\n");
-    return 0;
+  } else {
+    console.error(
+      `\n  verdict: ✗ ${failed.length} regression${failed.length === 1 ? "" : "s"} detected — see ✗ rows above\n`
+    );
   }
-  console.error(
-    `\n  verdict: ✗ ${failed.length} regression${failed.length === 1 ? "" : "s"} detected — see ✗ rows above\n`
-  );
-  return 1;
+
+  // ─── Machine-readable diff artifact ───────────────────────────────────
+  // Same data the human report shows, structured so a CI step can:
+  //   • assert specific check.id values failed (stable across schema bumps)
+  //   • feed deltas into a trend dashboard without re-parsing console output
+  //   • detect threshold-relaxation independently from raw failure status
+  if (diffJsonPath) {
+    const optMed = b.timings.optimized.medianMs - a.timings.optimized.medianMs;
+    const optP95 = b.timings.optimized.p95Ms - a.timings.optimized.p95Ms;
+    const naiMed = b.timings.naive.medianMs - a.timings.naive.medianMs;
+    const naiP95 = b.timings.naive.p95Ms - a.timings.naive.p95Ms;
+    const diffArtifact: DiffArtifact = {
+      schemaVersion: 1,
+      kind: "mergeWeekly-diff",
+      generatedAt: new Date().toISOString(),
+      baseline: {
+        path: base.path,
+        rawSchemaVersion: base.rawSchemaVersion,
+        startedAt: a.startedAt,
+        status: a.status ?? "(legacy)",
+      },
+      candidate: {
+        path: cand.path,
+        rawSchemaVersion: cand.rawSchemaVersion,
+        startedAt: b.startedAt,
+        status: b.status ?? "(legacy)",
+      },
+      config: { sameScale, baseline: a.config, candidate: b.config },
+      limits: { medianPct: medianPctLimit, p95Pct: p95PctLimit, ratioDrop: ratioDropLimit },
+      deltas: {
+        optimized: {
+          median: {
+            baselineMs: a.timings.optimized.medianMs,
+            candidateMs: b.timings.optimized.medianMs,
+            deltaMs: optMed,
+            deltaPct: medPct,
+          },
+          p95: {
+            baselineMs: a.timings.optimized.p95Ms,
+            candidateMs: b.timings.optimized.p95Ms,
+            deltaMs: optP95,
+            deltaPct: p95Pct,
+          },
+        },
+        naive: {
+          median: {
+            baselineMs: a.timings.naive.medianMs,
+            candidateMs: b.timings.naive.medianMs,
+            deltaMs: naiMed,
+            deltaPct: pct(b.timings.naive.medianMs, a.timings.naive.medianMs),
+          },
+          p95: {
+            baselineMs: a.timings.naive.p95Ms,
+            candidateMs: b.timings.naive.p95Ms,
+            deltaMs: naiP95,
+            deltaPct: pct(b.timings.naive.p95Ms, a.timings.naive.p95Ms),
+          },
+        },
+        speedup: {
+          baseline: a.timings.speedup.median,
+          candidate: b.timings.speedup.median,
+          deltaAbs: ratioDelta,
+        },
+        rows: { baseline: a.output?.rows ?? null, candidate: b.output?.rows ?? null },
+        shapeMatches: {
+          baseline: a.output?.shapeMatches ?? null,
+          candidate: b.output?.shapeMatches ?? null,
+        },
+      },
+      thresholdBreaches: {
+        candidateOwnBudget: {
+          breached: candBudgetBreached,
+          budgetMs: b.thresholds.budgetMs,
+          observedMs: b.timings.optimized.medianMs,
+        },
+        candidateOwnRatio: {
+          breached: candRatioBreached,
+          minRatio: b.thresholds.minRatio,
+          observedRatio: b.timings.speedup.median,
+        },
+        baselineBudgetVsCandidate: {
+          breached: baseBudgetBreached,
+          budgetMs: a.thresholds.budgetMs,
+          observedMs: b.timings.optimized.medianMs,
+          thresholdsRelaxed: budgetRelaxed,
+        },
+        baselineRatioVsCandidate: {
+          breached: baseRatioBreached,
+          minRatio: a.thresholds.minRatio,
+          observedRatio: b.timings.speedup.median,
+          thresholdsRelaxed: ratioRelaxed,
+        },
+      },
+      checks,
+      verdict: {
+        passed: exitCode === 0,
+        failedChecks: failed.map((c) => c.id),
+        exitCode,
+      },
+    };
+
+    const resolvedPath =
+      diffJsonPath === "default"
+        ? resolve(`bench-results/diff-${new Date().toISOString().replace(/[:.]/g, "-")}.json`)
+        : resolve(diffJsonPath);
+    try {
+      mkdirSync(dirname(resolvedPath), { recursive: true });
+      writeFileSync(resolvedPath, JSON.stringify(diffArtifact, null, 2) + "\n", "utf8");
+      console.log(`  diff json      : ${resolvedPath}\n`);
+    } catch (err) {
+      console.error(
+        `  ⚠ failed to write diff JSON to ${resolvedPath}: ${(err as Error).message}`
+      );
+      // Don't override the regression verdict on a write failure.
+    }
+  }
+
+  return exitCode;
 }
 
 
