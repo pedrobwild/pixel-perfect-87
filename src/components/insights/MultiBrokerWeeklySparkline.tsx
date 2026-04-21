@@ -363,7 +363,7 @@ export default function MultiBrokerWeeklySparkline({ series }: { series: BrokerS
               height={0}
               wrapperStyle={{ display: "none" }}
             />
-            {series.map((_, idx) => (
+            {series.map((_, idx) => brokerHasData[idx] && (
               <Line
                 key={idx}
                 type="monotone"
