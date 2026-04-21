@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { mergeWeekly, type BrokerSeries, type MergedRow } from "../MultiBrokerWeeklySparkline";
+import { adaptiveCompare, fmt } from "@/test/perfTimer";
 
 // ─── Reference: naïve O(W·B·Pmax) implementation kept in lock-step with the
 // production one, used as a correctness oracle for the optimized version. ───
