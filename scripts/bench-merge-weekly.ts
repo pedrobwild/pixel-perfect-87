@@ -473,16 +473,12 @@ async function main() {
   // the raw per-iteration numbers so a future tool can recompute medians,
   // percentiles, or trend deltas across many runs without re-running anything.
   if (jsonPath) {
-    const startedAt = new Date().toISOString();
-    const resolvedPath =
-      jsonPath === "default"
-        ? resolve(`bench-results/merge-weekly-${startedAt.replace(/[:.]/g, "-")}.json`)
-        : resolve(jsonPath);
-
     const artifact = {
       schemaVersion: 1,
       kind: "mergeWeekly-bench",
-      startedAt,
+      status: failed ? "failed" : "ok",
+      startedAt: runStartedAt,
+      finishedAt: new Date().toISOString(),
       durationMs: opt.totalMs + nai.totalMs,
       env: {
         node: process.version,
@@ -543,17 +539,7 @@ async function main() {
       },
     };
 
-    try {
-      mkdirSync(dirname(resolvedPath), { recursive: true });
-      writeFileSync(resolvedPath, JSON.stringify(artifact, null, 2) + "\n", "utf8");
-      console.log(`  json artifact  : ${resolvedPath}`);
-    } catch (err) {
-      console.error(
-        `  ⚠ failed to write JSON artifact to ${resolvedPath}: ${(err as Error).message}`
-      );
-      // Don't mask the actual bench verdict on a write failure — keep going
-      // and let the failed/healthy exit path decide the final status.
-    }
+    writeArtifact(jsonPath, runStartedAt, artifact);
   }
 
   if (failed) {
@@ -572,7 +558,91 @@ async function main() {
   );
 }
 
+// ─── Artifact writer + crash-path emitter ──────────────────────────────────
+// Both helpers live at module scope so the top-level error handler can still
+// emit a partial artifact when `main()` throws BEFORE reaching the normal
+// JSON-write step. CI run diffs stay complete: every invocation that asked
+// for `--json` produces a file, even on crash, with `status` reflecting why.
+function resolveArtifactPath(jsonPath: string, startedAt: string): string {
+  return jsonPath === "default"
+    ? resolve(`bench-results/merge-weekly-${startedAt.replace(/[:.]/g, "-")}.json`)
+    : resolve(jsonPath);
+}
+
+function writeArtifact(jsonPath: string, startedAt: string, artifact: unknown): string | null {
+  const resolvedPath = resolveArtifactPath(jsonPath, startedAt);
+  try {
+    mkdirSync(dirname(resolvedPath), { recursive: true });
+    writeFileSync(resolvedPath, JSON.stringify(artifact, null, 2) + "\n", "utf8");
+    console.log(`  json artifact  : ${resolvedPath}`);
+    return resolvedPath;
+  } catch (err) {
+    console.error(
+      `  ⚠ failed to write JSON artifact to ${resolvedPath}: ${(err as Error).message}`
+    );
+    return null;
+  }
+}
+
+/**
+ * Resolve `--json[=path]` and `BENCH_JSON` the same way `main()` does, but
+ * standalone, so the crash handler can emit an artifact even if the throw
+ * happened before `main()` finished its own CLI parsing.
+ */
+function resolveJsonPathFromEnv(): string | null {
+  for (const arg of process.argv.slice(2)) {
+    if (arg === "--json") return "default";
+    if (arg.startsWith("--json=")) return arg.slice("--json=".length).trim() || "default";
+  }
+  if (process.env.BENCH_JSON) return process.env.BENCH_JSON.trim() || "default";
+  return null;
+}
+
+// Pinned at process start so a successful run AND a crash artifact share the
+// same `startedAt` (and therefore the same default filename — no orphan files).
+const runStartedAt = new Date().toISOString();
+
 main().catch((err) => {
+  // Always surface the underlying error first.
   console.error(err);
+
+  // Honour the user's `--json`/`BENCH_JSON` request even on crash so CI run
+  // diffs are never missing a row. The artifact is intentionally minimal but
+  // schema-compatible enough for the loader/validator to ingest it.
+  const jsonPath = resolveJsonPathFromEnv();
+  if (jsonPath) {
+    const e = err as Error;
+    const crashArtifact = {
+      schemaVersion: 1,
+      kind: "mergeWeekly-bench",
+      status: "crashed",
+      startedAt: runStartedAt,
+      finishedAt: new Date().toISOString(),
+      env: {
+        node: process.version,
+        platform: process.platform,
+        arch: process.arch,
+        ci: process.env.CI ?? null,
+        // Knobs are captured raw here (we may not have parsed/validated them).
+        knobs: Object.fromEntries(
+          Object.entries(process.env)
+            .filter(([k]) => k.startsWith("BENCH_") || k.startsWith("MERGE_WEEKLY_PERF_") || k === "CI" || k === "VERBOSE")
+            .map(([k, v]) => [k, { value: v ?? "", isSet: true }])
+        ),
+      },
+      verdict: {
+        passed: false,
+        failures: [`bench crashed before completion: ${e?.message ?? String(err)}`],
+        reproduceCmd: "(see env above)",
+      },
+      error: {
+        message: e?.message ?? String(err),
+        name: e?.name ?? "Error",
+        stack: e?.stack ?? null,
+      },
+    };
+    writeArtifact(jsonPath, runStartedAt, crashArtifact);
+  }
+
   process.exit(1);
 });

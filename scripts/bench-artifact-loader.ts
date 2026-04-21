@@ -75,8 +75,13 @@ export interface CanonicalTiming {
 export interface CanonicalArtifact {
   schemaVersion: typeof CURRENT_SCHEMA_VERSION;
   kind: typeof ARTIFACT_KIND;
+  /** "ok" | "failed" (thresholds breached) | "crashed" (uncaught throw before completion). Optional for legacy artifacts written before this field existed. */
+  status?: "ok" | "failed" | "crashed";
   startedAt: string;
-  durationMs: number;
+  /** ISO timestamp written when the run finishes (or crashes). Optional for legacy artifacts. */
+  finishedAt?: string;
+  /** Wall-clock ms in the timed loops. Absent on crash artifacts (timing never ran). */
+  durationMs?: number;
   env: {
     node: string;
     platform: string;
@@ -84,25 +89,28 @@ export interface CanonicalArtifact {
     ci: string | null;
     knobs: Record<string, CanonicalKnob>;
   };
-  config: { runs: number; weeks: number; brokers: number; gapMod: number };
-  thresholds: {
+  /** Absent on crash artifacts written before config parsing completed. */
+  config?: { runs: number; weeks: number; brokers: number; gapMod: number };
+  thresholds?: {
     budgetMs: number;
     minRatio: number;
     requiredOptimizedMaxMs: number;
   };
-  output: {
+  output?: {
     rows: number;
     colsPerRow: number;
     optimizedJsonBytes: number;
     naiveJsonBytes: number;
     shapeMatches: boolean;
   };
-  timings: {
+  timings?: {
     optimized: CanonicalTiming;
     naive: CanonicalTiming;
     speedup: { median: number; mean: number };
   };
   verdict: { passed: boolean; failures: string[]; reproduceCmd: string };
+  /** Present only on crash artifacts. */
+  error?: { message: string; name: string; stack: string | null };
   /** Audit trail — populated by `loadArtifact` when migrations were applied. */
   _migrations?: Array<{ from: number; to: number }>;
 }
@@ -192,9 +200,8 @@ export function validateCanonical(a: CanonicalArtifact): ValidationIssue[] {
   req(a.schemaVersion === CURRENT_SCHEMA_VERSION, "$.schemaVersion", `expected ${CURRENT_SCHEMA_VERSION}`);
   req(a.kind === ARTIFACT_KIND, "$.kind", `expected "${ARTIFACT_KIND}"`);
   req(isString(a.startedAt) && !Number.isNaN(Date.parse(a.startedAt)), "$.startedAt", "must be ISO-8601 string");
-  req(isFiniteNumber(a.durationMs) && a.durationMs >= 0, "$.durationMs", "must be ≥ 0");
 
-  // env
+  // env (always required — captured before any user code runs)
   req(a.env != null && typeof a.env === "object", "$.env", "missing");
   if (a.env) {
     req(isString(a.env.node), "$.env.node", "must be string");
@@ -203,16 +210,37 @@ export function validateCanonical(a: CanonicalArtifact): ValidationIssue[] {
     req(a.env.knobs != null && typeof a.env.knobs === "object", "$.env.knobs", "must be object");
   }
 
+  // verdict (always required — even crash artifacts emit one)
+  req(typeof a.verdict?.passed === "boolean", "$.verdict.passed", "must be boolean");
+  req(Array.isArray(a.verdict?.failures), "$.verdict.failures", "must be array");
+  req(isString(a.verdict?.reproduceCmd), "$.verdict.reproduceCmd", "must be string");
+
+  // Crash artifacts intentionally OMIT timing/config/thresholds blocks because
+  // the bench threw before producing them. Validate only what is present so
+  // CI run diffs can still ingest these failure-mode artifacts.
+  if (a.status === "crashed") {
+    req(
+      a.error != null && isString(a.error.message),
+      "$.error.message",
+      "crash artifact must include error.message"
+    );
+    return issues;
+  }
+
+  // Completed runs ("ok" or "failed", or legacy artifacts without status):
+  // require the full shape.
+  req(isFiniteNumber(a.durationMs) && (a.durationMs ?? -1) >= 0, "$.durationMs", "must be ≥ 0");
+
   // config
   for (const k of ["runs", "weeks", "brokers", "gapMod"] as const) {
-    req(isFiniteNumber(a.config?.[k]) && a.config[k] > 0, `$.config.${k}`, "must be > 0");
+    req(isFiniteNumber(a.config?.[k]) && (a.config?.[k] ?? 0) > 0, `$.config.${k}`, "must be > 0");
   }
 
   // thresholds
-  req(isFiniteNumber(a.thresholds?.budgetMs) && a.thresholds.budgetMs > 0, "$.thresholds.budgetMs", "must be > 0");
-  req(isFiniteNumber(a.thresholds?.minRatio) && a.thresholds.minRatio > 0, "$.thresholds.minRatio", "must be > 0");
+  req(isFiniteNumber(a.thresholds?.budgetMs) && (a.thresholds?.budgetMs ?? 0) > 0, "$.thresholds.budgetMs", "must be > 0");
+  req(isFiniteNumber(a.thresholds?.minRatio) && (a.thresholds?.minRatio ?? 0) > 0, "$.thresholds.minRatio", "must be > 0");
   warn(
-    a.thresholds?.minRatio >= 1.0,
+    (a.thresholds?.minRatio ?? 0) >= 1.0,
     "$.thresholds.minRatio",
     "< 1.0× requires optimized to be slower than naive — likely a typo"
   );
@@ -226,18 +254,13 @@ export function validateCanonical(a: CanonicalArtifact): ValidationIssue[] {
         req(isFiniteNumber(t[k]) && t[k] >= 0, `$.timings.${impl}.${k}`, "must be ≥ 0 finite number");
       }
       req(Array.isArray(t.samplesMs), `$.timings.${impl}.samplesMs`, "must be array");
-      if (Array.isArray(t.samplesMs)) {
+      if (Array.isArray(t.samplesMs) && a.config) {
         req(t.samplesMs.length === a.config.runs, `$.timings.${impl}.samplesMs.length`, `expected ${a.config.runs}`);
         req(t.samplesMs.every(isFiniteNumber), `$.timings.${impl}.samplesMs[]`, "all entries must be finite numbers");
       }
       req(t.minMs <= t.medianMs && t.medianMs <= t.maxMs, `$.timings.${impl}`, "min ≤ median ≤ max invariant violated");
     }
   }
-
-  // verdict
-  req(typeof a.verdict?.passed === "boolean", "$.verdict.passed", "must be boolean");
-  req(Array.isArray(a.verdict?.failures), "$.verdict.failures", "must be array");
-  req(isString(a.verdict?.reproduceCmd), "$.verdict.reproduceCmd", "must be string");
 
   return issues;
 }
