@@ -786,6 +786,7 @@ REGRAS:
     }
 
     // ─── BUILD COMBINED DASHBOARD ───────────────────────────────
+    const trends = buildTrends(filteredTranscribes);
     const dashboard = {
       metrics: {
         avgSentiment: metrics.avgSentiment,
@@ -798,6 +799,7 @@ REGRAS:
         scheduledCount,
         totalForFrequency,
       },
+      trends,
       leadScores: metrics.leads,
       ...(aiDashboard || {}),
     };
