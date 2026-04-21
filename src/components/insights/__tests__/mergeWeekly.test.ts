@@ -195,26 +195,6 @@ describe("mergeWeekly — adaptive performance (per dataset size)", () => {
   );
   const globalTargetRSE = num("MERGE_WEEKLY_PERF_TARGET_RSE", isCI ? 0.07 : 0.05);
 
-  // Stats helpers — local to keep this block self-contained.
-  const median = (xs: number[]): number => {
-    const s = [...xs].sort((a, b) => a - b);
-    const m = Math.floor(s.length / 2);
-    return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
-  };
-  const stdev = (xs: number[]): number => {
-    if (xs.length < 2) return 0;
-    const mean = xs.reduce((a, b) => a + b, 0) / xs.length;
-    const variance =
-      xs.reduce((acc, v) => acc + (v - mean) ** 2, 0) / (xs.length - 1);
-    return Math.sqrt(variance);
-  };
-  const rse = (xs: number[]): number => {
-    if (xs.length < 2) return Infinity;
-    const mean = xs.reduce((a, b) => a + b, 0) / xs.length;
-    if (mean === 0) return Infinity;
-    return stdev(xs) / Math.sqrt(xs.length) / mean;
-  };
-
   // Per-size loop — `it.each` keeps each size as its own test case so a
   // failure points directly at the offending bucket in the test output.
   it.each(PERF_SIZES)(
@@ -240,61 +220,38 @@ describe("mergeWeekly — adaptive performance (per dataset size)", () => {
 
       const series = makeSeries(sizeCfg.weeks, sizeCfg.brokers);
 
-      // Adaptive sampler: interleave both impls per iteration so transient
-      // CPU jitter (GC, OS preemption) hits both samples symmetrically.
-      const opt: number[] = [];
-      const nai: number[] = [];
-
-      // Warm-up to stabilize JIT.
-      for (let i = 0; i < 3; i++) {
-        mergeWeekly(series);
-        mergeWeeklyNaive(series);
-      }
-
-      let iters = 0;
-      let stoppedEarly = false;
-      while (iters < globalMaxRuns) {
-        const a0 = performance.now();
-        mergeWeekly(series);
-        opt.push(performance.now() - a0);
-
-        const b0 = performance.now();
-        mergeWeeklyNaive(series);
-        nai.push(performance.now() - b0);
-
-        iters++;
-        if (
-          iters >= globalMinRuns &&
-          rse(opt) <= globalTargetRSE &&
-          rse(nai) <= globalTargetRSE
-        ) {
-          stoppedEarly = true;
-          break;
+      // Delegate the noisy work (warm-up, interleaved sampling, RSE
+      // convergence, median extraction) to the shared helper. The test
+      // body only owns thresholds + assertions now.
+      const { stats, iterations, stoppedEarly, ratioMedian } = adaptiveCompare(
+        {
+          optimized: () => mergeWeekly(series),
+          naive: () => mergeWeeklyNaive(series),
+        },
+        "optimized",
+        "naive",
+        {
+          minRuns: globalMinRuns,
+          maxRuns: globalMaxRuns,
+          targetRSE: globalTargetRSE,
         }
-      }
+      );
 
-      const optMedian = median(opt);
-      const naiMedian = median(nai);
-      const optRSE = rse(opt);
-      const naiRSE = rse(nai);
-      const ratio = naiMedian / optMedian;
-      const requiredOptimizedMaxMs = naiMedian / minRatio;
-
-      const fmtMs = (n: number) => `${n.toFixed(3)} ms`;
-      const fmtPct = (n: number) =>
-        Number.isFinite(n) ? `${(n * 100).toFixed(2)}%` : "n/a";
+      const opt = stats.optimized;
+      const nai = stats.naive;
+      const requiredOptimizedMaxMs = nai.median / minRatio;
 
       const diagnostics = [
         "",
         `  ── mergeWeekly perf [${sizeCfg.name}] (W=${sizeCfg.weeks}, B=${sizeCfg.brokers}) ──`,
-        `  iterations                 : ${iters} (min=${globalMinRuns}, max=${globalMaxRuns}, stoppedEarly=${stoppedEarly})`,
-        `  optimized median           : ${fmtMs(optMedian)}  RSE=${fmtPct(optRSE)}  min=${fmtMs(Math.min(...opt))}  max=${fmtMs(Math.max(...opt))}`,
-        `  naive median               : ${fmtMs(naiMedian)}  RSE=${fmtPct(naiRSE)}  min=${fmtMs(Math.min(...nai))}  max=${fmtMs(Math.max(...nai))}`,
-        `  speedup (naive/optimized)  : ${ratio.toFixed(2)}×  (median-based)`,
+        `  iterations                 : ${iterations} (min=${globalMinRuns}, max=${globalMaxRuns}, stoppedEarly=${stoppedEarly})`,
+        `  optimized median           : ${fmt.ms(opt.median)}  RSE=${fmt.pct(opt.rse)}  min=${fmt.ms(opt.min)}  max=${fmt.ms(opt.max)}`,
+        `  naive median               : ${fmt.ms(nai.median)}  RSE=${fmt.pct(nai.rse)}  min=${fmt.ms(nai.min)}  max=${fmt.ms(nai.max)}`,
+        `  speedup (naive/optimized)  : ${ratioMedian.toFixed(2)}×  (median-based)`,
         "  ── thresholds ──",
-        `  per-call budget            : ${budgetMs} ms  ${optMedian < budgetMs ? "✓" : "✗"}`,
-        `  required min speedup       : ${minRatio.toFixed(2)}×  (optimized median must be < ${fmtMs(requiredOptimizedMaxMs)})  ${optMedian < requiredOptimizedMaxMs ? "✓" : "✗"}`,
-        `  target RSE                 : ${fmtPct(globalTargetRSE)}  (opt=${fmtPct(optRSE)} ${optRSE <= globalTargetRSE ? "✓" : "✗"}, nai=${fmtPct(naiRSE)} ${naiRSE <= globalTargetRSE ? "✓" : "✗"})`,
+        `  per-call budget            : ${budgetMs} ms  ${opt.median < budgetMs ? "✓" : "✗"}`,
+        `  required min speedup       : ${minRatio.toFixed(2)}×  (optimized median must be < ${fmt.ms(requiredOptimizedMaxMs)})  ${opt.median < requiredOptimizedMaxMs ? "✓" : "✗"}`,
+        `  target RSE                 : ${fmt.pct(globalTargetRSE)}  (opt=${fmt.pct(opt.rse)} ${opt.rse <= globalTargetRSE ? "✓" : "✗"}, nai=${fmt.pct(nai.rse)} ${nai.rse <= globalTargetRSE ? "✓" : "✗"})`,
         `  environment                : CI=${isCI}`,
         "  ── overrides for this size ──",
         `  MERGE_WEEKLY_PERF_BUDGET_MS_${SIZE}   per-call ceiling (ms)`,
@@ -308,8 +265,8 @@ describe("mergeWeekly — adaptive performance (per dataset size)", () => {
         console.log(diagnostics);
       }
 
-      expect(optMedian, diagnostics).toBeLessThan(budgetMs);
-      expect(optMedian, diagnostics).toBeLessThan(requiredOptimizedMaxMs);
+      expect(opt.median, diagnostics).toBeLessThan(budgetMs);
+      expect(opt.median, diagnostics).toBeLessThan(requiredOptimizedMaxMs);
     }
   );
 });
