@@ -253,7 +253,7 @@ interface TrendsPayload {
   };
 }
 
-function buildTrends(transcribes: any[]): TrendsPayload {
+export function buildTrends(transcribes: any[]): TrendsPayload {
   const now = Date.now();
   const dayMs = 86_400_000;
 
