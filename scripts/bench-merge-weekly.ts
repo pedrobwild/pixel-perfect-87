@@ -1185,6 +1185,12 @@ async function main() {
   // the raw per-iteration numbers so a future tool can recompute medians,
   // percentiles, or trend deltas across many runs without re-running anything.
   if (jsonPath) {
+    // Apply the slim mode AFTER all summary stats (median/p95/min/max) are
+    // already computed from the FULL sample arrays. The slim only affects
+    // what gets persisted — never what we report or use for verdicts.
+    const optSlim = applySlim(optSamples, slimMode);
+    const naiSlim = applySlim(naiSamples, slimMode);
+
     const artifact = {
       schemaVersion: 1,
       kind: "mergeWeekly-bench",
@@ -1228,6 +1234,13 @@ async function main() {
         naiveJsonBytes: naiveBytes,
         shapeMatches,
       },
+      // Top-level slim descriptor so consumers (and the loader) can branch
+      // on storage shape without inspecting every timings entry. Repeated
+      // per-impl in `samplesMeta` for self-describing timing blocks.
+      samplesPolicy: {
+        mode: slimMode.kind,
+        ...(slimMode.kind === "downsample" ? { n: slimMode.n } : {}),
+      },
       timings: {
         optimized: {
           medianMs: opt.p50Ms,
@@ -1236,7 +1249,8 @@ async function main() {
           minMs: opt.minMs,
           maxMs: opt.maxMs,
           opsPerSec: opt.opsPerSec,
-          samplesMs: optSamples,
+          samplesMs: optSlim.kept,
+          samplesMeta: optSlim.meta,
         },
         naive: {
           medianMs: nai.p50Ms,
@@ -1245,7 +1259,8 @@ async function main() {
           minMs: nai.minMs,
           maxMs: nai.maxMs,
           opsPerSec: nai.opsPerSec,
-          samplesMs: naiSamples,
+          samplesMs: naiSlim.kept,
+          samplesMeta: naiSlim.meta,
         },
         speedup: { median: ratioMedian, mean: ratio },
       },
