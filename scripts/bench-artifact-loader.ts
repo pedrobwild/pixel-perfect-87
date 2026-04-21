@@ -75,8 +75,13 @@ export interface CanonicalTiming {
 export interface CanonicalArtifact {
   schemaVersion: typeof CURRENT_SCHEMA_VERSION;
   kind: typeof ARTIFACT_KIND;
+  /** "ok" | "failed" (thresholds breached) | "crashed" (uncaught throw before completion). Optional for legacy artifacts written before this field existed. */
+  status?: "ok" | "failed" | "crashed";
   startedAt: string;
-  durationMs: number;
+  /** ISO timestamp written when the run finishes (or crashes). Optional for legacy artifacts. */
+  finishedAt?: string;
+  /** Wall-clock ms in the timed loops. Absent on crash artifacts (timing never ran). */
+  durationMs?: number;
   env: {
     node: string;
     platform: string;
@@ -84,25 +89,28 @@ export interface CanonicalArtifact {
     ci: string | null;
     knobs: Record<string, CanonicalKnob>;
   };
-  config: { runs: number; weeks: number; brokers: number; gapMod: number };
-  thresholds: {
+  /** Absent on crash artifacts written before config parsing completed. */
+  config?: { runs: number; weeks: number; brokers: number; gapMod: number };
+  thresholds?: {
     budgetMs: number;
     minRatio: number;
     requiredOptimizedMaxMs: number;
   };
-  output: {
+  output?: {
     rows: number;
     colsPerRow: number;
     optimizedJsonBytes: number;
     naiveJsonBytes: number;
     shapeMatches: boolean;
   };
-  timings: {
+  timings?: {
     optimized: CanonicalTiming;
     naive: CanonicalTiming;
     speedup: { median: number; mean: number };
   };
   verdict: { passed: boolean; failures: string[]; reproduceCmd: string };
+  /** Present only on crash artifacts. */
+  error?: { message: string; name: string; stack: string | null };
   /** Audit trail — populated by `loadArtifact` when migrations were applied. */
   _migrations?: Array<{ from: number; to: number }>;
 }
