@@ -396,6 +396,15 @@ function mergeCacheEntries(caches: any[]): ConsolidatedData {
   }
 
   // Build merged trends payload
+  const mergedWeekly = Array.from(weeklyAgg.entries())
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+    .map(([weekStart, agg]) => ({
+      weekStart,
+      label: agg.label,
+      meetings: agg.meetings,
+      avgScore: agg.meetings > 0 ? Math.round(agg.scoreSum / agg.meetings) : 0,
+    }));
+
   const mergedTrends = {
     windows: ([30, 60, 90] as const).map((days) => {
       const b = trendAgg[days];
@@ -416,6 +425,7 @@ function mergeCacheEntries(caches: any[]): ConsolidatedData {
       avgScore: deltaAgg.scoreCount > 0 ? Math.round(deltaAgg.scoreSum / deltaAgg.scoreCount) : 0,
       positiveSentimentPct: deltaAgg.positiveCount > 0 ? Math.round(deltaAgg.positiveSum / deltaAgg.positiveCount) : 0,
     },
+    weekly: mergedWeekly,
   };
 
   // Build merged metrics
