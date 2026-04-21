@@ -213,12 +213,37 @@ function SparkTooltip({ active, payload, label, mode }: any) {
   );
 }
 
+function EmptySparkline({ reason }: { reason: "no-data" | "no-meetings" }) {
+  const message =
+    reason === "no-meetings"
+      ? "Sem reuniões registradas nas últimas 12 semanas."
+      : "Dados semanais ainda não disponíveis para este escopo.";
+  return (
+    <div className="rounded-lg border border-dashed border-border/60 bg-muted/20 p-6">
+      <div className="flex items-start gap-3">
+        <div className="rounded-md bg-background/60 p-2 border border-border/40">
+          <LineChartIcon className="h-4 w-4 text-muted-foreground" aria-hidden />
+        </div>
+        <div className="space-y-1 flex-1 min-w-0">
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Evolução semanal · últimas 12 semanas
+          </p>
+          <p className="text-sm text-muted-foreground/90">{message}</p>
+          <p className="text-[10px] text-muted-foreground/70 leading-relaxed">
+            O gráfico aparecerá automaticamente assim que houver reuniões registradas no período.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function WeeklySparkline({ weekly }: { weekly: WeeklyPoint[] }) {
   const [mode, setMode] = useState<MeetingsMode>("total");
   const [pinnedIndex, setPinnedIndex] = useState<number | null>(null);
   const data = buildSparklineData(weekly);
   const totalMeetings = data.reduce((s, w) => s + w.meetings, 0);
-  if (totalMeetings === 0) return null;
+  if (totalMeetings === 0) return <EmptySparkline reason="no-meetings" />;
   const pinned = pinnedIndex != null ? data[pinnedIndex] : null;
 
   const meetingsKey = mode === "avg" ? "meetingsAvg4" : "meetings";
@@ -529,11 +554,13 @@ export default function TrendAnalysis({
           {w60 && <WindowCard win={w60} />}
           {w90 && <WindowCard win={w90} />}
         </div>
-        {trends.weekly && trends.weekly.length > 0 && (
-          <div className="mt-4">
+        <div className="mt-4">
+          {trends.weekly && trends.weekly.length > 0 ? (
             <WeeklySparkline weekly={trends.weekly} />
-          </div>
-        )}
+          ) : (
+            <EmptySparkline reason="no-data" />
+          )}
+        </div>
         <p className="text-[10px] text-muted-foreground/70 mt-3 leading-relaxed">
           Janelas cumulativas a partir de hoje. Os deltas (▲▼) comparam os últimos 30 dias com os 30 dias imediatamente anteriores.
           A linha tracejada no gráfico é a média móvel ponderada de 4 semanas.
