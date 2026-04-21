@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -116,7 +117,10 @@ function WindowCard({ win, delta, isPrimary }: { win: TrendWindow; delta?: Trend
 }
 
 // ─── Weekly sparkline ─────────────────────────────────────────────
-type WeeklyChartPoint = WeeklyPoint & { scoreMA4: number | null };
+type WeeklyChartPoint = WeeklyPoint & {
+  scoreMA4: number | null;
+  meetingsAvg4: number | null;
+};
 
 function buildSparklineData(weekly: WeeklyPoint[]): WeeklyChartPoint[] {
   // 4-week trailing moving average for avgScore (only when we have a full window of meetings)
@@ -124,27 +128,41 @@ function buildSparklineData(weekly: WeeklyPoint[]): WeeklyChartPoint[] {
     const start = Math.max(0, i - 3);
     const window = weekly.slice(start, i + 1);
     const totalMeetings = window.reduce((s, x) => s + x.meetings, 0);
+    // Per-week average meetings over the trailing 4-week window (1 decimal)
+    const meetingsAvg4 = window.length > 0
+      ? Math.round((totalMeetings / window.length) * 10) / 10
+      : null;
     if (totalMeetings === 0 || window.length < 2) {
-      return { ...w, scoreMA4: null };
+      return { ...w, scoreMA4: null, meetingsAvg4 };
     }
     // Weighted by meetings to avoid empty weeks dragging the line to 0
     const weightedSum = window.reduce((s, x) => s + x.avgScore * x.meetings, 0);
     const ma = weightedSum / totalMeetings;
-    return { ...w, scoreMA4: Math.round(ma) };
+    return { ...w, scoreMA4: Math.round(ma), meetingsAvg4 };
   });
 }
 
-function SparkTooltip({ active, payload, label }: any) {
+type MeetingsMode = "total" | "avg";
+
+function SparkTooltip({ active, payload, label, mode }: any) {
   if (!active || !payload?.length) return null;
   const meetings = payload.find((p: any) => p.dataKey === "meetings")?.value ?? 0;
+  const meetingsAvg = payload.find((p: any) => p.dataKey === "meetingsAvg4")?.value;
   const score = payload.find((p: any) => p.dataKey === "avgScore")?.value ?? 0;
   const ma = payload.find((p: any) => p.dataKey === "scoreMA4")?.value;
   return (
     <div className="rounded-md border border-border/60 bg-popover px-3 py-2 text-xs shadow-md">
       <p className="font-semibold text-foreground mb-1">Semana de {label}</p>
-      <p className="text-muted-foreground">
-        Reuniões: <span className="font-bold text-foreground tabular-nums">{meetings}</span>
-      </p>
+      {mode === "avg" ? (
+        <p className="text-muted-foreground">
+          Reuniões (média 4 sem.):{" "}
+          <span className="font-bold text-foreground tabular-nums">{meetingsAvg ?? "—"}</span>
+        </p>
+      ) : (
+        <p className="text-muted-foreground">
+          Reuniões: <span className="font-bold text-foreground tabular-nums">{meetings}</span>
+        </p>
+      )}
       <p className="text-muted-foreground">
         Score médio: <span className="font-bold text-foreground tabular-nums">{score || "—"}</span>
       </p>
@@ -158,9 +176,13 @@ function SparkTooltip({ active, payload, label }: any) {
 }
 
 function WeeklySparkline({ weekly }: { weekly: WeeklyPoint[] }) {
+  const [mode, setMode] = useState<MeetingsMode>("total");
   const data = buildSparklineData(weekly);
   const totalMeetings = data.reduce((s, w) => s + w.meetings, 0);
   if (totalMeetings === 0) return null;
+
+  const meetingsKey = mode === "avg" ? "meetingsAvg4" : "meetings";
+  const meetingsName = mode === "avg" ? "Reuniões (média 4 sem.)" : "Reuniões";
 
   return (
     <div className="rounded-lg border border-border/60 p-4 space-y-2 bg-card">
@@ -169,10 +191,40 @@ function WeeklySparkline({ weekly }: { weekly: WeeklyPoint[] }) {
         <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           Evolução semanal · últimas 12 semanas
         </span>
-        <div className="ml-auto flex items-center gap-3 text-[10px] text-muted-foreground">
+        <div
+          className="ml-auto inline-flex rounded-md border border-border/60 p-0.5 bg-muted/30"
+          role="group"
+          aria-label="Modo de exibição de reuniões"
+        >
+          <button
+            type="button"
+            onClick={() => setMode("total")}
+            aria-pressed={mode === "total"}
+            className={`px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider rounded-sm transition-colors ${
+              mode === "total"
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Total
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode("avg")}
+            aria-pressed={mode === "avg"}
+            className={`px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider rounded-sm transition-colors ${
+              mode === "avg"
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Média 4s
+          </button>
+        </div>
+        <div className="basis-full flex items-center gap-3 text-[10px] text-muted-foreground">
           <span className="inline-flex items-center gap-1.5">
             <span className="inline-block h-2 w-3 rounded-sm bg-primary/60" aria-hidden />
-            <span>Reuniões <span className="text-muted-foreground/60">(esq.)</span></span>
+            <span>{meetingsName} <span className="text-muted-foreground/60">(esq.)</span></span>
           </span>
           <span className="inline-flex items-center gap-1.5">
             <span className="inline-block h-0.5 w-3 bg-[hsl(var(--accent-foreground))]" aria-hidden />
@@ -180,11 +232,11 @@ function WeeklySparkline({ weekly }: { weekly: WeeklyPoint[] }) {
           </span>
           <span className="inline-flex items-center gap-1.5">
             <span
-              className="inline-block h-0.5 w-3 bg-muted-foreground"
-              style={{ backgroundImage: "repeating-linear-gradient(90deg, hsl(var(--muted-foreground)) 0 3px, transparent 3px 6px)", backgroundColor: "transparent" }}
+              className="inline-block h-0.5 w-3"
+              style={{ backgroundImage: "repeating-linear-gradient(90deg, hsl(var(--muted-foreground)) 0 3px, transparent 3px 6px)" }}
               aria-hidden
             />
-            <span>MA 4 sem.</span>
+            <span>MA Score 4 sem.</span>
           </span>
         </div>
       </div>
@@ -211,7 +263,7 @@ function WeeklySparkline({ weekly }: { weekly: WeeklyPoint[] }) {
               tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
               axisLine={false}
               tickLine={false}
-              allowDecimals={false}
+              allowDecimals={mode === "avg"}
               width={28}
             />
             <YAxis
@@ -223,17 +275,19 @@ function WeeklySparkline({ weekly }: { weekly: WeeklyPoint[] }) {
               tickLine={false}
               width={28}
             />
-            <Tooltip content={<SparkTooltip />} cursor={{ stroke: "hsl(var(--border))", strokeWidth: 1 }} />
+            <Tooltip content={<SparkTooltip mode={mode} />} cursor={{ stroke: "hsl(var(--border))", strokeWidth: 1 }} />
             <Area
               yAxisId="left"
               type="monotone"
-              dataKey="meetings"
-              name="Reuniões"
+              dataKey={meetingsKey}
+              name={meetingsName}
               stroke="hsl(var(--primary))"
               strokeWidth={2}
               fill="url(#meetingsArea)"
               dot={false}
               activeDot={{ r: 3 }}
+              isAnimationActive={false}
+              connectNulls
             />
             <Line
               yAxisId="right"
