@@ -1015,6 +1015,11 @@ async function main() {
         platform: process.platform,
         arch: process.arch,
         ci: process.env.CI ?? null,
+        // Git metadata: commit/branch/dirty so a regression in this artifact
+        // can be traced back to a specific revision. Captured at run start
+        // (above) so a long-running bench reflects the code that was timed,
+        // not whatever HEAD points to when the JSON is written.
+        git: gitInfo,
         // Snapshot every relevant knob — set or default — so future diffs
         // can flag config drift, not just timing drift.
         knobs: Object.fromEntries(
