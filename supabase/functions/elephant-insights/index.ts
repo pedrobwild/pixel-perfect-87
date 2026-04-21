@@ -168,10 +168,11 @@ export function computeLeadScore(t: TranscribeEntry): { score: number; breakdown
   } else if (durationMin >= 15) {
     score += 5;
     breakdown.push({ label: `Reunião de tamanho médio (${durationMin}min)`, delta: 5, category: "duration" });
-  } else if (durationMin < 5) {
+  } else if (durationMin > 0 && durationMin < 5) {
     score -= 10;
     breakdown.push({ label: `Reunião muito curta (${durationMin}min)`, delta: -10, category: "duration" });
   }
+  // durationMin === 0 (no-show / sem dado): não penaliza — é tratado separadamente como no-show KPI
 
   // Reasons
   const reasons = t.reasons || [];

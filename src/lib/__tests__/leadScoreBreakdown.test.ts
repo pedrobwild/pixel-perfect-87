@@ -34,7 +34,8 @@ function computeLeadScore(t: any): Result {
   const durationMin = Math.round((t.duration || 0) / 60);
   if (durationMin >= 30) { score += 10; breakdown.push({ label: `Reunião longa (${durationMin}min)`, delta: 10, category: "duration" }); }
   else if (durationMin >= 15) { score += 5; breakdown.push({ label: `Reunião de tamanho médio (${durationMin}min)`, delta: 5, category: "duration" }); }
-  else if (durationMin < 5) { score -= 10; breakdown.push({ label: `Reunião muito curta (${durationMin}min)`, delta: -10, category: "duration" }); }
+  else if (durationMin > 0 && durationMin < 5) { score -= 10; breakdown.push({ label: `Reunião muito curta (${durationMin}min)`, delta: -10, category: "duration" }); }
+  // durationMin === 0 → no-show, não penaliza aqui
 
   const reasons = t.reasons || [];
   const obj = reasons.filter((r: any) => r.type === "objection").length;
