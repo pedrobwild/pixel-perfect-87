@@ -87,6 +87,19 @@ export interface CanonicalArtifact {
     platform: string;
     arch: string;
     ci: string | null;
+    /**
+     * Git metadata captured at run start. Optional because legacy artifacts
+     * (pre-git-tracking) and tarball builds without a `.git` directory will
+     * not have it. Inner fields are individually nullable so consumers can
+     * degrade gracefully (e.g. show "(unknown)" instead of crashing).
+     */
+    git?: {
+      commit: string | null;
+      shortSha: string | null;
+      branch: string | null;
+      dirty: boolean | null;
+      source: "env" | "git" | "mixed" | "none";
+    };
     knobs: Record<string, CanonicalKnob>;
   };
   /** Absent on crash artifacts written before config parsing completed. */
