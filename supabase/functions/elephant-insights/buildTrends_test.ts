@@ -58,7 +58,7 @@ function mockTranscribe(opts: MockOpts) {
 
 // ─── Tests ──────────────────────────────────────────────────────
 
-Deno.test("buildTrends: empty input returns zeroed windows and deltas", () => {
+Deno.test("buildTrends: empty input returns zeroed windows, deltas, and 12 empty weeks", () => {
   const r = buildTrends([]);
   assertEquals(r.windows.length, 3);
   assertEquals(r.windows.map((w) => w.windowDays), [30, 60, 90]);
@@ -69,6 +69,39 @@ Deno.test("buildTrends: empty input returns zeroed windows and deltas", () => {
     assertEquals(w.topObjections, []);
   }
   assertEquals(r.delta30vs60, { meetings: 0, avgScore: 0, positiveSentimentPct: 0 });
+  assertEquals(r.weekly.length, 12);
+  for (const w of r.weekly) {
+    assertEquals(w.meetings, 0);
+    assertEquals(w.avgScore, 0);
+    assert(typeof w.weekStart === "string" && w.weekStart.length === 10);
+    assert(typeof w.label === "string");
+  }
+});
+
+Deno.test("buildTrends: weekly buckets distribute meetings into correct weeks (oldest → newest)", () => {
+  const data = [
+    mockTranscribe({ daysAgo: 1 }),   // current week
+    mockTranscribe({ daysAgo: 2 }),   // current week
+    mockTranscribe({ daysAgo: 10 }),  // ~1-2 weeks ago
+    mockTranscribe({ daysAgo: 50 }),  // ~7 weeks ago
+    mockTranscribe({ daysAgo: 200 }), // outside 12-week window
+  ];
+  const r = buildTrends(data);
+  assertEquals(r.weekly.length, 12);
+  // Oldest first → newest last
+  for (let i = 1; i < r.weekly.length; i++) {
+    assert(
+      r.weekly[i].weekStart >= r.weekly[i - 1].weekStart,
+      `weeks not sorted ascending at index ${i}`,
+    );
+  }
+  // Most recent week always contains the daysAgo:1 entry; daysAgo:2 may straddle
+  // the Monday boundary depending on today's day-of-week, so assert >= 1.
+  const last = r.weekly[r.weekly.length - 1];
+  assert(last.meetings >= 1, `expected last week to contain at least 1 entry, got ${last.meetings}`);
+  // Total inside 12-week window = 4 (excludes daysAgo:200)
+  const totalInside = r.weekly.reduce((s, w) => s + w.meetings, 0);
+  assertEquals(totalInside, 4);
 });
 
 Deno.test("buildTrends: window classification — 30/60/90 boundaries", () => {
