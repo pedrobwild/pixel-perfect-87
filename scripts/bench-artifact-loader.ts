@@ -132,6 +132,16 @@ export interface CanonicalArtifact {
     naiveJsonBytes: number;
     shapeMatches: boolean;
   };
+  /**
+   * Top-level descriptor of how `samplesMs` was stored. Present when
+   * `--json-slim` was used. Repeated per-impl in `timings.*.samplesMeta` for
+   * self-describing timing blocks; this top-level copy is for quick scans
+   * (e.g. listing CI artifacts and grouping by storage policy).
+   */
+  samplesPolicy?: {
+    mode: "full" | "omit" | "downsample" | "summary";
+    n?: number; // only set when mode === "downsample"
+  };
   timings?: {
     optimized: CanonicalTiming;
     naive: CanonicalTiming;
