@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, TrendingDown, Minus, CalendarRange, AlertTriangle, Activity } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, CalendarRange, AlertTriangle, Activity, LineChart as LineChartIcon } from "lucide-react";
+import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 interface TrendWindow {
   windowDays: 30 | 60 | 90;
