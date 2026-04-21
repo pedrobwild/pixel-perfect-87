@@ -294,17 +294,34 @@ export default function MultiBrokerWeeklySparkline({ series }: { series: BrokerS
           </button>
         </div>
         <div className="basis-full flex items-center gap-3 text-[10px] text-muted-foreground flex-wrap">
-          {series.map((s, idx) => (
-            <span key={idx} className="inline-flex items-center gap-1.5">
+          {series.map((s, idx) => {
+            const hasData = brokerHasData[idx];
+            return (
               <span
-                className="inline-block h-0.5 w-3"
-                style={{ backgroundColor: SERIES_COLORS[idx] }}
-                aria-hidden
-              />
-              <span className="truncate max-w-[160px]">{s.name}</span>
-            </span>
-          ))}
-          {!hasAny && (
+                key={idx}
+                className={`inline-flex items-center gap-1.5 ${
+                  hasData ? "" : "opacity-50"
+                }`}
+                title={hasData ? undefined : "Sem reuniões nas últimas 12 semanas"}
+              >
+                <span
+                  className="inline-block h-0.5 w-3"
+                  style={{ backgroundColor: SERIES_COLORS[idx] }}
+                  aria-hidden
+                />
+                <span className="truncate max-w-[160px]">{s.name}</span>
+                {!hasData && (
+                  <Badge
+                    variant="outline"
+                    className="text-[9px] font-normal h-4 px-1 leading-none border-dashed"
+                  >
+                    sem dados
+                  </Badge>
+                )}
+              </span>
+            );
+          })}
+          {!hasAnyForMetric && (
             <Badge variant="outline" className="text-[10px] font-normal ml-auto">
               Sem dados na métrica selecionada
             </Badge>
