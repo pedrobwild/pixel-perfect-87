@@ -243,6 +243,13 @@ interface TrendWindow {
   topObjections: { objection: string; count: number }[];
 }
 
+interface WeeklyPoint {
+  weekStart: string; // ISO date (YYYY-MM-DD) for Monday of that week
+  label: string;     // e.g. "01/Apr"
+  meetings: number;
+  avgScore: number;
+}
+
 interface TrendsPayload {
   windows: TrendWindow[];
   // Deltas comparing 30d vs preceding 30d (i.e., 30d window vs days 31-60)
@@ -251,6 +258,8 @@ interface TrendsPayload {
     avgScore: number;
     positiveSentimentPct: number;
   };
+  // 12 weeks of evolution (oldest → newest)
+  weekly: WeeklyPoint[];
 }
 
 export function buildTrends(transcribes: any[]): TrendsPayload {
