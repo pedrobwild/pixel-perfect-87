@@ -167,18 +167,49 @@ async function main() {
   // config, env snapshot, raw + summary timings, computed thresholds, verdict.
   const argv = process.argv.slice(2);
   let jsonPath: string | null = null;
-  for (const arg of argv) {
+  let diffPair: { baseline: string; candidate: string } | null = null;
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i];
     if (arg === "--json") jsonPath = "default";
     else if (arg.startsWith("--json=")) jsonPath = arg.slice("--json=".length).trim() || "default";
-    else if (arg === "-h" || arg === "--help") {
-      console.log("Usage: tsx scripts/bench-merge-weekly.ts [--json[=path]]");
+    else if (arg === "--json-diff") {
+      // Form: --json-diff <baseline> <candidate>
+      const baseline = argv[i + 1];
+      const candidate = argv[i + 2];
+      if (!baseline || !candidate || baseline.startsWith("-") || candidate.startsWith("-")) {
+        console.error("✗ --json-diff requires two paths: --json-diff <baseline.json> <candidate.json>");
+        process.exit(2);
+      }
+      diffPair = { baseline, candidate };
+      i += 2;
+    } else if (arg.startsWith("--json-diff=")) {
+      // Form: --json-diff=<baseline>,<candidate> (CI-friendly single arg).
+      const [b, c] = arg.slice("--json-diff=".length).split(",");
+      if (!b || !c) {
+        console.error("✗ --json-diff=<baseline>,<candidate> requires both paths separated by a comma");
+        process.exit(2);
+      }
+      diffPair = { baseline: b, candidate: c };
+    } else if (arg === "-h" || arg === "--help") {
+      console.log("Usage: tsx scripts/bench-merge-weekly.ts [--json[=path]] [--json-diff <baseline> <candidate>]");
       console.log("Env: BENCH_RUNS, BENCH_WEEKS, BENCH_BROKERS, BENCH_GAP_MOD,");
       console.log("     BENCH_BUDGET_MS, BENCH_MIN_RATIO, BENCH_JSON, VERBOSE=1");
+      console.log("     BENCH_DIFF_MEDIAN_PCT (default 10), BENCH_DIFF_P95_PCT (default 15)");
       process.exit(0);
     }
   }
   if (!jsonPath && process.env.BENCH_JSON) {
     jsonPath = process.env.BENCH_JSON.trim() || "default";
+  }
+
+  // ─── --json-diff short-circuit ──────────────────────────────────────────
+  // Skip the bench entirely: load two existing artifacts via the schema-aware
+  // loader, compare median/p95, highlight which thresholds the candidate
+  // breached, and exit non-zero if a regression is detected. Keeps CI logs
+  // self-contained — no need to re-run the bench just to interpret old JSONs.
+  if (diffPair) {
+    const exitCode = await runJsonDiff(diffPair.baseline, diffPair.candidate);
+    process.exit(exitCode);
   }
 
   const RUNS = Math.max(1, Math.round(num("BENCH_RUNS", 30)));
