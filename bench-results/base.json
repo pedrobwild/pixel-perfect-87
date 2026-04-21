@@ -1,0 +1,201 @@
+{
+  "schemaVersion": 1,
+  "kind": "mergeWeekly-bench",
+  "status": "ok",
+  "startedAt": "2026-04-21T09:29:19.607Z",
+  "finishedAt": "2026-04-21T09:29:20.811Z",
+  "durationMs": 949.5370310000008,
+  "env": {
+    "node": "v22.22.0",
+    "platform": "linux",
+    "arch": "x64",
+    "ci": null,
+    "knobs": {
+      "BENCH_RUNS": {
+        "value": "30",
+        "isSet": false
+      },
+      "BENCH_WEEKS": {
+        "value": "800",
+        "isSet": false
+      },
+      "BENCH_BROKERS": {
+        "value": "12",
+        "isSet": false
+      },
+      "BENCH_GAP_MOD": {
+        "value": "10",
+        "isSet": false
+      },
+      "BENCH_BUDGET_MS": {
+        "value": "75",
+        "isSet": false
+      },
+      "BENCH_MIN_RATIO": {
+        "value": "1.20",
+        "isSet": false
+      },
+      "CI": {
+        "value": "(unset)",
+        "isSet": false
+      },
+      "VERBOSE": {
+        "value": "(unset)",
+        "isSet": false
+      },
+      "MERGE_WEEKLY_PERF_BUDGET_MS": {
+        "value": "(unset)",
+        "isSet": false
+      },
+      "MERGE_WEEKLY_PERF_RATIO": {
+        "value": "(unset)",
+        "isSet": false
+      },
+      "MERGE_WEEKLY_PERF_MIN_RUNS": {
+        "value": "(unset)",
+        "isSet": false
+      },
+      "MERGE_WEEKLY_PERF_MAX_RUNS": {
+        "value": "(unset)",
+        "isSet": false
+      },
+      "MERGE_WEEKLY_PERF_TARGET_RSE": {
+        "value": "(unset)",
+        "isSet": false
+      },
+      "MERGE_WEEKLY_PERF_BUDGET_MS_SMALL": {
+        "value": "(unset)",
+        "isSet": false
+      },
+      "MERGE_WEEKLY_PERF_BUDGET_MS_MEDIUM": {
+        "value": "(unset)",
+        "isSet": false
+      },
+      "MERGE_WEEKLY_PERF_BUDGET_MS_LARGE": {
+        "value": "(unset)",
+        "isSet": false
+      },
+      "MERGE_WEEKLY_PERF_RATIO_SMALL": {
+        "value": "(unset)",
+        "isSet": false
+      },
+      "MERGE_WEEKLY_PERF_RATIO_MEDIUM": {
+        "value": "(unset)",
+        "isSet": false
+      },
+      "MERGE_WEEKLY_PERF_RATIO_LARGE": {
+        "value": "(unset)",
+        "isSet": false
+      }
+    }
+  },
+  "config": {
+    "runs": 30,
+    "weeks": 800,
+    "brokers": 12,
+    "gapMod": 10
+  },
+  "thresholds": {
+    "budgetMs": 75,
+    "minRatio": 1.2,
+    "requiredOptimizedMaxMs": 19.329129166666615
+  },
+  "output": {
+    "rows": 800,
+    "colsPerRow": 26,
+    "optimizedJsonBytes": 342477,
+    "naiveJsonBytes": 342477,
+    "shapeMatches": true
+  },
+  "timings": {
+    "optimized": {
+      "medianMs": 7.105463999999756,
+      "avgMs": 7.668861766666699,
+      "p95Ms": 10.983649000000241,
+      "minMs": 4.01047699999981,
+      "maxMs": 13.895312999999987,
+      "opsPerSec": 130.39744755167936,
+      "samplesMs": [
+        9.32460900000001,
+        4.307888000000048,
+        13.895312999999987,
+        6.120764000000008,
+        5.543155999999954,
+        5.856234000000086,
+        9.898481000000174,
+        5.633825000000115,
+        9.463859000000184,
+        5.97754800000007,
+        9.947664000000259,
+        4.569250999999895,
+        6.018081000000166,
+        6.512765999999829,
+        6.68333900000016,
+        9.474641000000247,
+        7.974060999999892,
+        7.046434000000318,
+        9.011560999999801,
+        8.106330999999955,
+        6.909808000000339,
+        9.027640999999676,
+        10.983649000000241,
+        7.105463999999756,
+        6.360978999999588,
+        9.915952000000289,
+        9.481237999999848,
+        6.7826670000004015,
+        4.01047699999981,
+        8.122171999999864
+      ]
+    },
+    "naive": {
+      "medianMs": 23.194954999999936,
+      "avgMs": 23.982372599999994,
+      "p95Ms": 29.833960999999817,
+      "minMs": 17.3944419999998,
+      "maxMs": 29.893953999999667,
+      "opsPerSec": 41.69729228541801,
+      "samplesMs": [
+        20.59923200000003,
+        22.267684000000372,
+        26.711440999999922,
+        29.833960999999817,
+        27.805029999999988,
+        22.912672000000384,
+        25.51289399999996,
+        25.28441299999986,
+        21.53063999999995,
+        23.182506999999987,
+        22.033089999999902,
+        17.3944419999998,
+        23.194954999999936,
+        25.432847000000038,
+        24.853002000000288,
+        23.89299600000004,
+        20.890507999999954,
+        27.939887,
+        22.195267999999942,
+        29.893953999999667,
+        26.801018000000113,
+        21.951821999999993,
+        25.925034999999752,
+        23.087525999999798,
+        22.247832000000017,
+        21.254147000000103,
+        22.772615999999744,
+        20.471052000000327,
+        27.05972900000006,
+        24.538978000000043
+      ]
+    },
+    "speedup": {
+      "median": 3.264382874925653,
+      "mean": 3.1272401732733317
+    }
+  },
+  "verdict": {
+    "passed": true,
+    "failures": [],
+    "reproduceCmd": "npm run bench:merge-weekly  # all defaults — no env vars set"
+  }
+}
