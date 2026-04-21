@@ -175,18 +175,6 @@ function num(key: string, fallback: number): number {
 //   BENCH_DIFF_MEDIAN_PCT=10   median % slower => regression
 //   BENCH_DIFF_P95_PCT=15      p95    % slower => regression
 //   BENCH_DIFF_RATIO_DROP=0.5  speedup drop in absolute × => regression
-function pct(curr: number, prev: number): number {
-  return prev === 0 ? 0 : ((curr - prev) / prev) * 100;
-}
-
-function fmtDelta(curr: number, prev: number, unit = "ms", digits = 3): string {
-  const d = curr - prev;
-  const p = pct(curr, prev);
-  const sign = d >= 0 ? "+" : "";
-  const arrow = d > 0 ? "▲" : d < 0 ? "▼" : "·";
-  return `${prev.toFixed(digits)}${unit} → ${curr.toFixed(digits)}${unit}  (${sign}${d.toFixed(digits)}${unit}, ${sign}${p.toFixed(1)}%) ${arrow}`;
-}
-
 /**
  * Structured shape of the diff result. Mirrors the human-readable report 1:1
  * so a CI script can reach the same verdict by reading either format.
