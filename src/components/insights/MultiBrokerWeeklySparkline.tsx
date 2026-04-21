@@ -86,6 +86,8 @@ export function mergeWeekly(series: BrokerSeries[]): MergedRow[] {
     }
     return row;
   });
+}
+
 // ─── Memoization ────────────────────────────────────────────────────────────
 // Two-tier cache:
 //   1) WeakMap keyed by the series array reference — cheapest hit when the
