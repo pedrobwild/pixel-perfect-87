@@ -237,6 +237,110 @@ function num(key: string, fallback: number): number {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 
+// ─── --json-slim: shrink samplesMs for cheap CI run-history storage ────────
+/**
+ * Parsed slim mode. `kind: "full"` means write every sample (back-compat).
+ * Other modes downsample or summarize so artifacts stay tiny across hundreds
+ * of CI runs without losing the ability to recompute medians/p95 sanity
+ * checks (we always retain min and max as anchor points).
+ */
+export type SlimMode =
+  | { kind: "full" }
+  | { kind: "omit" }
+  | { kind: "downsample"; n: number }
+  | { kind: "summary" };
+
+/**
+ * Parse a `--json-slim` / `BENCH_JSON_SLIM` value. Throws (process.exit) on
+ * invalid input so a typo in CI surfaces immediately rather than silently
+ * defaulting to "full" (which would defeat the point of asking for slim).
+ */
+export function parseSlimMode(raw: string | null): SlimMode {
+  if (!raw) return { kind: "full" };
+  const v = raw.trim().toLowerCase();
+  if (v === "" || v === "full") return { kind: "full" };
+  if (v === "omit" || v === "none") return { kind: "omit" };
+  if (v === "summary" || v === "5num") return { kind: "summary" };
+  if (v.startsWith("downsample:") || v.startsWith("ds:")) {
+    const num = Number(v.split(":")[1]);
+    // Floor of 4 keeps min + max + 2 interior anchors so the kept array still
+    // looks like a distribution, not a degenerate pair. Cap at 1024 because
+    // beyond that the "slim" framing is a lie.
+    if (!Number.isFinite(num) || num < 4 || num > 1024) {
+      console.error(
+        `✗ --json-slim=downsample:N requires 4 ≤ N ≤ 1024 (got "${raw}")`
+      );
+      process.exit(2);
+    }
+    return { kind: "downsample", n: Math.floor(num) };
+  }
+  console.error(
+    `✗ unknown --json-slim mode "${raw}"; expected: full | omit | downsample:N | summary`
+  );
+  process.exit(2);
+}
+
+/**
+ * Apply a slim mode to a sample array. Returns the kept samples plus metadata
+ * so the artifact reader knows it's looking at a downsampled view (and the
+ * loader's "samplesMs.length === config.runs" invariant can be relaxed).
+ *
+ * Invariants:
+ *   - "full"        → samples returned verbatim, meta.kind = "full"
+ *   - "omit"        → empty array, meta.kind = "omit"
+ *   - "downsample"  → ≤ n entries, ALWAYS includes min and max of original
+ *   - "summary"     → exactly 5 entries: [min, p25, p50, p75, max]
+ */
+export function applySlim(
+  samples: number[],
+  mode: SlimMode
+): { kept: number[]; meta: { kind: SlimMode["kind"]; originalLength: number; kept: number } } {
+  const meta = (kind: SlimMode["kind"], kept: number) => ({
+    kind,
+    originalLength: samples.length,
+    kept,
+  });
+  if (mode.kind === "full" || samples.length === 0) {
+    return { kept: samples, meta: meta("full", samples.length) };
+  }
+  if (mode.kind === "omit") {
+    return { kept: [], meta: meta("omit", 0) };
+  }
+  // For downsample/summary we want ORIGINAL min/max preserved exactly, so
+  // sort once and pull anchors from the sorted view. Sampling indices are
+  // computed against the sorted view too: keeping evenly-spaced quantiles
+  // gives a distribution-shape-preserving slim, not a chronological one.
+  // (We don't need chronological order for percentile/median recompute.)
+  const sorted = [...samples].sort((a, b) => a - b);
+  const lo = sorted[0];
+  const hi = sorted[sorted.length - 1];
+
+  if (mode.kind === "summary") {
+    const pick = (p: number) =>
+      sorted[Math.min(sorted.length - 1, Math.max(0, Math.round((sorted.length - 1) * p)))];
+    const kept = [lo, pick(0.25), pick(0.5), pick(0.75), hi];
+    return { kept, meta: meta("summary", kept.length) };
+  }
+
+  // downsample:N — N evenly-spaced quantile picks; first/last are forced to
+  // exact min/max so future sanity checks (`min ≤ median ≤ max`) hold even
+  // if the picked indices land just inside the extremes due to rounding.
+  const n = Math.min(mode.n, sorted.length);
+  if (n >= sorted.length) {
+    return { kept: sorted, meta: meta("downsample", sorted.length) };
+  }
+  const kept: number[] = new Array(n);
+  for (let i = 0; i < n; i++) {
+    // Evenly-spaced over [0, sorted.length-1].
+    const idx = Math.round((i * (sorted.length - 1)) / (n - 1));
+    kept[i] = sorted[idx];
+  }
+  // Defensive: clamp endpoints in case of rounding drift on tiny n.
+  kept[0] = lo;
+  kept[n - 1] = hi;
+  return { kept, meta: meta("downsample", n) };
+}
+
 // ─── --json-diff implementation ─────────────────────────────────────────────
 // Compares two artifacts (loaded through the schema-aware loader so v1/v2/…
 // files are auto-migrated) and reports:
