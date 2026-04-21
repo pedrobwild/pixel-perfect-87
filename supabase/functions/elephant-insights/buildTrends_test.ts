@@ -191,3 +191,31 @@ Deno.test("buildTrends: objection rows without description are skipped", () => {
   assertEquals(r.windows[0].topObjections.length, 1);
   assertEquals(r.windows[0].topObjections[0].objection, "Real objection");
 });
+
+Deno.test("buildTrends: weekly returns 12 buckets, oldest → newest, anchored to UTC Monday", () => {
+  const r = buildTrends([]);
+  assertEquals(r.weekly.length, 12);
+  for (const w of r.weekly) {
+    const d = new Date(w.weekStart + "T00:00:00Z");
+    assertEquals(d.getUTCDay(), 1, `weekStart ${w.weekStart} is not a Monday`);
+    assert(typeof w.label === "string" && w.label.length >= 5);
+    assertEquals(w.meetings, 0);
+    assertEquals(w.avgScore, 0);
+  }
+  for (let i = 1; i < r.weekly.length; i++) {
+    assert(r.weekly[i - 1].weekStart < r.weekly[i].weekStart);
+  }
+});
+
+Deno.test("buildTrends: weekly aggregates meetings inside 12-week range, ignores older", () => {
+  const data = [
+    mockTranscribe({ daysAgo: 3, answersAvg: 9, positivePerc: 80 }),
+    mockTranscribe({ daysAgo: 10, answersAvg: 7, positivePerc: 60 }),
+    mockTranscribe({ daysAgo: 30, answersAvg: 5, positivePerc: 40 }),
+    mockTranscribe({ daysAgo: 200, answersAvg: 9 }),
+  ];
+  const r = buildTrends(data);
+  const totalMeetingsInWeekly = r.weekly.reduce((s, w) => s + w.meetings, 0);
+  assertEquals(totalMeetingsInWeekly, 3);
+  assert(r.weekly.some((w) => w.avgScore > 0));
+});
