@@ -320,14 +320,13 @@ function mergeCacheEntries(caches: any[]): ConsolidatedData {
         if (!bucket) continue;
         bucket.meetingsTotal += w.meetings || 0;
         if (w.meetings > 0) {
-          // Weight averages by meeting count for fair aggregation
           bucket.scoreSum += (w.avgScore || 0) * w.meetings;
           bucket.scoreCount += w.meetings;
           bucket.positiveSum += (w.positiveSentimentPct || 0) * w.meetings;
           bucket.positiveCount += w.meetings;
         }
         for (const o of w.topObjections || []) {
-          bucket.objections[o.objection] = (bucket.objections[o.objection] || 0) + (o.count || 1);
+          bucket.objections[o.objection] = (bucket.objections[o.objection] || 0) + (o.count || 0);
         }
       }
     }
@@ -340,6 +339,26 @@ function mergeCacheEntries(caches: any[]): ConsolidatedData {
       deltaAgg.scoreCount += recentWeight;
       deltaAgg.positiveSum += (d.trends.delta30vs60.positiveSentimentPct || 0) * recentWeight;
       deltaAgg.positiveCount += recentWeight;
+    }
+    // Weekly aggregation: merge by weekStart (sum meetings, weighted score by meetings)
+    if (Array.isArray(d.trends?.weekly)) {
+      for (const wk of d.trends.weekly) {
+        if (!wk?.weekStart) continue;
+        const existing = weeklyAgg[wk.weekStart];
+        if (!existing) {
+          weeklyAgg[wk.weekStart] = {
+            weekStart: wk.weekStart,
+            label: wk.label,
+            meetings: wk.meetings || 0,
+            scoreSum: (wk.avgScore || 0) * (wk.meetings || 0),
+            scoreCount: wk.meetings || 0,
+          };
+        } else {
+          existing.meetings += wk.meetings || 0;
+          existing.scoreSum += (wk.avgScore || 0) * (wk.meetings || 0);
+          existing.scoreCount += wk.meetings || 0;
+        }
+      }
     }
 
     // Quantitative
