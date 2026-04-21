@@ -228,6 +228,14 @@ export default function CorretorComparison({ corretores, loadingUsers }: Correto
             </Badge>
           </div>
 
+          {/* Weekly evolution overlay */}
+          <MultiBrokerWeeklySparkline
+            series={[
+              { name: dataA.amandaName, weekly: dataA.dashboard?.trends?.weekly },
+              { name: dataB.amandaName, weekly: dataB.dashboard?.trends?.weekly },
+            ]}
+          />
+
           {/* KPI Comparison Grid */}
           <Card className="border-border/60 overflow-hidden">
             <CardHeader className="pb-3 bg-muted/30">
