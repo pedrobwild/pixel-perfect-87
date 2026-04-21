@@ -88,6 +88,70 @@ export function mergeWeekly(series: BrokerSeries[]): MergedRow[] {
   });
 }
 
+// ─── Memoization ────────────────────────────────────────────────────────────
+// Two-tier cache:
+//   1) WeakMap keyed by the series array reference — cheapest hit when the
+//      parent passes a stable reference (e.g. from useMemo).
+//   2) Module-level Map keyed by a content signature — catches the common
+//      case where the parent rebuilds the series array on every render but
+//      the underlying data is unchanged.
+const refCache = new WeakMap<BrokerSeries[], MergedRow[]>();
+const sigCache = new Map<string, MergedRow[]>();
+const SIG_CACHE_MAX = 16; // small LRU-ish cap; comparison rarely exceeds 2-4 brokers
+
+function buildSeriesSignature(series: BrokerSeries[]): string {
+  // Compact, content-addressable key. Avoids JSON.stringify overhead by
+  // emitting only the fields mergeWeekly actually consumes.
+  const parts: string[] = [];
+  for (const s of series) {
+    parts.push(`n:${s.name}`);
+    const w = s.weekly;
+    if (!w || w.length === 0) {
+      parts.push("e");
+      continue;
+    }
+    // weeks are typically pre-sorted by the producer; we don't sort here to
+    // keep this O(N) — mergeWeekly itself is order-independent on weekStart.
+    for (let i = 0; i < w.length; i++) {
+      const p = w[i];
+      parts.push(`${p.weekStart}|${p.meetings}|${p.avgScore}`);
+    }
+    parts.push("|");
+  }
+  return parts.join(",");
+}
+
+function memoizedMergeWeekly(series: BrokerSeries[]): MergedRow[] {
+  const refHit = refCache.get(series);
+  if (refHit) return refHit;
+
+  const sig = buildSeriesSignature(series);
+  const sigHit = sigCache.get(sig);
+  if (sigHit) {
+    refCache.set(series, sigHit);
+    return sigHit;
+  }
+
+  const result = mergeWeekly(series);
+
+  // Tiny LRU eviction — drop oldest entry when over cap.
+  if (sigCache.size >= SIG_CACHE_MAX) {
+    const firstKey = sigCache.keys().next().value;
+    if (firstKey !== undefined) sigCache.delete(firstKey);
+  }
+  sigCache.set(sig, result);
+  refCache.set(series, result);
+  return result;
+}
+
+// Exposed for tests; not part of the public component API.
+export const __memoInternals = {
+  buildSeriesSignature,
+  memoizedMergeWeekly,
+  clear: () => sigCache.clear(),
+};
+
+
 function CompareTooltip({ active, payload, label, series, metric }: any) {
   if (!active || !payload?.length) return null;
   const unit = metric === "meetings" ? "reuniões" : "/ 100";
@@ -121,12 +185,30 @@ function CompareTooltip({ active, payload, label, series, metric }: any) {
 
 export default function MultiBrokerWeeklySparkline({ series }: { series: BrokerSeries[] }) {
   const [metric, setMetric] = useState<Metric>("meetings");
-  const data = useMemo(() => mergeWeekly(series), [series]);
-  const hasAny = data.some((row) =>
-    series.some((_, idx) => {
-      const v = row[`${metric}_${idx}`];
-      return typeof v === "number" && v > 0;
-    })
+
+  // Stable signature derived from data content. Using it as the useMemo
+  // dependency means we only rebuild when the actual broker data changes —
+  // not on every parent render that happens to pass a fresh array reference.
+  const seriesSignature = useMemo(() => buildSeriesSignature(series), [series]);
+
+  // memoizedMergeWeekly itself caches by ref + signature, so this useMemo
+  // is mostly belt-and-suspenders to keep React's commit phase cheap.
+  const data = useMemo(
+    () => memoizedMergeWeekly(series),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [seriesSignature]
+  );
+
+  const hasAny = useMemo(
+    () =>
+      data.some((row) =>
+        series.some((_, idx) => {
+          const v = row[`${metric}_${idx}`];
+          return typeof v === "number" && v > 0;
+        })
+      ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [data, metric, series.length]
   );
 
   if (data.length === 0) {
