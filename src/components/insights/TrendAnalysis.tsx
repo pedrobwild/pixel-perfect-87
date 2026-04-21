@@ -117,7 +117,10 @@ function WindowCard({ win, delta, isPrimary }: { win: TrendWindow; delta?: Trend
 }
 
 // ─── Weekly sparkline ─────────────────────────────────────────────
-type WeeklyChartPoint = WeeklyPoint & { scoreMA4: number | null };
+type WeeklyChartPoint = WeeklyPoint & {
+  scoreMA4: number | null;
+  meetingsAvg4: number | null;
+};
 
 function buildSparklineData(weekly: WeeklyPoint[]): WeeklyChartPoint[] {
   // 4-week trailing moving average for avgScore (only when we have a full window of meetings)
@@ -125,27 +128,41 @@ function buildSparklineData(weekly: WeeklyPoint[]): WeeklyChartPoint[] {
     const start = Math.max(0, i - 3);
     const window = weekly.slice(start, i + 1);
     const totalMeetings = window.reduce((s, x) => s + x.meetings, 0);
+    // Per-week average meetings over the trailing 4-week window (1 decimal)
+    const meetingsAvg4 = window.length > 0
+      ? Math.round((totalMeetings / window.length) * 10) / 10
+      : null;
     if (totalMeetings === 0 || window.length < 2) {
-      return { ...w, scoreMA4: null };
+      return { ...w, scoreMA4: null, meetingsAvg4 };
     }
     // Weighted by meetings to avoid empty weeks dragging the line to 0
     const weightedSum = window.reduce((s, x) => s + x.avgScore * x.meetings, 0);
     const ma = weightedSum / totalMeetings;
-    return { ...w, scoreMA4: Math.round(ma) };
+    return { ...w, scoreMA4: Math.round(ma), meetingsAvg4 };
   });
 }
 
-function SparkTooltip({ active, payload, label }: any) {
+type MeetingsMode = "total" | "avg";
+
+function SparkTooltip({ active, payload, label, mode }: any) {
   if (!active || !payload?.length) return null;
   const meetings = payload.find((p: any) => p.dataKey === "meetings")?.value ?? 0;
+  const meetingsAvg = payload.find((p: any) => p.dataKey === "meetingsAvg4")?.value;
   const score = payload.find((p: any) => p.dataKey === "avgScore")?.value ?? 0;
   const ma = payload.find((p: any) => p.dataKey === "scoreMA4")?.value;
   return (
     <div className="rounded-md border border-border/60 bg-popover px-3 py-2 text-xs shadow-md">
       <p className="font-semibold text-foreground mb-1">Semana de {label}</p>
-      <p className="text-muted-foreground">
-        Reuniões: <span className="font-bold text-foreground tabular-nums">{meetings}</span>
-      </p>
+      {mode === "avg" ? (
+        <p className="text-muted-foreground">
+          Reuniões (média 4 sem.):{" "}
+          <span className="font-bold text-foreground tabular-nums">{meetingsAvg ?? "—"}</span>
+        </p>
+      ) : (
+        <p className="text-muted-foreground">
+          Reuniões: <span className="font-bold text-foreground tabular-nums">{meetings}</span>
+        </p>
+      )}
       <p className="text-muted-foreground">
         Score médio: <span className="font-bold text-foreground tabular-nums">{score || "—"}</span>
       </p>
