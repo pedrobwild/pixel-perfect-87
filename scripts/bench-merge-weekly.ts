@@ -585,6 +585,10 @@ async function main() {
   const argv = process.argv.slice(2);
   let jsonPath: string | null = null;
   let diffPair: { baseline: string; candidate: string } | null = null;
+  // `--diff-json[=path]` writes the structured diff result alongside the
+  // human-readable report. Resolved AFTER the loop so it pairs with whichever
+  // form of --json-diff the user picked.
+  let diffJsonOut: string | null = null;
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     if (arg === "--json") jsonPath = "default";
@@ -607,16 +611,25 @@ async function main() {
         process.exit(2);
       }
       diffPair = { baseline: b, candidate: c };
+    } else if (arg === "--diff-json") {
+      diffJsonOut = "default";
+    } else if (arg.startsWith("--diff-json=")) {
+      diffJsonOut = arg.slice("--diff-json=".length).trim() || "default";
     } else if (arg === "-h" || arg === "--help") {
-      console.log("Usage: tsx scripts/bench-merge-weekly.ts [--json[=path]] [--json-diff <baseline> <candidate>]");
+      console.log("Usage: tsx scripts/bench-merge-weekly.ts [--json[=path]]");
+      console.log("       tsx scripts/bench-merge-weekly.ts --json-diff <baseline> <candidate> [--diff-json[=path]]");
       console.log("Env: BENCH_RUNS, BENCH_WEEKS, BENCH_BROKERS, BENCH_GAP_MOD,");
       console.log("     BENCH_BUDGET_MS, BENCH_MIN_RATIO, BENCH_JSON, VERBOSE=1");
       console.log("     BENCH_DIFF_MEDIAN_PCT (default 10), BENCH_DIFF_P95_PCT (default 15)");
+      console.log("     BENCH_DIFF_RATIO_DROP (default 0.5), BENCH_DIFF_JSON=<path>");
       process.exit(0);
     }
   }
   if (!jsonPath && process.env.BENCH_JSON) {
     jsonPath = process.env.BENCH_JSON.trim() || "default";
+  }
+  if (!diffJsonOut && process.env.BENCH_DIFF_JSON) {
+    diffJsonOut = process.env.BENCH_DIFF_JSON.trim() || "default";
   }
 
   // ─── --json-diff short-circuit ──────────────────────────────────────────
@@ -625,8 +638,12 @@ async function main() {
   // breached, and exit non-zero if a regression is detected. Keeps CI logs
   // self-contained — no need to re-run the bench just to interpret old JSONs.
   if (diffPair) {
-    const exitCode = await runJsonDiff(diffPair.baseline, diffPair.candidate);
+    const exitCode = await runJsonDiff(diffPair.baseline, diffPair.candidate, diffJsonOut);
     process.exit(exitCode);
+  }
+  if (diffJsonOut) {
+    // --diff-json only makes sense with --json-diff. Surface the misuse early.
+    console.warn("  ⚠ --diff-json was provided without --json-diff; ignoring (the bench itself doesn't produce a diff).");
   }
 
   const RUNS = Math.max(1, Math.round(num("BENCH_RUNS", 30)));
