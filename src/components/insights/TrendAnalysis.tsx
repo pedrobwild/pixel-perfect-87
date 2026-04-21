@@ -164,16 +164,31 @@ function WeeklySparkline({ weekly }: { weekly: WeeklyPoint[] }) {
 
   return (
     <div className="rounded-lg border border-border/60 p-4 space-y-2 bg-card">
-      <div className="flex items-center gap-1.5">
+      <div className="flex items-center gap-1.5 flex-wrap">
         <LineChartIcon className="h-3.5 w-3.5 text-primary" />
         <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           Evolução semanal · últimas 12 semanas
         </span>
-        <Badge variant="outline" className="ml-auto text-[10px] font-normal">
-          MA 4 sem.
-        </Badge>
+        <div className="ml-auto flex items-center gap-3 text-[10px] text-muted-foreground">
+          <span className="inline-flex items-center gap-1.5">
+            <span className="inline-block h-2 w-3 rounded-sm bg-primary/60" aria-hidden />
+            <span>Reuniões <span className="text-muted-foreground/60">(esq.)</span></span>
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <span className="inline-block h-0.5 w-3 bg-[hsl(var(--accent-foreground))]" aria-hidden />
+            <span>Score <span className="text-muted-foreground/60">(dir.)</span></span>
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <span
+              className="inline-block h-0.5 w-3 bg-muted-foreground"
+              style={{ backgroundImage: "repeating-linear-gradient(90deg, hsl(var(--muted-foreground)) 0 3px, transparent 3px 6px)", backgroundColor: "transparent" }}
+              aria-hidden
+            />
+            <span>MA 4 sem.</span>
+          </span>
+        </div>
       </div>
-      <div className="h-44 w-full">
+      <div className="h-40 w-full">
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart data={data} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
             <defs>
