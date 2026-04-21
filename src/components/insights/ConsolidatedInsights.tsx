@@ -294,6 +294,8 @@ function mergeCacheEntries(caches: any[]): ConsolidatedData {
     90: { meetingsTotal: 0, scoreSum: 0, scoreCount: 0, positiveSum: 0, positiveCount: 0, objections: {} },
   };
   const deltaAgg = { meetings: 0, scoreSum: 0, scoreCount: 0, positiveSum: 0, positiveCount: 0 };
+  // Weekly aggregation: weekStart -> { label, meetings, scoreSum (weighted by meetings) }
+  const weeklyAgg = new Map<string, { label: string; meetings: number; scoreSum: number }>();
 
   for (const cache of caches) {
     totalMeetings += cache.total_meetings;
@@ -342,6 +344,17 @@ function mergeCacheEntries(caches: any[]): ConsolidatedData {
       deltaAgg.positiveCount += recentWeight;
     }
 
+    // Weekly evolution aggregation (sum meetings, weighted score by meetings)
+    if (Array.isArray(d.trends?.weekly)) {
+      for (const wk of d.trends.weekly) {
+        if (!wk?.weekStart) continue;
+        const existing = weeklyAgg.get(wk.weekStart) || { label: wk.label || wk.weekStart, meetings: 0, scoreSum: 0 };
+        existing.meetings += wk.meetings || 0;
+        existing.scoreSum += (wk.avgScore || 0) * (wk.meetings || 0);
+        weeklyAgg.set(wk.weekStart, existing);
+      }
+    }
+
     // Quantitative
     if (Array.isArray(d.leadScores)) allLeads.push(...d.leadScores);
     if (d.metrics?.avgSentiment) {
@@ -383,6 +396,15 @@ function mergeCacheEntries(caches: any[]): ConsolidatedData {
   }
 
   // Build merged trends payload
+  const mergedWeekly = Array.from(weeklyAgg.entries())
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+    .map(([weekStart, agg]) => ({
+      weekStart,
+      label: agg.label,
+      meetings: agg.meetings,
+      avgScore: agg.meetings > 0 ? Math.round(agg.scoreSum / agg.meetings) : 0,
+    }));
+
   const mergedTrends = {
     windows: ([30, 60, 90] as const).map((days) => {
       const b = trendAgg[days];
@@ -403,6 +425,7 @@ function mergeCacheEntries(caches: any[]): ConsolidatedData {
       avgScore: deltaAgg.scoreCount > 0 ? Math.round(deltaAgg.scoreSum / deltaAgg.scoreCount) : 0,
       positiveSentimentPct: deltaAgg.positiveCount > 0 ? Math.round(deltaAgg.positiveSum / deltaAgg.positiveCount) : 0,
     },
+    weekly: mergedWeekly,
   };
 
   // Build merged metrics

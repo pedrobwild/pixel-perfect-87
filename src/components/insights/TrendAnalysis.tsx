@@ -1,7 +1,18 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { TrendingUp, TrendingDown, Minus, CalendarRange, AlertTriangle, Activity, Download } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, CalendarRange, AlertTriangle, Activity, Download, LineChart as LineChartIcon } from "lucide-react";
+import {
+  ResponsiveContainer,
+  ComposedChart,
+  Area,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+  Legend,
+} from "recharts";
 
 interface TrendWindow {
   windowDays: 30 | 60 | 90;
@@ -11,6 +22,13 @@ interface TrendWindow {
   topObjections: { objection: string; count: number }[];
 }
 
+interface WeeklyPoint {
+  weekStart: string;
+  label: string;
+  meetings: number;
+  avgScore: number;
+}
+
 interface TrendsPayload {
   windows: TrendWindow[];
   delta30vs60: {
@@ -18,6 +36,7 @@ interface TrendsPayload {
     avgScore: number;
     positiveSentimentPct: number;
   };
+  weekly?: WeeklyPoint[];
 }
 
 function DeltaPill({ value, suffix = "", invert = false }: { value: number; suffix?: string; invert?: boolean }) {
@@ -96,6 +115,148 @@ function WindowCard({ win, delta, isPrimary }: { win: TrendWindow; delta?: Trend
   );
 }
 
+// ─── Weekly sparkline ─────────────────────────────────────────────
+type WeeklyChartPoint = WeeklyPoint & { scoreMA4: number | null };
+
+function buildSparklineData(weekly: WeeklyPoint[]): WeeklyChartPoint[] {
+  // 4-week trailing moving average for avgScore (only when we have a full window of meetings)
+  return weekly.map((w, i) => {
+    const start = Math.max(0, i - 3);
+    const window = weekly.slice(start, i + 1);
+    const totalMeetings = window.reduce((s, x) => s + x.meetings, 0);
+    if (totalMeetings === 0 || window.length < 2) {
+      return { ...w, scoreMA4: null };
+    }
+    // Weighted by meetings to avoid empty weeks dragging the line to 0
+    const weightedSum = window.reduce((s, x) => s + x.avgScore * x.meetings, 0);
+    const ma = weightedSum / totalMeetings;
+    return { ...w, scoreMA4: Math.round(ma) };
+  });
+}
+
+function SparkTooltip({ active, payload, label }: any) {
+  if (!active || !payload?.length) return null;
+  const meetings = payload.find((p: any) => p.dataKey === "meetings")?.value ?? 0;
+  const score = payload.find((p: any) => p.dataKey === "avgScore")?.value ?? 0;
+  const ma = payload.find((p: any) => p.dataKey === "scoreMA4")?.value;
+  return (
+    <div className="rounded-md border border-border/60 bg-popover px-3 py-2 text-xs shadow-md">
+      <p className="font-semibold text-foreground mb-1">Semana de {label}</p>
+      <p className="text-muted-foreground">
+        Reuniões: <span className="font-bold text-foreground tabular-nums">{meetings}</span>
+      </p>
+      <p className="text-muted-foreground">
+        Score médio: <span className="font-bold text-foreground tabular-nums">{score || "—"}</span>
+      </p>
+      {ma != null && (
+        <p className="text-muted-foreground">
+          Média 4 sem.: <span className="font-bold text-foreground tabular-nums">{ma}</span>
+        </p>
+      )}
+    </div>
+  );
+}
+
+function WeeklySparkline({ weekly }: { weekly: WeeklyPoint[] }) {
+  const data = buildSparklineData(weekly);
+  const totalMeetings = data.reduce((s, w) => s + w.meetings, 0);
+  if (totalMeetings === 0) return null;
+
+  return (
+    <div className="rounded-lg border border-border/60 p-4 space-y-2 bg-card">
+      <div className="flex items-center gap-1.5">
+        <LineChartIcon className="h-3.5 w-3.5 text-primary" />
+        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Evolução semanal · últimas 12 semanas
+        </span>
+        <Badge variant="outline" className="ml-auto text-[10px] font-normal">
+          MA 4 sem.
+        </Badge>
+      </div>
+      <div className="h-44 w-full">
+        <ResponsiveContainer width="100%" height="100%">
+          <ComposedChart data={data} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
+            <defs>
+              <linearGradient id="meetingsArea" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.35} />
+                <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0.02} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.4} vertical={false} />
+            <XAxis
+              dataKey="label"
+              tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+              axisLine={{ stroke: "hsl(var(--border))" }}
+              tickLine={false}
+              interval="preserveStartEnd"
+              minTickGap={16}
+            />
+            <YAxis
+              yAxisId="left"
+              tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+              axisLine={false}
+              tickLine={false}
+              allowDecimals={false}
+              width={28}
+            />
+            <YAxis
+              yAxisId="right"
+              orientation="right"
+              domain={[0, 100]}
+              tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+              axisLine={false}
+              tickLine={false}
+              width={28}
+            />
+            <Tooltip content={<SparkTooltip />} cursor={{ stroke: "hsl(var(--border))", strokeWidth: 1 }} />
+            <Legend
+              verticalAlign="top"
+              align="right"
+              height={20}
+              iconSize={8}
+              wrapperStyle={{ fontSize: 10, color: "hsl(var(--muted-foreground))" }}
+            />
+            <Area
+              yAxisId="left"
+              type="monotone"
+              dataKey="meetings"
+              name="Reuniões"
+              stroke="hsl(var(--primary))"
+              strokeWidth={2}
+              fill="url(#meetingsArea)"
+              dot={false}
+              activeDot={{ r: 3 }}
+            />
+            <Line
+              yAxisId="right"
+              type="monotone"
+              dataKey="avgScore"
+              name="Score"
+              stroke="hsl(var(--accent-foreground))"
+              strokeWidth={1.5}
+              dot={false}
+              activeDot={{ r: 3 }}
+              connectNulls
+            />
+            <Line
+              yAxisId="right"
+              type="monotone"
+              dataKey="scoreMA4"
+              name="MA Score (4 sem.)"
+              stroke="hsl(var(--muted-foreground))"
+              strokeWidth={1.5}
+              strokeDasharray="4 3"
+              dot={false}
+              activeDot={false}
+              connectNulls
+            />
+          </ComposedChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+}
+
 function escapeCsv(value: string | number): string {
   const s = String(value ?? "");
   if (s.includes(",") || s.includes('"') || s.includes("\n")) {
@@ -126,6 +287,16 @@ function exportTrendsCsv(trends: TrendsPayload, scopeLabel: string) {
   for (const w of trends.windows) {
     for (const o of w.topObjections) {
       rows.push(`top_objection,${w.windowDays},${escapeCsv(o.objection)},${o.count},`);
+    }
+  }
+
+  // Weekly evolution section
+  if (trends.weekly?.length) {
+    rows.push("");
+    rows.push("section,week_start,metric,value,unit");
+    for (const w of trends.weekly) {
+      rows.push(`weekly,${w.weekStart},meetings,${w.meetings},count`);
+      rows.push(`weekly,${w.weekStart},avg_score,${w.avgScore},score`);
     }
   }
 
@@ -185,8 +356,14 @@ export default function TrendAnalysis({
           {w60 && <WindowCard win={w60} />}
           {w90 && <WindowCard win={w90} />}
         </div>
+        {trends.weekly && trends.weekly.length > 0 && (
+          <div className="mt-4">
+            <WeeklySparkline weekly={trends.weekly} />
+          </div>
+        )}
         <p className="text-[10px] text-muted-foreground/70 mt-3 leading-relaxed">
           Janelas cumulativas a partir de hoje. Os deltas (▲▼) comparam os últimos 30 dias com os 30 dias imediatamente anteriores.
+          A linha tracejada no gráfico é a média móvel ponderada de 4 semanas.
         </p>
       </CardContent>
     </Card>

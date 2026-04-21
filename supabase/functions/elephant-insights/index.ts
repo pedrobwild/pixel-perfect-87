@@ -243,6 +243,13 @@ interface TrendWindow {
   topObjections: { objection: string; count: number }[];
 }
 
+interface WeeklyPoint {
+  weekStart: string; // ISO date YYYY-MM-DD (UTC Monday of the week)
+  label: string;     // Short DD/MMM label, e.g. "14/Apr"
+  meetings: number;
+  avgScore: number;
+}
+
 interface TrendsPayload {
   windows: TrendWindow[];
   // Deltas comparing 30d vs preceding 30d (i.e., 30d window vs days 31-60)
@@ -251,6 +258,24 @@ interface TrendsPayload {
     avgScore: number;
     positiveSentimentPct: number;
   };
+  // Last 12 weeks of evolution, oldest → newest, anchored to UTC Monday
+  weekly: WeeklyPoint[];
+}
+
+// Returns the UTC Monday (00:00:00) of the week containing the given date.
+function getUtcMonday(date: Date): Date {
+  const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+  const day = d.getUTCDay(); // 0=Sun..6=Sat
+  const diff = (day + 6) % 7; // days since Monday
+  d.setUTCDate(d.getUTCDate() - diff);
+  d.setUTCHours(0, 0, 0, 0);
+  return d;
+}
+
+const MONTH_ABBR = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+function formatWeekLabel(d: Date): string {
+  const dd = String(d.getUTCDate()).padStart(2, "0");
+  return `${dd}/${MONTH_ABBR[d.getUTCMonth()]}`;
 }
 
 export function buildTrends(transcribes: any[]): TrendsPayload {
@@ -322,6 +347,36 @@ export function buildTrends(transcribes: any[]): TrendsPayload {
   const w90 = computeWindow(win90, 90);
   const wPrev = computeWindow(prev30, 30);
 
+  // ── Weekly evolution (last 12 weeks, oldest → newest) ─────────
+  const currentMonday = getUtcMonday(new Date(now));
+  const weekly: WeeklyPoint[] = [];
+  // Pre-build 12 buckets keyed by ISO week-start
+  const bucketByKey = new Map<string, { meetings: number; scoreSum: number }>();
+  for (let i = 11; i >= 0; i--) {
+    const wk = new Date(currentMonday);
+    wk.setUTCDate(wk.getUTCDate() - i * 7);
+    const key = wk.toISOString().slice(0, 10);
+    bucketByKey.set(key, { meetings: 0, scoreSum: 0 });
+    weekly.push({ weekStart: key, label: formatWeekLabel(wk), meetings: 0, avgScore: 0 });
+  }
+  for (const t of transcribes) {
+    if (!t.dateIncluded) continue;
+    const ts = new Date(t.dateIncluded);
+    if (Number.isNaN(ts.getTime())) continue;
+    const monday = getUtcMonday(ts);
+    const key = monday.toISOString().slice(0, 10);
+    const b = bucketByKey.get(key);
+    if (!b) continue; // outside 12-week range
+    const { score } = computeLeadScore(t);
+    b.meetings += 1;
+    b.scoreSum += score;
+  }
+  for (const w of weekly) {
+    const b = bucketByKey.get(w.weekStart)!;
+    w.meetings = b.meetings;
+    w.avgScore = b.meetings > 0 ? Math.round(b.scoreSum / b.meetings) : 0;
+  }
+
   return {
     windows: [w30, w60, w90],
     delta30vs60: {
@@ -329,6 +384,7 @@ export function buildTrends(transcribes: any[]): TrendsPayload {
       avgScore: w30.avgScore - wPrev.avgScore,
       positiveSentimentPct: w30.positiveSentimentPct - wPrev.positiveSentimentPct,
     },
+    weekly,
   };
 }
 
