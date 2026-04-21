@@ -488,14 +488,20 @@ function exportTrendsCsv(trends: TrendsPayload, scopeLabel: string) {
     }
   }
 
-  // Weekly evolution section
+  // Weekly evolution section — exact values shown on the 12-week sparkline
   if (trends.weekly?.length) {
+    const enriched = buildSparklineData(trends.weekly);
     rows.push("");
-    rows.push("section,week_start,metric,value,unit");
-    for (const w of trends.weekly) {
-      rows.push(`weekly,${w.weekStart},meetings,${w.meetings},count`);
-      rows.push(`weekly,${w.weekStart},avg_score,${w.avgScore},score`);
-    }
+    rows.push(
+      "section,week_index,week_start,week_label,meetings,meetings_avg_4w,avg_score,score_ma_4w"
+    );
+    enriched.forEach((w, i) => {
+      const ma = w.scoreMA4 ?? "";
+      const meetingsAvg = w.meetingsAvg4 ?? "";
+      rows.push(
+        `weekly,${i + 1},${w.weekStart},${escapeCsv(w.label)},${w.meetings},${meetingsAvg},${w.avgScore},${ma}`
+      );
+    });
   }
 
   const csv = rows.join("\n");
