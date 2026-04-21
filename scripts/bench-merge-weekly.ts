@@ -468,6 +468,94 @@ async function main() {
     return lines;
   };
 
+  // ─── JSON artifact (for cross-run comparison) ───────────────────────────
+  // Schema is intentionally flat-ish so it's diff-friendly. `samplesMs` keeps
+  // the raw per-iteration numbers so a future tool can recompute medians,
+  // percentiles, or trend deltas across many runs without re-running anything.
+  if (jsonPath) {
+    const startedAt = new Date().toISOString();
+    const resolvedPath =
+      jsonPath === "default"
+        ? resolve(`bench-results/merge-weekly-${startedAt.replace(/[:.]/g, "-")}.json`)
+        : resolve(jsonPath);
+
+    const artifact = {
+      schemaVersion: 1,
+      kind: "mergeWeekly-bench",
+      startedAt,
+      durationMs: opt.totalMs + nai.totalMs,
+      env: {
+        node: process.version,
+        platform: process.platform,
+        arch: process.arch,
+        ci: process.env.CI ?? null,
+        // Snapshot every relevant knob — set or default — so future diffs
+        // can flag config drift, not just timing drift.
+        knobs: Object.fromEntries(
+          trackedEnv.map((e) => [
+            e.key,
+            {
+              value: e.effective,
+              isSet:
+                process.env[e.key] !== undefined && process.env[e.key] !== "",
+            },
+          ])
+        ),
+      },
+      config: { runs: RUNS, weeks: WEEKS, brokers: BROKERS, gapMod: GAP_MOD },
+      thresholds: {
+        budgetMs: BUDGET_MS,
+        minRatio: MIN_RATIO,
+        requiredOptimizedMaxMs: requiredOptMaxMs,
+      },
+      output: {
+        rows,
+        colsPerRow,
+        optimizedJsonBytes: optimizedBytes,
+        naiveJsonBytes: naiveBytes,
+        shapeMatches,
+      },
+      timings: {
+        optimized: {
+          medianMs: opt.p50Ms,
+          avgMs: opt.avgMs,
+          p95Ms: opt.p95Ms,
+          minMs: opt.minMs,
+          maxMs: opt.maxMs,
+          opsPerSec: opt.opsPerSec,
+          samplesMs: optSamples,
+        },
+        naive: {
+          medianMs: nai.p50Ms,
+          avgMs: nai.avgMs,
+          p95Ms: nai.p95Ms,
+          minMs: nai.minMs,
+          maxMs: nai.maxMs,
+          opsPerSec: nai.opsPerSec,
+          samplesMs: naiSamples,
+        },
+        speedup: { median: ratioMedian, mean: ratio },
+      },
+      verdict: {
+        passed: !failed,
+        failures,
+        reproduceCmd,
+      },
+    };
+
+    try {
+      mkdirSync(dirname(resolvedPath), { recursive: true });
+      writeFileSync(resolvedPath, JSON.stringify(artifact, null, 2) + "\n", "utf8");
+      console.log(`  json artifact  : ${resolvedPath}`);
+    } catch (err) {
+      console.error(
+        `  ⚠ failed to write JSON artifact to ${resolvedPath}: ${(err as Error).message}`
+      );
+      // Don't mask the actual bench verdict on a write failure — keep going
+      // and let the failed/healthy exit path decide the final status.
+    }
+  }
+
   if (failed) {
     // Detailed regression report — stderr so CI logs and pre-push hooks
     // surface the exact numbers + thresholds prominently.
