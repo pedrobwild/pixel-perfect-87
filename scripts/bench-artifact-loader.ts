@@ -62,6 +62,15 @@ export interface CanonicalKnob {
   isSet: boolean;
 }
 
+export interface CanonicalSamplesMeta {
+  /** How `samplesMs` was stored: full = every sample, omit = none, downsample/summary = compressed view. */
+  kind: "full" | "omit" | "downsample" | "summary";
+  /** Number of samples actually collected during the run (pre-slim). */
+  originalLength: number;
+  /** Number of entries kept in `samplesMs` (`kept === samplesMs.length`). */
+  kept: number;
+}
+
 export interface CanonicalTiming {
   medianMs: number;
   avgMs: number;
@@ -70,6 +79,13 @@ export interface CanonicalTiming {
   maxMs: number;
   opsPerSec: number;
   samplesMs: number[];
+  /**
+   * Present on artifacts written with `--json-slim`. Absent ⇒ legacy/full
+   * artifact where `samplesMs.length === config.runs`. When present, the
+   * length invariant is relaxed and `originalLength` is the source of truth
+   * for "how many iterations actually ran".
+   */
+  samplesMeta?: CanonicalSamplesMeta;
 }
 
 export interface CanonicalArtifact {
@@ -115,6 +131,16 @@ export interface CanonicalArtifact {
     optimizedJsonBytes: number;
     naiveJsonBytes: number;
     shapeMatches: boolean;
+  };
+  /**
+   * Top-level descriptor of how `samplesMs` was stored. Present when
+   * `--json-slim` was used. Repeated per-impl in `timings.*.samplesMeta` for
+   * self-describing timing blocks; this top-level copy is for quick scans
+   * (e.g. listing CI artifacts and grouping by storage policy).
+   */
+  samplesPolicy?: {
+    mode: "full" | "omit" | "downsample" | "summary";
+    n?: number; // only set when mode === "downsample"
   };
   timings?: {
     optimized: CanonicalTiming;
@@ -267,8 +293,22 @@ export function validateCanonical(a: CanonicalArtifact): ValidationIssue[] {
         req(isFiniteNumber(t[k]) && t[k] >= 0, `$.timings.${impl}.${k}`, "must be ≥ 0 finite number");
       }
       req(Array.isArray(t.samplesMs), `$.timings.${impl}.samplesMs`, "must be array");
-      if (Array.isArray(t.samplesMs) && a.config) {
-        req(t.samplesMs.length === a.config.runs, `$.timings.${impl}.samplesMs.length`, `expected ${a.config.runs}`);
+      // `samplesMeta` (added with --json-slim) tells us this artifact was
+      // intentionally compressed. When present, the strict
+      // `samplesMs.length === config.runs` invariant is replaced by:
+      //   1. samplesMs.length === samplesMeta.kept
+      //   2. samplesMeta.originalLength === config.runs (if config present)
+      // so we still catch corruption without false-failing slim artifacts.
+      const meta = (t as { samplesMeta?: CanonicalSamplesMeta }).samplesMeta;
+      if (Array.isArray(t.samplesMs)) {
+        if (meta) {
+          req(t.samplesMs.length === meta.kept, `$.timings.${impl}.samplesMs.length`, `expected ${meta.kept} (slim:${meta.kind})`);
+          if (a.config) {
+            req(meta.originalLength === a.config.runs, `$.timings.${impl}.samplesMeta.originalLength`, `expected ${a.config.runs}`);
+          }
+        } else if (a.config) {
+          req(t.samplesMs.length === a.config.runs, `$.timings.${impl}.samplesMs.length`, `expected ${a.config.runs}`);
+        }
         req(t.samplesMs.every(isFiniteNumber), `$.timings.${impl}.samplesMs[]`, "all entries must be finite numbers");
       }
       req(t.minMs <= t.medianMs && t.medianMs <= t.maxMs, `$.timings.${impl}`, "min ≤ median ≤ max invariant violated");
@@ -435,6 +475,16 @@ function cliInspect(target: string): number {
   }
   console.log(`  config       : weeks=${a.config.weeks} brokers=${a.config.brokers} gapMod=${a.config.gapMod} runs=${a.config.runs}`);
   console.log(`  thresholds   : budget=${a.thresholds.budgetMs}ms minRatio=${a.thresholds.minRatio}×`);
+  if (a.samplesPolicy && a.samplesPolicy.mode !== "full") {
+    const m = a.timings?.optimized.samplesMeta;
+    const policy =
+      a.samplesPolicy.mode === "downsample"
+        ? `downsample:${a.samplesPolicy.n}`
+        : a.samplesPolicy.mode;
+    console.log(
+      `  samples      : ${policy}  (kept ${m?.kept ?? "?"} of ${m?.originalLength ?? "?"} per impl)`
+    );
+  }
   console.log(`  optimized    : median=${a.timings.optimized.medianMs.toFixed(3)}ms p95=${a.timings.optimized.p95Ms.toFixed(3)}ms`);
   console.log(`  naive        : median=${a.timings.naive.medianMs.toFixed(3)}ms p95=${a.timings.naive.p95Ms.toFixed(3)}ms`);
   console.log(`  speedup      : median=${a.timings.speedup.median.toFixed(2)}× mean=${a.timings.speedup.mean.toFixed(2)}×`);

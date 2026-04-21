@@ -237,6 +237,110 @@ function num(key: string, fallback: number): number {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 
+// ─── --json-slim: shrink samplesMs for cheap CI run-history storage ────────
+/**
+ * Parsed slim mode. `kind: "full"` means write every sample (back-compat).
+ * Other modes downsample or summarize so artifacts stay tiny across hundreds
+ * of CI runs without losing the ability to recompute medians/p95 sanity
+ * checks (we always retain min and max as anchor points).
+ */
+export type SlimMode =
+  | { kind: "full" }
+  | { kind: "omit" }
+  | { kind: "downsample"; n: number }
+  | { kind: "summary" };
+
+/**
+ * Parse a `--json-slim` / `BENCH_JSON_SLIM` value. Throws (process.exit) on
+ * invalid input so a typo in CI surfaces immediately rather than silently
+ * defaulting to "full" (which would defeat the point of asking for slim).
+ */
+export function parseSlimMode(raw: string | null): SlimMode {
+  if (!raw) return { kind: "full" };
+  const v = raw.trim().toLowerCase();
+  if (v === "" || v === "full") return { kind: "full" };
+  if (v === "omit" || v === "none") return { kind: "omit" };
+  if (v === "summary" || v === "5num") return { kind: "summary" };
+  if (v.startsWith("downsample:") || v.startsWith("ds:")) {
+    const num = Number(v.split(":")[1]);
+    // Floor of 4 keeps min + max + 2 interior anchors so the kept array still
+    // looks like a distribution, not a degenerate pair. Cap at 1024 because
+    // beyond that the "slim" framing is a lie.
+    if (!Number.isFinite(num) || num < 4 || num > 1024) {
+      console.error(
+        `✗ --json-slim=downsample:N requires 4 ≤ N ≤ 1024 (got "${raw}")`
+      );
+      process.exit(2);
+    }
+    return { kind: "downsample", n: Math.floor(num) };
+  }
+  console.error(
+    `✗ unknown --json-slim mode "${raw}"; expected: full | omit | downsample:N | summary`
+  );
+  process.exit(2);
+}
+
+/**
+ * Apply a slim mode to a sample array. Returns the kept samples plus metadata
+ * so the artifact reader knows it's looking at a downsampled view (and the
+ * loader's "samplesMs.length === config.runs" invariant can be relaxed).
+ *
+ * Invariants:
+ *   - "full"        → samples returned verbatim, meta.kind = "full"
+ *   - "omit"        → empty array, meta.kind = "omit"
+ *   - "downsample"  → ≤ n entries, ALWAYS includes min and max of original
+ *   - "summary"     → exactly 5 entries: [min, p25, p50, p75, max]
+ */
+export function applySlim(
+  samples: number[],
+  mode: SlimMode
+): { kept: number[]; meta: { kind: SlimMode["kind"]; originalLength: number; kept: number } } {
+  const meta = (kind: SlimMode["kind"], kept: number) => ({
+    kind,
+    originalLength: samples.length,
+    kept,
+  });
+  if (mode.kind === "full" || samples.length === 0) {
+    return { kept: samples, meta: meta("full", samples.length) };
+  }
+  if (mode.kind === "omit") {
+    return { kept: [], meta: meta("omit", 0) };
+  }
+  // For downsample/summary we want ORIGINAL min/max preserved exactly, so
+  // sort once and pull anchors from the sorted view. Sampling indices are
+  // computed against the sorted view too: keeping evenly-spaced quantiles
+  // gives a distribution-shape-preserving slim, not a chronological one.
+  // (We don't need chronological order for percentile/median recompute.)
+  const sorted = [...samples].sort((a, b) => a - b);
+  const lo = sorted[0];
+  const hi = sorted[sorted.length - 1];
+
+  if (mode.kind === "summary") {
+    const pick = (p: number) =>
+      sorted[Math.min(sorted.length - 1, Math.max(0, Math.round((sorted.length - 1) * p)))];
+    const kept = [lo, pick(0.25), pick(0.5), pick(0.75), hi];
+    return { kept, meta: meta("summary", kept.length) };
+  }
+
+  // downsample:N — N evenly-spaced quantile picks; first/last are forced to
+  // exact min/max so future sanity checks (`min ≤ median ≤ max`) hold even
+  // if the picked indices land just inside the extremes due to rounding.
+  const n = Math.min(mode.n, sorted.length);
+  if (n >= sorted.length) {
+    return { kept: sorted, meta: meta("downsample", sorted.length) };
+  }
+  const kept: number[] = new Array(n);
+  for (let i = 0; i < n; i++) {
+    // Evenly-spaced over [0, sorted.length-1].
+    const idx = Math.round((i * (sorted.length - 1)) / (n - 1));
+    kept[i] = sorted[idx];
+  }
+  // Defensive: clamp endpoints in case of rounding drift on tiny n.
+  kept[0] = lo;
+  kept[n - 1] = hi;
+  return { kept, meta: meta("downsample", n) };
+}
+
 // ─── --json-diff implementation ─────────────────────────────────────────────
 // Compares two artifacts (loaded through the schema-aware loader so v1/v2/…
 // files are auto-migrated) and reports:
@@ -701,10 +805,24 @@ async function main() {
   // human-readable report. Resolved AFTER the loop so it pairs with whichever
   // form of --json-diff the user picked.
   let diffJsonOut: string | null = null;
+  // `--json-slim[=mode]` controls how `samplesMs` is stored in the artifact.
+  // Goal: keep CI run-history JSONs small (1 run × 30 samples × 2 impls is
+  // tiny, but BENCH_RUNS=10000 across hundreds of runs balloons quickly).
+  // Modes:
+  //   "full"           — default; store every sample (back-compat).
+  //   "omit"           — drop samplesMs entirely; medians/p95 still present.
+  //   "downsample:<N>" — keep N evenly-spaced samples PLUS min and max so
+  //                      shape is preserved and percentile sanity checks
+  //                      still work. Bare --json-slim → "downsample:32".
+  //   "summary"        — keep only 5-point summary (min/p25/p50/p75/max);
+  //                      most aggressive without losing distribution shape.
+  let jsonSlimRaw: string | null = null;
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     if (arg === "--json") jsonPath = "default";
     else if (arg.startsWith("--json=")) jsonPath = arg.slice("--json=".length).trim() || "default";
+    else if (arg === "--json-slim") jsonSlimRaw = "downsample:32";
+    else if (arg.startsWith("--json-slim=")) jsonSlimRaw = arg.slice("--json-slim=".length).trim() || "downsample:32";
     else if (arg === "--json-diff") {
       // Form: --json-diff <baseline> <candidate>
       const baseline = argv[i + 1];
@@ -728,10 +846,11 @@ async function main() {
     } else if (arg.startsWith("--diff-json=")) {
       diffJsonOut = arg.slice("--diff-json=".length).trim() || "default";
     } else if (arg === "-h" || arg === "--help") {
-      console.log("Usage: tsx scripts/bench-merge-weekly.ts [--json[=path]]");
+      console.log("Usage: tsx scripts/bench-merge-weekly.ts [--json[=path]] [--json-slim[=mode]]");
       console.log("       tsx scripts/bench-merge-weekly.ts --json-diff <baseline> <candidate> [--diff-json[=path]]");
+      console.log("Slim modes: full | omit | downsample:N (default 32) | summary");
       console.log("Env: BENCH_RUNS, BENCH_WEEKS, BENCH_BROKERS, BENCH_GAP_MOD,");
-      console.log("     BENCH_BUDGET_MS, BENCH_MIN_RATIO, BENCH_JSON, VERBOSE=1");
+      console.log("     BENCH_BUDGET_MS, BENCH_MIN_RATIO, BENCH_JSON, BENCH_JSON_SLIM, VERBOSE=1");
       console.log("     BENCH_DIFF_MEDIAN_PCT (default 10), BENCH_DIFF_P95_PCT (default 15)");
       console.log("     BENCH_DIFF_RATIO_DROP (default 0.5), BENCH_DIFF_JSON=<path>");
       process.exit(0);
@@ -740,9 +859,16 @@ async function main() {
   if (!jsonPath && process.env.BENCH_JSON) {
     jsonPath = process.env.BENCH_JSON.trim() || "default";
   }
+  if (!jsonSlimRaw && process.env.BENCH_JSON_SLIM) {
+    jsonSlimRaw = process.env.BENCH_JSON_SLIM.trim() || "downsample:32";
+  }
   if (!diffJsonOut && process.env.BENCH_DIFF_JSON) {
     diffJsonOut = process.env.BENCH_DIFF_JSON.trim() || "default";
   }
+
+  // Parse + validate slim mode once, fail fast on typos so a CI cron doesn't
+  // silently keep writing fat artifacts because someone typo'd "downsamp:32".
+  const slimMode = parseSlimMode(jsonSlimRaw);
 
   // ─── --json-diff short-circuit ──────────────────────────────────────────
   // Skip the bench entirely: load two existing artifacts via the schema-aware
@@ -1059,6 +1185,12 @@ async function main() {
   // the raw per-iteration numbers so a future tool can recompute medians,
   // percentiles, or trend deltas across many runs without re-running anything.
   if (jsonPath) {
+    // Apply the slim mode AFTER all summary stats (median/p95/min/max) are
+    // already computed from the FULL sample arrays. The slim only affects
+    // what gets persisted — never what we report or use for verdicts.
+    const optSlim = applySlim(optSamples, slimMode);
+    const naiSlim = applySlim(naiSamples, slimMode);
+
     const artifact = {
       schemaVersion: 1,
       kind: "mergeWeekly-bench",
@@ -1102,6 +1234,13 @@ async function main() {
         naiveJsonBytes: naiveBytes,
         shapeMatches,
       },
+      // Top-level slim descriptor so consumers (and the loader) can branch
+      // on storage shape without inspecting every timings entry. Repeated
+      // per-impl in `samplesMeta` for self-describing timing blocks.
+      samplesPolicy: {
+        mode: slimMode.kind,
+        ...(slimMode.kind === "downsample" ? { n: slimMode.n } : {}),
+      },
       timings: {
         optimized: {
           medianMs: opt.p50Ms,
@@ -1110,7 +1249,8 @@ async function main() {
           minMs: opt.minMs,
           maxMs: opt.maxMs,
           opsPerSec: opt.opsPerSec,
-          samplesMs: optSamples,
+          samplesMs: optSlim.kept,
+          samplesMeta: optSlim.meta,
         },
         naive: {
           medianMs: nai.p50Ms,
@@ -1119,7 +1259,8 @@ async function main() {
           minMs: nai.minMs,
           maxMs: nai.maxMs,
           opsPerSec: nai.opsPerSec,
-          samplesMs: naiSamples,
+          samplesMs: naiSlim.kept,
+          samplesMeta: naiSlim.meta,
         },
         speedup: { median: ratioMedian, mean: ratio },
       },
