@@ -330,9 +330,14 @@ async function main() {
         "  failures:",
         ...failures.map((f) => `    ✗ ${f}`),
         "",
-        "  reproduce / tune:",
-        `    BENCH_RUNS=${RUNS} BENCH_WEEKS=${WEEKS} BENCH_BROKERS=${BROKERS} BENCH_GAP_MOD=${GAP_MOD} \\`,
-        `      BENCH_BUDGET_MS=${BUDGET_MS} BENCH_MIN_RATIO=${MIN_RATIO} npm run bench:merge-weekly`,
+        "  reproduce (using only env vars actually set in this shell):",
+        `    ${reproduceCmd}`,
+        ""
+      );
+    } else {
+      lines.push(
+        "  reproduce (using only env vars actually set in this shell):",
+        `    ${reproduceCmd}`,
         ""
       );
     }
