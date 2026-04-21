@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "kind": "mergeWeekly-bench",
+  "status": "crashed",
+  "startedAt": "2026-04-21T09:26:56.497Z",
+  "finishedAt": "2026-04-21T09:26:56.516Z",
+  "env": {
+    "node": "v22.22.0",
+    "platform": "linux",
+    "arch": "x64",
+    "ci": null,
+    "knobs": {}
+  },
+  "verdict": {
+    "passed": false,
+    "failures": [
+      "simulated crash"
+    ],
+    "reproduceCmd": "(test)"
+  },
+  "error": {
+    "message": "simulated",
+    "name": "Error",
+    "stack": null
+  }
+}
