@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import MultiBrokerWeeklySparkline from "./MultiBrokerWeeklySparkline";
 
 interface CorretorUser {
   id: string;
@@ -226,6 +227,14 @@ export default function CorretorComparison({ corretores, loadingUsers }: Correto
               {dataB.amandaName}
             </Badge>
           </div>
+
+          {/* Weekly evolution overlay */}
+          <MultiBrokerWeeklySparkline
+            series={[
+              { name: dataA.amandaName, weekly: dataA.dashboard?.trends?.weekly },
+              { name: dataB.amandaName, weekly: dataB.dashboard?.trends?.weekly },
+            ]}
+          />
 
           {/* KPI Comparison Grid */}
           <Card className="border-border/60 overflow-hidden">
