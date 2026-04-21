@@ -287,6 +287,14 @@ function mergeCacheEntries(caches: any[]): ConsolidatedData {
   const buyerPersonas: any[] = [];
   const sentimentSummaries: string[] = [];
 
+  // Trend aggregation across all corretores
+  const trendAgg: Record<30 | 60 | 90, { meetingsTotal: number; scoreSum: number; scoreCount: number; positiveSum: number; positiveCount: number; objections: Record<string, number> }> = {
+    30: { meetingsTotal: 0, scoreSum: 0, scoreCount: 0, positiveSum: 0, positiveCount: 0, objections: {} },
+    60: { meetingsTotal: 0, scoreSum: 0, scoreCount: 0, positiveSum: 0, positiveCount: 0, objections: {} },
+    90: { meetingsTotal: 0, scoreSum: 0, scoreCount: 0, positiveSum: 0, positiveCount: 0, objections: {} },
+  };
+  const deltaAgg = { meetings: 0, scoreSum: 0, scoreCount: 0, positiveSum: 0, positiveCount: 0 };
+
   for (const cache of caches) {
     totalMeetings += cache.total_meetings;
     totalDuration += cache.total_duration_minutes;
@@ -304,6 +312,35 @@ function mergeCacheEntries(caches: any[]): ConsolidatedData {
     // No-show aggregation
     if (typeof d.metrics?.noShowCount === "number") noShowCount += d.metrics.noShowCount;
     if (typeof d.metrics?.scheduledCount === "number") scheduledCount += d.metrics.scheduledCount;
+
+    // Trends aggregation
+    if (d.trends?.windows && Array.isArray(d.trends.windows)) {
+      for (const w of d.trends.windows) {
+        const bucket = trendAgg[w.windowDays as 30 | 60 | 90];
+        if (!bucket) continue;
+        bucket.meetingsTotal += w.meetings || 0;
+        if (w.meetings > 0) {
+          // Weight averages by meeting count for fair aggregation
+          bucket.scoreSum += (w.avgScore || 0) * w.meetings;
+          bucket.scoreCount += w.meetings;
+          bucket.positiveSum += (w.positiveSentimentPct || 0) * w.meetings;
+          bucket.positiveCount += w.meetings;
+        }
+        for (const o of w.topObjections || []) {
+          bucket.objections[o.objection] = (bucket.objections[o.objection] || 0) + (o.count || 1);
+        }
+      }
+    }
+    if (d.trends?.delta30vs60) {
+      deltaAgg.meetings += d.trends.delta30vs60.meetings || 0;
+      // Deltas: simple sum is misleading; track contribution weighted by recent meetings count
+      const w30 = d.trends.windows?.find((w: any) => w.windowDays === 30);
+      const recentWeight = (w30?.meetings || 0) || 1;
+      deltaAgg.scoreSum += (d.trends.delta30vs60.avgScore || 0) * recentWeight;
+      deltaAgg.scoreCount += recentWeight;
+      deltaAgg.positiveSum += (d.trends.delta30vs60.positiveSentimentPct || 0) * recentWeight;
+      deltaAgg.positiveCount += recentWeight;
+    }
 
     // Quantitative
     if (Array.isArray(d.leadScores)) allLeads.push(...d.leadScores);
@@ -344,6 +381,29 @@ function mergeCacheEntries(caches: any[]): ConsolidatedData {
     if (d.buyerPersona) buyerPersonas.push(d.buyerPersona);
     if (d.sentimentSummary) sentimentSummaries.push(d.sentimentSummary);
   }
+
+  // Build merged trends payload
+  const mergedTrends = {
+    windows: ([30, 60, 90] as const).map((days) => {
+      const b = trendAgg[days];
+      const topObjections = Object.entries(b.objections)
+        .map(([objection, count]) => ({ objection, count }))
+        .sort((a, b2) => b2.count - a.count)
+        .slice(0, 3);
+      return {
+        windowDays: days,
+        meetings: b.meetingsTotal,
+        avgScore: b.scoreCount > 0 ? Math.round(b.scoreSum / b.scoreCount) : 0,
+        positiveSentimentPct: b.positiveCount > 0 ? Math.round(b.positiveSum / b.positiveCount) : 0,
+        topObjections,
+      };
+    }),
+    delta30vs60: {
+      meetings: deltaAgg.meetings,
+      avgScore: deltaAgg.scoreCount > 0 ? Math.round(deltaAgg.scoreSum / deltaAgg.scoreCount) : 0,
+      positiveSentimentPct: deltaAgg.positiveCount > 0 ? Math.round(deltaAgg.positiveSum / deltaAgg.positiveCount) : 0,
+    },
+  };
 
   // Build merged metrics
   const avgSentiment: Record<string, number> = {};
