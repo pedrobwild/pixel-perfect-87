@@ -283,8 +283,22 @@ export function validateCanonical(a: CanonicalArtifact): ValidationIssue[] {
         req(isFiniteNumber(t[k]) && t[k] >= 0, `$.timings.${impl}.${k}`, "must be ≥ 0 finite number");
       }
       req(Array.isArray(t.samplesMs), `$.timings.${impl}.samplesMs`, "must be array");
-      if (Array.isArray(t.samplesMs) && a.config) {
-        req(t.samplesMs.length === a.config.runs, `$.timings.${impl}.samplesMs.length`, `expected ${a.config.runs}`);
+      // `samplesMeta` (added with --json-slim) tells us this artifact was
+      // intentionally compressed. When present, the strict
+      // `samplesMs.length === config.runs` invariant is replaced by:
+      //   1. samplesMs.length === samplesMeta.kept
+      //   2. samplesMeta.originalLength === config.runs (if config present)
+      // so we still catch corruption without false-failing slim artifacts.
+      const meta = (t as { samplesMeta?: CanonicalSamplesMeta }).samplesMeta;
+      if (Array.isArray(t.samplesMs)) {
+        if (meta) {
+          req(t.samplesMs.length === meta.kept, `$.timings.${impl}.samplesMs.length`, `expected ${meta.kept} (slim:${meta.kind})`);
+          if (a.config) {
+            req(meta.originalLength === a.config.runs, `$.timings.${impl}.samplesMeta.originalLength`, `expected ${a.config.runs}`);
+          }
+        } else if (a.config) {
+          req(t.samplesMs.length === a.config.runs, `$.timings.${impl}.samplesMs.length`, `expected ${a.config.runs}`);
+        }
         req(t.samplesMs.every(isFiniteNumber), `$.timings.${impl}.samplesMs[]`, "all entries must be finite numbers");
       }
       req(t.minMs <= t.medianMs && t.medianMs <= t.maxMs, `$.timings.${impl}`, "min ≤ median ≤ max invariant violated");
