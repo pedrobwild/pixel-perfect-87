@@ -95,9 +95,10 @@ Deno.test("buildTrends: weekly buckets distribute meetings into correct weeks (o
       `weeks not sorted ascending at index ${i}`,
     );
   }
-  // Most recent week should contain the 2 entries from days 1-2
+  // Most recent week always contains the daysAgo:1 entry; daysAgo:2 may straddle
+  // the Monday boundary depending on today's day-of-week, so assert >= 1.
   const last = r.weekly[r.weekly.length - 1];
-  assertEquals(last.meetings, 2);
+  assert(last.meetings >= 1, `expected last week to contain at least 1 entry, got ${last.meetings}`);
   // Total inside 12-week window = 4 (excludes daysAgo:200)
   const totalInside = r.weekly.reduce((s, w) => s + w.meetings, 0);
   assertEquals(totalInside, 4);
