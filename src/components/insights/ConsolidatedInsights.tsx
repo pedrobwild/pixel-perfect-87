@@ -243,7 +243,7 @@ export default function ConsolidatedInsights() {
           {data.dashboard && <QualitativeHighlights data={data.dashboard} />}
 
           {/* Full Detailed Dashboard */}
-          {data.dashboard && <InsightsDashboard data={data.dashboard} />}
+          {data.dashboard && <InsightsDashboard data={data.dashboard} scopeLabel="consolidado" />}
         </div>
       )}
     </div>

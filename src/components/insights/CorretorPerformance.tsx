@@ -271,7 +271,7 @@ export default function CorretorPerformance() {
                 )}
               </div>
 
-              {data.dashboard && <InsightsDashboard data={data.dashboard} />}
+              {data.dashboard && <InsightsDashboard data={data.dashboard} scopeLabel={data.amandaName} />}
             </div>
           )}
         </>
