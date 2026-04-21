@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { TrendingUp, TrendingDown, Minus, CalendarRange, AlertTriangle, Activity, Download, LineChart as LineChartIcon } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, CalendarRange, AlertTriangle, Activity, Download, LineChart as LineChartIcon, Pin, X } from "lucide-react";
 import {
   ResponsiveContainer,
   ComposedChart,
@@ -13,6 +13,7 @@ import {
   Tooltip,
   CartesianGrid,
   Legend,
+  ReferenceDot,
 } from "recharts";
 
 interface TrendWindow {
