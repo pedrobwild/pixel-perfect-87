@@ -261,6 +261,18 @@ function WeeklySparkline({ weekly }: { weekly: WeeklyPoint[] }) {
             Média 4s
           </button>
         </div>
+        {pinned && (
+          <button
+            type="button"
+            onClick={() => setPinnedIndex(null)}
+            className="inline-flex items-center gap-1 rounded-md border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary hover:bg-primary/15 transition-colors"
+            aria-label="Desafixar semana"
+          >
+            <Pin className="h-3 w-3" />
+            <span>Fixado: {pinned.label}</span>
+            <X className="h-3 w-3" />
+          </button>
+        )}
         <div className="basis-full flex items-center gap-3 text-[10px] text-muted-foreground">
           <span className="inline-flex items-center gap-1.5">
             <span className="inline-block h-2 w-3 rounded-sm bg-primary/60" aria-hidden />
