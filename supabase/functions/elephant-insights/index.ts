@@ -243,13 +243,6 @@ interface TrendWindow {
   topObjections: { objection: string; count: number }[];
 }
 
-interface WeeklyPoint {
-  weekStart: string; // ISO date (YYYY-MM-DD) for Monday of that week
-  label: string;     // e.g. "01/Apr"
-  meetings: number;
-  avgScore: number;
-}
-
 interface TrendsPayload {
   windows: TrendWindow[];
   // Deltas comparing 30d vs preceding 30d (i.e., 30d window vs days 31-60)
@@ -258,8 +251,6 @@ interface TrendsPayload {
     avgScore: number;
     positiveSentimentPct: number;
   };
-  // 12 weeks of evolution (oldest → newest)
-  weekly: WeeklyPoint[];
 }
 
 export function buildTrends(transcribes: any[]): TrendsPayload {
@@ -331,50 +322,6 @@ export function buildTrends(transcribes: any[]): TrendsPayload {
   const w90 = computeWindow(win90, 90);
   const wPrev = computeWindow(prev30, 30);
 
-  // ─── 12-week evolution (oldest → newest) ────────────────────
-  // Bucket by week (Monday-anchored UTC). Most recent week = current week.
-  const WEEK_MS = 7 * dayMs;
-  const today = new Date(now);
-  // Find Monday of current week (UTC)
-  const dow = today.getUTCDay(); // 0=Sun, 1=Mon..6=Sat
-  const daysSinceMonday = (dow + 6) % 7;
-  const currentMonday = new Date(Date.UTC(
-    today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() - daysSinceMonday,
-  ));
-
-  const weeks: { start: Date; entries: any[] }[] = [];
-  for (let i = 11; i >= 0; i--) {
-    weeks.push({ start: new Date(currentMonday.getTime() - i * WEEK_MS), entries: [] });
-  }
-  for (const t of transcribes) {
-    if (!t.dateIncluded) continue;
-    const ts = new Date(t.dateIncluded).getTime();
-    if (Number.isNaN(ts)) continue;
-    for (let i = weeks.length - 1; i >= 0; i--) {
-      if (ts >= weeks[i].start.getTime() && ts < weeks[i].start.getTime() + WEEK_MS) {
-        weeks[i].entries.push(t);
-        break;
-      }
-    }
-  }
-
-  const monthAbbr = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
-  const weekly: WeeklyPoint[] = weeks.map(({ start, entries }) => {
-    let avgScore = 0;
-    if (entries.length > 0) {
-      let sum = 0;
-      for (const t of entries) sum += computeLeadScore(t).score;
-      avgScore = Math.round(sum / entries.length);
-    }
-    const dd = String(start.getUTCDate()).padStart(2, "0");
-    return {
-      weekStart: start.toISOString().slice(0, 10),
-      label: `${dd}/${monthAbbr[start.getUTCMonth()]}`,
-      meetings: entries.length,
-      avgScore,
-    };
-  });
-
   return {
     windows: [w30, w60, w90],
     delta30vs60: {
@@ -382,7 +329,6 @@ export function buildTrends(transcribes: any[]): TrendsPayload {
       avgScore: w30.avgScore - wPrev.avgScore,
       positiveSentimentPct: w30.positiveSentimentPct - wPrev.positiveSentimentPct,
     },
-    weekly,
   };
 }
 

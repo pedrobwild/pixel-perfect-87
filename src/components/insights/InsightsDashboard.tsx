@@ -10,6 +10,7 @@ import ScriptBuilder from "./ScriptBuilder";
 import LeadRanking from "./LeadRanking";
 import EvidenceDialog from "./EvidenceDialog";
 import TrendAnalysis from "./TrendAnalysis";
+import PerformanceAlerts from "./PerformanceAlerts";
 
 /** Render frequency badge: "alta · 7/23 (30%)" when count info is available */
 function FrequencyBadge({ frequency, count, total, pct }: { frequency: string; count?: number; total?: number; pct?: number }) {
@@ -64,7 +65,7 @@ const reasonTypeLabels: Record<string, { label: string; color: string }> = {
   score_conversion: { label: "Score de Conversão", color: "bg-primary" },
 };
 
-export default function InsightsDashboard({ data }: { data: any }) {
+export default function InsightsDashboard({ data, scopeLabel }: { data: any; scopeLabel?: string }) {
   if (!data) return null;
 
   const metrics = data.metrics;
@@ -73,8 +74,11 @@ export default function InsightsDashboard({ data }: { data: any }) {
 
   return (
     <div className="space-y-6">
+      {/* ─── PERFORMANCE ALERTS (drops > 20%) ──────────────────────── */}
+      <PerformanceAlerts trends={data.trends} />
+
       {/* ─── TEMPORAL TRENDS (30/60/90d) ───────────────────────────── */}
-      <TrendAnalysis trends={data.trends} />
+      <TrendAnalysis trends={data.trends} scopeLabel={scopeLabel} />
 
       {/* ─── REAL METRICS FROM API ─────────────────────────────────── */}
 

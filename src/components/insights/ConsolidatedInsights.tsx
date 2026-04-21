@@ -243,7 +243,7 @@ export default function ConsolidatedInsights() {
           {data.dashboard && <QualitativeHighlights data={data.dashboard} />}
 
           {/* Full Detailed Dashboard */}
-          {data.dashboard && <InsightsDashboard data={data.dashboard} />}
+          {data.dashboard && <InsightsDashboard data={data.dashboard} scopeLabel="consolidado" />}
         </div>
       )}
     </div>
@@ -294,8 +294,6 @@ function mergeCacheEntries(caches: any[]): ConsolidatedData {
     90: { meetingsTotal: 0, scoreSum: 0, scoreCount: 0, positiveSum: 0, positiveCount: 0, objections: {} },
   };
   const deltaAgg = { meetings: 0, scoreSum: 0, scoreCount: 0, positiveSum: 0, positiveCount: 0 };
-  // Weekly aggregation: keyed by ISO weekStart, sums meetings and weighted score across brokers
-  const weeklyAgg: Record<string, { weekStart: string; label: string; meetings: number; scoreSum: number; scoreCount: number }> = {};
 
   for (const cache of caches) {
     totalMeetings += cache.total_meetings;
@@ -322,13 +320,14 @@ function mergeCacheEntries(caches: any[]): ConsolidatedData {
         if (!bucket) continue;
         bucket.meetingsTotal += w.meetings || 0;
         if (w.meetings > 0) {
+          // Weight averages by meeting count for fair aggregation
           bucket.scoreSum += (w.avgScore || 0) * w.meetings;
           bucket.scoreCount += w.meetings;
           bucket.positiveSum += (w.positiveSentimentPct || 0) * w.meetings;
           bucket.positiveCount += w.meetings;
         }
         for (const o of w.topObjections || []) {
-          bucket.objections[o.objection] = (bucket.objections[o.objection] || 0) + (o.count || 0);
+          bucket.objections[o.objection] = (bucket.objections[o.objection] || 0) + (o.count || 1);
         }
       }
     }
@@ -341,26 +340,6 @@ function mergeCacheEntries(caches: any[]): ConsolidatedData {
       deltaAgg.scoreCount += recentWeight;
       deltaAgg.positiveSum += (d.trends.delta30vs60.positiveSentimentPct || 0) * recentWeight;
       deltaAgg.positiveCount += recentWeight;
-    }
-    // Weekly aggregation: merge by weekStart (sum meetings, weighted score by meetings)
-    if (Array.isArray(d.trends?.weekly)) {
-      for (const wk of d.trends.weekly) {
-        if (!wk?.weekStart) continue;
-        const existing = weeklyAgg[wk.weekStart];
-        if (!existing) {
-          weeklyAgg[wk.weekStart] = {
-            weekStart: wk.weekStart,
-            label: wk.label,
-            meetings: wk.meetings || 0,
-            scoreSum: (wk.avgScore || 0) * (wk.meetings || 0),
-            scoreCount: wk.meetings || 0,
-          };
-        } else {
-          existing.meetings += wk.meetings || 0;
-          existing.scoreSum += (wk.avgScore || 0) * (wk.meetings || 0);
-          existing.scoreCount += wk.meetings || 0;
-        }
-      }
     }
 
     // Quantitative
@@ -424,14 +403,6 @@ function mergeCacheEntries(caches: any[]): ConsolidatedData {
       avgScore: deltaAgg.scoreCount > 0 ? Math.round(deltaAgg.scoreSum / deltaAgg.scoreCount) : 0,
       positiveSentimentPct: deltaAgg.positiveCount > 0 ? Math.round(deltaAgg.positiveSum / deltaAgg.positiveCount) : 0,
     },
-    weekly: Object.values(weeklyAgg)
-      .sort((a, b) => a.weekStart.localeCompare(b.weekStart))
-      .map((w) => ({
-        weekStart: w.weekStart,
-        label: w.label,
-        meetings: w.meetings,
-        avgScore: w.scoreCount > 0 ? Math.round(w.scoreSum / w.scoreCount) : 0,
-      })),
   };
 
   // Build merged metrics

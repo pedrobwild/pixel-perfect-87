@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, TrendingDown, Minus, CalendarRange, AlertTriangle, Activity, LineChart as LineChartIcon } from "lucide-react";
-import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Button } from "@/components/ui/button";
+import { TrendingUp, TrendingDown, Minus, CalendarRange, AlertTriangle, Activity, Download } from "lucide-react";
 
 interface TrendWindow {
   windowDays: 30 | 60 | 90;
@@ -11,13 +11,6 @@ interface TrendWindow {
   topObjections: { objection: string; count: number }[];
 }
 
-interface WeeklyPoint {
-  weekStart: string;
-  label: string;
-  meetings: number;
-  avgScore: number;
-}
-
 interface TrendsPayload {
   windows: TrendWindow[];
   delta30vs60: {
@@ -25,7 +18,6 @@ interface TrendsPayload {
     avgScore: number;
     positiveSentimentPct: number;
   };
-  weekly?: WeeklyPoint[];
 }
 
 function DeltaPill({ value, suffix = "", invert = false }: { value: number; suffix?: string; invert?: boolean }) {
@@ -104,7 +96,60 @@ function WindowCard({ win, delta, isPrimary }: { win: TrendWindow; delta?: Trend
   );
 }
 
-export default function TrendAnalysis({ trends }: { trends: TrendsPayload | undefined }) {
+function escapeCsv(value: string | number): string {
+  const s = String(value ?? "");
+  if (s.includes(",") || s.includes('"') || s.includes("\n")) {
+    return `"${s.replace(/"/g, '""')}"`;
+  }
+  return s;
+}
+
+function exportTrendsCsv(trends: TrendsPayload, scopeLabel: string) {
+  const rows: string[] = [];
+  rows.push("section,window_days,metric,value,unit");
+
+  // Windows section
+  for (const w of trends.windows) {
+    rows.push(`window,${w.windowDays},meetings,${w.meetings},count`);
+    rows.push(`window,${w.windowDays},avg_score,${w.avgScore},score`);
+    rows.push(`window,${w.windowDays},positive_sentiment_pct,${w.positiveSentimentPct},%`);
+  }
+
+  // Delta section
+  rows.push(`delta_30_vs_prev_30,30,meetings_delta,${trends.delta30vs60.meetings},count`);
+  rows.push(`delta_30_vs_prev_30,30,avg_score_delta,${trends.delta30vs60.avgScore},score`);
+  rows.push(`delta_30_vs_prev_30,30,positive_sentiment_pct_delta,${trends.delta30vs60.positiveSentimentPct},%`);
+
+  // Top objections section (separate header for clarity)
+  rows.push("");
+  rows.push("section,window_days,objection,count,");
+  for (const w of trends.windows) {
+    for (const o of w.topObjections) {
+      rows.push(`top_objection,${w.windowDays},${escapeCsv(o.objection)},${o.count},`);
+    }
+  }
+
+  const csv = rows.join("\n");
+  const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  const today = new Date().toISOString().slice(0, 10);
+  const safeScope = scopeLabel.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "tendencias";
+  a.href = url;
+  a.download = `tendencias-${safeScope}-${today}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+export default function TrendAnalysis({
+  trends,
+  scopeLabel = "consolidado",
+}: {
+  trends: TrendsPayload | undefined;
+  scopeLabel?: string;
+}) {
   if (!trends?.windows?.length) return null;
   const w30 = trends.windows.find((w) => w.windowDays === 30);
   const w60 = trends.windows.find((w) => w.windowDays === 60);
@@ -121,6 +166,17 @@ export default function TrendAnalysis({ trends }: { trends: TrendsPayload | unde
           <Activity className="h-4.5 w-4.5 text-primary" />
           Tendências Temporais
           <Badge variant="outline" className="ml-auto text-xs font-normal">30 / 60 / 90 dias</Badge>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-7 px-2 text-xs gap-1"
+            onClick={() => exportTrendsCsv(trends, scopeLabel)}
+            aria-label="Exportar tendências em CSV"
+          >
+            <Download className="h-3 w-3" />
+            CSV
+          </Button>
         </CardTitle>
       </CardHeader>
       <CardContent className="pt-4">
@@ -132,129 +188,7 @@ export default function TrendAnalysis({ trends }: { trends: TrendsPayload | unde
         <p className="text-[10px] text-muted-foreground/70 mt-3 leading-relaxed">
           Janelas cumulativas a partir de hoje. Os deltas (▲▼) comparam os últimos 30 dias com os 30 dias imediatamente anteriores.
         </p>
-
-        {trends.weekly && trends.weekly.length > 0 && trends.weekly.some((w) => w.meetings > 0) && (
-          <WeeklySparkline weekly={trends.weekly} />
-        )}
       </CardContent>
     </Card>
-  );
-}
-
-// ─── 12-week evolution sparkline ────────────────────────────────
-
-function WeeklySparkline({ weekly }: { weekly: WeeklyPoint[] }) {
-  const totalMeetings = weekly.reduce((s, w) => s + w.meetings, 0);
-  const activeWeeks = weekly.filter((w) => w.meetings > 0);
-  const avgScore = activeWeeks.length
-    ? Math.round(activeWeeks.reduce((s, w) => s + w.avgScore, 0) / activeWeeks.length)
-    : 0;
-
-  return (
-    <div className="mt-5 pt-5 border-t border-border/50">
-      <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
-        <div className="flex items-center gap-2">
-          <LineChartIcon className="h-4 w-4 text-primary" />
-          <h4 className="text-sm font-semibold text-foreground">Evolução · 12 semanas</h4>
-        </div>
-        <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
-          <span className="inline-flex items-center gap-1.5">
-            <span className="inline-block h-2 w-2 rounded-full bg-primary" />
-            Reuniões <span className="font-semibold text-foreground tabular-nums">{totalMeetings}</span>
-          </span>
-          <span className="inline-flex items-center gap-1.5">
-            <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />
-            Score médio <span className="font-semibold text-foreground tabular-nums">{avgScore || "—"}</span>
-          </span>
-        </div>
-      </div>
-
-      <div className="h-44 w-full">
-        <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={weekly} margin={{ top: 8, right: 12, left: -12, bottom: 0 }}>
-            <defs>
-              <linearGradient id="grad-meetings" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.45} />
-                <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
-              </linearGradient>
-              <linearGradient id="grad-score" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="hsl(142 71% 45%)" stopOpacity={0.35} />
-                <stop offset="95%" stopColor="hsl(142 71% 45%)" stopOpacity={0} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.4} vertical={false} />
-            <XAxis
-              dataKey="label"
-              tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
-              tickLine={false}
-              axisLine={{ stroke: "hsl(var(--border))" }}
-              interval="preserveStartEnd"
-            />
-            <YAxis
-              yAxisId="left"
-              tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
-              tickLine={false}
-              axisLine={false}
-              width={30}
-              allowDecimals={false}
-            />
-            <YAxis
-              yAxisId="right"
-              orientation="right"
-              domain={[0, 100]}
-              tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
-              tickLine={false}
-              axisLine={false}
-              width={28}
-            />
-            <Tooltip
-              contentStyle={{
-                background: "hsl(var(--popover))",
-                border: "1px solid hsl(var(--border))",
-                borderRadius: "0.5rem",
-                fontSize: "11px",
-                padding: "6px 10px",
-              }}
-              labelStyle={{ color: "hsl(var(--foreground))", fontWeight: 600, marginBottom: 2 }}
-              formatter={(value: number, name: string) => {
-                if (name === "Reuniões") return [value, name];
-                if (name === "Score médio") return [value || "—", name];
-                return [value, name];
-              }}
-              labelFormatter={(label, payload) => {
-                const p = payload?.[0]?.payload as WeeklyPoint | undefined;
-                return p ? `Semana de ${p.label}` : label;
-              }}
-            />
-            <Area
-              yAxisId="left"
-              type="monotone"
-              dataKey="meetings"
-              name="Reuniões"
-              stroke="hsl(var(--primary))"
-              strokeWidth={2}
-              fill="url(#grad-meetings)"
-              dot={{ r: 2.5, strokeWidth: 0, fill: "hsl(var(--primary))" }}
-              activeDot={{ r: 4 }}
-            />
-            <Area
-              yAxisId="right"
-              type="monotone"
-              dataKey="avgScore"
-              name="Score médio"
-              stroke="hsl(142 71% 45%)"
-              strokeWidth={2}
-              fill="url(#grad-score)"
-              dot={{ r: 2, strokeWidth: 0, fill: "hsl(142 71% 45%)" }}
-              activeDot={{ r: 4 }}
-            />
-          </AreaChart>
-        </ResponsiveContainer>
-      </div>
-
-      <p className="text-[10px] text-muted-foreground/70 mt-2 leading-relaxed">
-        Buckets semanais (segunda a domingo). Eixo esquerdo = volume de reuniões; eixo direito = score médio (0-100).
-      </p>
-    </div>
   );
 }
