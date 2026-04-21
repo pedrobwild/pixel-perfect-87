@@ -243,6 +243,13 @@ interface TrendWindow {
   topObjections: { objection: string; count: number }[];
 }
 
+interface WeeklyPoint {
+  weekStart: string; // ISO date YYYY-MM-DD (UTC Monday of the week)
+  label: string;     // Short DD/MMM label, e.g. "14/Apr"
+  meetings: number;
+  avgScore: number;
+}
+
 interface TrendsPayload {
   windows: TrendWindow[];
   // Deltas comparing 30d vs preceding 30d (i.e., 30d window vs days 31-60)
@@ -251,6 +258,24 @@ interface TrendsPayload {
     avgScore: number;
     positiveSentimentPct: number;
   };
+  // Last 12 weeks of evolution, oldest → newest, anchored to UTC Monday
+  weekly: WeeklyPoint[];
+}
+
+// Returns the UTC Monday (00:00:00) of the week containing the given date.
+function getUtcMonday(date: Date): Date {
+  const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+  const day = d.getUTCDay(); // 0=Sun..6=Sat
+  const diff = (day + 6) % 7; // days since Monday
+  d.setUTCDate(d.getUTCDate() - diff);
+  d.setUTCHours(0, 0, 0, 0);
+  return d;
+}
+
+const MONTH_ABBR = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+function formatWeekLabel(d: Date): string {
+  const dd = String(d.getUTCDate()).padStart(2, "0");
+  return `${dd}/${MONTH_ABBR[d.getUTCMonth()]}`;
 }
 
 export function buildTrends(transcribes: any[]): TrendsPayload {
