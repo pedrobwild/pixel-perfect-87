@@ -160,6 +160,226 @@ function num(key: string, fallback: number): number {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 
+// ─── --json-diff implementation ─────────────────────────────────────────────
+// Compares two artifacts (loaded through the schema-aware loader so v1/v2/…
+// files are auto-migrated) and reports:
+//   • absolute + % delta on optimized/naive median and p95
+//   • absolute delta on the speedup (median naive÷optimized)
+//   • which of the candidate's CLAIMED thresholds it actually breached, and
+//     whether it ALSO breaches the BASELINE's stricter threshold (catches
+//     a regression that was hidden by relaxing the budget between runs)
+//
+// Exit code: 0 = healthy, 1 = regression detected, 2 = bad invocation/load.
+//
+// Tunable via env (sensible defaults so CI doesn't need any config):
+//   BENCH_DIFF_MEDIAN_PCT=10   median % slower => regression
+//   BENCH_DIFF_P95_PCT=15      p95    % slower => regression
+//   BENCH_DIFF_RATIO_DROP=0.5  speedup drop in absolute × => regression
+function pct(curr: number, prev: number): number {
+  return prev === 0 ? 0 : ((curr - prev) / prev) * 100;
+}
+
+function fmtDelta(curr: number, prev: number, unit = "ms", digits = 3): string {
+  const d = curr - prev;
+  const p = pct(curr, prev);
+  const sign = d >= 0 ? "+" : "";
+  const arrow = d > 0 ? "▲" : d < 0 ? "▼" : "·";
+  return `${prev.toFixed(digits)}${unit} → ${curr.toFixed(digits)}${unit}  (${sign}${d.toFixed(digits)}${unit}, ${sign}${p.toFixed(1)}%) ${arrow}`;
+}
+
+async function runJsonDiff(baselinePath: string, candidatePath: string): Promise<number> {
+  let base, cand;
+  try {
+    base = loadArtifact(baselinePath);
+    cand = loadArtifact(candidatePath);
+  } catch (err) {
+    console.error(`✗ failed to load artifacts: ${(err as Error).message}`);
+    return 2;
+  }
+
+  const a: CanonicalArtifact = base.artifact;
+  const b: CanonicalArtifact = cand.artifact;
+
+  console.log("\n▶ mergeWeekly bench — JSON diff");
+  console.log(`  baseline : ${base.path}`);
+  console.log(`             v${base.rawSchemaVersion}  ${a.startedAt}  status=${a.status ?? "(legacy)"}`);
+  console.log(`  candidate: ${cand.path}`);
+  console.log(`             v${cand.rawSchemaVersion}  ${b.startedAt}  status=${b.status ?? "(legacy)"}\n`);
+
+  // Refuse to proceed on crash artifacts — there's nothing to compare.
+  if (a.status === "crashed" || b.status === "crashed") {
+    console.error(
+      `✗ one of the artifacts is a CRASH artifact (baseline=${a.status}, candidate=${b.status}). No timings to diff.`
+    );
+    return 2;
+  }
+  if (!a.timings || !b.timings || !a.config || !b.config || !a.thresholds || !b.thresholds) {
+    console.error("✗ artifact is missing timings/config/thresholds — cannot diff.");
+    return 2;
+  }
+
+  // Scale check: comparing W=25 vs W=800 is meaningless. Warn loudly but
+  // still print the numbers so the user can at least see the shape of the
+  // change (sometimes intentional, e.g. local quick run vs CI run).
+  const sameScale =
+    a.config.weeks === b.config.weeks &&
+    a.config.brokers === b.config.brokers &&
+    a.config.gapMod === b.config.gapMod &&
+    a.config.runs === b.config.runs;
+  if (!sameScale) {
+    console.warn("  ⚠ config scale differs — timings are NOT directly comparable:");
+    console.warn(
+      `    baseline : weeks=${a.config.weeks} brokers=${a.config.brokers} gapMod=${a.config.gapMod} runs=${a.config.runs}`
+    );
+    console.warn(
+      `    candidate: weeks=${b.config.weeks} brokers=${b.config.brokers} gapMod=${b.config.gapMod} runs=${b.config.runs}\n`
+    );
+  }
+
+  const medianPctLimit = num("BENCH_DIFF_MEDIAN_PCT", 10);
+  const p95PctLimit = num("BENCH_DIFF_P95_PCT", 15);
+  const ratioDropLimit = num("BENCH_DIFF_RATIO_DROP", 0.5);
+
+  console.log("  timings (baseline → candidate):");
+  console.log(`    optimized median : ${fmtDelta(b.timings.optimized.medianMs, a.timings.optimized.medianMs)}`);
+  console.log(`    optimized p95    : ${fmtDelta(b.timings.optimized.p95Ms, a.timings.optimized.p95Ms)}`);
+  console.log(`    naive     median : ${fmtDelta(b.timings.naive.medianMs, a.timings.naive.medianMs)}`);
+  console.log(`    naive     p95    : ${fmtDelta(b.timings.naive.p95Ms, a.timings.naive.p95Ms)}`);
+  console.log(
+    `    speedup (median) : ${a.timings.speedup.median.toFixed(2)}× → ${b.timings.speedup.median.toFixed(2)}×  (${
+      b.timings.speedup.median - a.timings.speedup.median >= 0 ? "+" : ""
+    }${(b.timings.speedup.median - a.timings.speedup.median).toFixed(2)}×)`
+  );
+  console.log(
+    `    rows             : ${a.output?.rows ?? "?"} → ${b.output?.rows ?? "?"}  (shape match: base=${a.output?.shapeMatches ?? "?"}, cand=${b.output?.shapeMatches ?? "?"})\n`
+  );
+
+  // ─── Regression checks ─────────────────────────────────────────────────
+  // Each entry records what was checked and whether it tripped, so we can
+  // print a unified ✓/✗ table at the bottom. Easier to scan in CI logs.
+  type Check = { label: string; passed: boolean; detail: string };
+  const checks: Check[] = [];
+
+  // Median regression
+  const medPct = pct(b.timings.optimized.medianMs, a.timings.optimized.medianMs);
+  checks.push({
+    label: `optimized median ≤ +${medianPctLimit}% vs baseline`,
+    passed: medPct <= medianPctLimit,
+    detail: `${medPct >= 0 ? "+" : ""}${medPct.toFixed(1)}% (limit +${medianPctLimit}%)`,
+  });
+
+  // p95 regression — catches tail latency that median hides
+  const p95Pct = pct(b.timings.optimized.p95Ms, a.timings.optimized.p95Ms);
+  checks.push({
+    label: `optimized p95 ≤ +${p95PctLimit}% vs baseline`,
+    passed: p95Pct <= p95PctLimit,
+    detail: `${p95Pct >= 0 ? "+" : ""}${p95Pct.toFixed(1)}% (limit +${p95PctLimit}%)`,
+  });
+
+  // Speedup drop
+  const ratioDelta = b.timings.speedup.median - a.timings.speedup.median;
+  checks.push({
+    label: `speedup drop ≤ ${ratioDropLimit}× vs baseline`,
+    passed: ratioDelta >= -ratioDropLimit,
+    detail: `${ratioDelta >= 0 ? "+" : ""}${ratioDelta.toFixed(2)}× (limit −${ratioDropLimit}×)`,
+  });
+
+  // Shape parity must hold across runs
+  if (a.output && b.output) {
+    checks.push({
+      label: "output shape parity preserved",
+      passed: a.output.shapeMatches === b.output.shapeMatches && b.output.shapeMatches,
+      detail: `base=${a.output.shapeMatches}, cand=${b.output.shapeMatches}`,
+    });
+  }
+
+  // ─── Threshold breach analysis ─────────────────────────────────────────
+  // Two angles:
+  //  (1) Did candidate breach ITS OWN claimed thresholds? (matches its verdict.)
+  //  (2) Did candidate breach the BASELINE's thresholds? (catches the
+  //      "loosened-the-budget-to-make-it-green" anti-pattern.)
+  const candBudgetBreached = b.timings.optimized.medianMs >= b.thresholds.budgetMs;
+  const candRatioBreached = b.timings.speedup.median < b.thresholds.minRatio;
+  const baseBudgetBreached = b.timings.optimized.medianMs >= a.thresholds.budgetMs;
+  const baseRatioBreached = b.timings.speedup.median < a.thresholds.minRatio;
+
+  console.log("  threshold check:");
+  const fmtThresh = (label: string, breached: boolean, detail: string) =>
+    `    ${breached ? "✗" : "✓"} ${label}: ${detail}`;
+  console.log(
+    fmtThresh(
+      "candidate vs its own budget",
+      candBudgetBreached,
+      `optimized median ${b.timings.optimized.medianMs.toFixed(3)}ms ${candBudgetBreached ? "≥" : "<"} ${b.thresholds.budgetMs}ms`
+    )
+  );
+  console.log(
+    fmtThresh(
+      "candidate vs its own minRatio",
+      candRatioBreached,
+      `speedup ${b.timings.speedup.median.toFixed(2)}× ${candRatioBreached ? "<" : "≥"} ${b.thresholds.minRatio}×`
+    )
+  );
+  if (a.thresholds.budgetMs !== b.thresholds.budgetMs) {
+    console.log(
+      fmtThresh(
+        `candidate vs BASELINE's budget (${a.thresholds.budgetMs}ms)`,
+        baseBudgetBreached,
+        `optimized median ${b.timings.optimized.medianMs.toFixed(3)}ms ${baseBudgetBreached ? "≥" : "<"} ${a.thresholds.budgetMs}ms ${
+          baseBudgetBreached && !candBudgetBreached ? "  ⚠ thresholds were RELAXED between runs" : ""
+        }`
+      )
+    );
+  }
+  if (a.thresholds.minRatio !== b.thresholds.minRatio) {
+    console.log(
+      fmtThresh(
+        `candidate vs BASELINE's minRatio (${a.thresholds.minRatio}×)`,
+        baseRatioBreached,
+        `speedup ${b.timings.speedup.median.toFixed(2)}× ${baseRatioBreached ? "<" : "≥"} ${a.thresholds.minRatio}× ${
+          baseRatioBreached && !candRatioBreached ? "  ⚠ thresholds were RELAXED between runs" : ""
+        }`
+      )
+    );
+  }
+
+  // Fold the threshold breaches into the unified check list.
+  if (candBudgetBreached) {
+    checks.push({ label: "candidate budget threshold", passed: false, detail: "see above" });
+  }
+  if (candRatioBreached) {
+    checks.push({ label: "candidate minRatio threshold", passed: false, detail: "see above" });
+  }
+  if (baseBudgetBreached && !candBudgetBreached) {
+    checks.push({
+      label: "candidate would FAIL baseline's stricter budget",
+      passed: false,
+      detail: "thresholds were relaxed",
+    });
+  }
+  if (baseRatioBreached && !candRatioBreached) {
+    checks.push({
+      label: "candidate would FAIL baseline's stricter minRatio",
+      passed: false,
+      detail: "thresholds were relaxed",
+    });
+  }
+
+  // ─── Final verdict ─────────────────────────────────────────────────────
+  const failed = checks.filter((c) => !c.passed);
+  console.log("\n  summary:");
+  for (const c of checks) console.log(`    ${c.passed ? "✓" : "✗"} ${c.label} — ${c.detail}`);
+  if (failed.length === 0) {
+    console.log("\n  verdict: ✓ no regression detected\n");
+    return 0;
+  }
+  console.error(
+    `\n  verdict: ✗ ${failed.length} regression${failed.length === 1 ? "" : "s"} detected — see ✗ rows above\n`
+  );
+  return 1;
+}
+
+
 async function main() {
   // ─── CLI parsing ────────────────────────────────────────────────────────
   // Supports `--json` (default path) or `--json=<path>` (custom path).
