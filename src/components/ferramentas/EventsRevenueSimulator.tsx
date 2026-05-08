@@ -13,6 +13,22 @@ import { useToast } from "@/hooks/use-toast";
 import SectionBlock from "@/components/guide/SectionBlock";
 import { fmt } from "@/data/guide-data";
 import { PROPERTY, TYPOLOGIES, calcFinancials } from "@/data/propertyData";
+import EventsMonthlyChart from "./EventsMonthlyChart";
+
+const MONTHS_PT = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+const MONTH_MATCH: Array<[RegExp, number]> = [
+  [/jan/i, 0], [/fev|feb/i, 1], [/mar/i, 2], [/abr|apr/i, 3],
+  [/mai|may/i, 4], [/jun/i, 5], [/jul/i, 6], [/ago|aug/i, 7],
+  [/set|sep/i, 8], [/out|oct/i, 9], [/nov/i, 10], [/dez|dec/i, 11],
+];
+
+function detectMonths(dateRange: string): number[] {
+  const found: number[] = [];
+  MONTH_MATCH.forEach(([re, idx]) => {
+    if (re.test(dateRange)) found.push(idx);
+  });
+  return found.length ? found : [];
+}
 
 interface EventItem {
   name: string;
@@ -99,6 +115,8 @@ export default function EventsRevenueSimulator() {
 
     let extraRevenue = 0;
     const breakdown: Array<{ name: string; days: number; uplift: number; extra: number; category: string }> = [];
+    const monthlyExtra = Array(12).fill(0);
+    const monthlyEvents: string[][] = Array.from({ length: 12 }, () => []);
 
     data.events.forEach((ev, i) => {
       if (!selectedEvents.has(i)) return;
@@ -116,13 +134,37 @@ export default function EventsRevenueSimulator() {
         extra: Math.round(extra),
         category: ev.category,
       });
+
+      // Distribute extra revenue across detected months
+      const months = detectMonths(ev.dateRange);
+      if (months.length > 0) {
+        const perMonth = extra / months.length;
+        months.forEach((m) => {
+          monthlyExtra[m] += perMonth;
+          monthlyEvents[m].push(ev.name);
+        });
+      }
     });
 
     const annualBase = baseFin.annualRevenue;
+    const monthlyBase = annualBase / 12;
     const annualWithEvents = Math.round(annualBase + extraRevenue);
     const upliftPct = annualBase > 0 ? ((extraRevenue / annualBase) * 100) : 0;
     const newGrossYield = (annualWithEvents / typo.purchasePrice) * 100;
     const yieldDelta = newGrossYield - baseFin.grossYield;
+
+    const monthly = MONTHS_PT.map((m, i) => {
+      const total = monthlyBase + monthlyExtra[i];
+      const yieldPct = ((total * 12) / typo.purchasePrice) * 100;
+      return {
+        month: m,
+        base: Math.round(monthlyBase),
+        extra: Math.round(monthlyExtra[i]),
+        total: Math.round(total),
+        yieldPct: Number(yieldPct.toFixed(2)),
+        events: monthlyEvents[i],
+      };
+    });
 
     return {
       extraRevenue: Math.round(extraRevenue),
@@ -132,6 +174,7 @@ export default function EventsRevenueSimulator() {
       newGrossYield: Number(newGrossYield.toFixed(1)),
       yieldDelta: Number(yieldDelta.toFixed(1)),
       breakdown: breakdown.sort((a, b) => b.extra - a.extra),
+      monthly,
     };
   }, [data, selectedEvents, typo, baseFin]);
 
@@ -288,6 +331,8 @@ export default function EventsRevenueSimulator() {
                       <p className="text-[10px] text-muted-foreground">Ganho de yield</p>
                     </div>
                   </div>
+
+                  <EventsMonthlyChart data={sim.monthly} baseYield={baseFin.grossYield} />
 
                   {sim.breakdown.length > 0 && (
                     <div>
