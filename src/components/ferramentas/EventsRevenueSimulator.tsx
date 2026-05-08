@@ -332,6 +332,8 @@ export default function EventsRevenueSimulator() {
                     </div>
                   </div>
 
+                  <EventsMonthlyChart data={sim.monthly} baseYield={baseFin.grossYield} />
+
                   {sim.breakdown.length > 0 && (
                     <div>
                       <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
