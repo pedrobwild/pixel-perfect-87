@@ -93,7 +93,21 @@ type ActiveScenario = "conservador" | "base" | "agressivo";
 
 export default function RentabilidadeSection() {
   const [activeScenario, setActiveScenario] = useState<ActiveScenario>("base");
+  const [gestao, setGestao] = useState(900);
+  const [limpeza, setLimpeza] = useState(400);
+  const [condominio, setCondominio] = useState(500);
+  const [iptu, setIptu] = useState(300);
+
   const scenario = SCENARIOS.find((s) => s.key === activeScenario)!;
+
+  const vals = useMemo(() => ({ gestao, limpeza, condominio, iptu }), [gestao, limpeza, condominio, iptu]);
+
+  const setters: Record<string, (v: number) => void> = {
+    gestao: setGestao,
+    limpeza: setLimpeza,
+    condominio: setCondominio,
+    iptu: setIptu,
+  };
 
   return (
     <SectionBlock
@@ -106,10 +120,12 @@ export default function RentabilidadeSection() {
       <Card className="border-border mb-10">
         <CardContent className="p-5 md:p-6">
           <div className="space-y-0">
-            {WATERFALL.map((item, i) => {
+            {WATERFALL_CONFIG.map((item, i) => {
               const isRevenue = item.type === "revenue";
               const isResult = item.type === "result";
               const isCost = item.type === "cost" || item.type === "fixed";
+              const value = item.getValue(vals);
+              const formatted = isRevenue || isResult ? fmtCurrency(value) : `- ${fmtCurrency(value)}`;
 
               return (
                 <motion.div
@@ -128,9 +144,25 @@ export default function RentabilidadeSection() {
                       <p className={`text-sm font-body ${isResult ? "font-bold text-foreground" : "font-medium text-foreground"}`}>{item.label}</p>
                       <p className="text-xs text-muted-foreground font-body">{item.desc}</p>
                     </div>
-                    <span className={`text-sm font-mono font-semibold shrink-0 ${isResult ? "text-primary" : isCost ? "text-destructive/70" : "text-foreground"}`}>
-                      {item.example}
-                    </span>
+                    {item.editable && item.stateKey ? (
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <span className="text-sm text-muted-foreground">R$</span>
+                        <Input
+                          type="number"
+                          min={0}
+                          value={vals[item.stateKey]}
+                          onChange={(e) => {
+                            const num = Number(e.target.value);
+                            if (!Number.isNaN(num) && num >= 0) setters[item.stateKey!](num);
+                          }}
+                          className="w-20 h-8 text-sm font-mono text-right px-2"
+                        />
+                      </div>
+                    ) : (
+                      <span className={`text-sm font-mono font-semibold shrink-0 ${isResult ? "text-primary" : isCost ? "text-destructive/70" : "text-foreground"}`}>
+                        {formatted}
+                      </span>
+                    )}
                   </div>
                 </motion.div>
               );
