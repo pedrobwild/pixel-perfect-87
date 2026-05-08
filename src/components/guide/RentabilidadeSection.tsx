@@ -1,23 +1,54 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { motion } from "framer-motion";
 import { ArrowDown, TrendingUp, TrendingDown, Minus, AlertCircle, Lightbulb, DollarSign, Percent, Building2, Zap } from "lucide-react";
 import SectionBlock from "./SectionBlock";
 
-/* ── Waterfall data ── */
-const WATERFALL = [
-  { label: "Receita Bruta", desc: "ADR × noites ocupadas/mês", example: "R$ 9.000", type: "revenue" as const },
-  { label: "Comissão plataforma", desc: "~15% (Airbnb + processamento)", example: "- R$ 1.350", type: "cost" as const },
-  { label: "Gestão operacional", desc: "~10% (se terceirizada)", example: "- R$ 900", type: "cost" as const },
-  { label: "Limpeza", desc: "Custo fixo mensal", example: "- R$ 400", type: "cost" as const },
-  { label: "Condomínio", desc: "Custo fixo mensal", example: "- R$ 500", type: "fixed" as const },
-  { label: "IPTU", desc: "Custo fixo mensal", example: "- R$ 300", type: "fixed" as const },
-  { label: "Impostos", desc: "~6% (Simples/MEI)", example: "- R$ 540", type: "cost" as const },
-  { label: "Receita Líquida", desc: "O que sobra no bolso", example: "R$ 5.010", type: "result" as const },
+/* ── Base constants ── */
+const RECEITA_BRUTA = 9000;
+const COMISSAO_PCT = 0.15;
+const IMPOSTOS_PCT = 0.06;
+
+/* ── Waterfall item config ── */
+type WaterfallItem = {
+  label: string;
+  desc: string;
+  type: "revenue" | "cost" | "fixed" | "result";
+  editable?: boolean;
+  stateKey?: "gestao" | "limpeza" | "condominio" | "iptu";
+  getValue: (vals: Record<string, number>) => number;
+};
+
+const WATERFALL_CONFIG: WaterfallItem[] = [
+  { label: "Receita Bruta", desc: "ADR × noites ocupadas/mês", type: "revenue", getValue: () => RECEITA_BRUTA },
+  { label: "Comissão plataforma", desc: "~15% (Airbnb + processamento)", type: "cost", getValue: () => RECEITA_BRUTA * COMISSAO_PCT },
+  { label: "Gestão operacional", desc: "~10% (se terceirizada)", type: "cost", editable: true, stateKey: "gestao", getValue: (v) => v.gestao },
+  { label: "Limpeza", desc: "Custo fixo mensal", type: "cost", editable: true, stateKey: "limpeza", getValue: (v) => v.limpeza },
+  { label: "Condomínio", desc: "Custo fixo mensal", type: "fixed", editable: true, stateKey: "condominio", getValue: (v) => v.condominio },
+  { label: "IPTU", desc: "Custo fixo mensal", type: "fixed", editable: true, stateKey: "iptu", getValue: (v) => v.iptu },
+  { label: "Impostos", desc: "~6% (Simples/MEI)", type: "cost", getValue: () => RECEITA_BRUTA * IMPOSTOS_PCT },
+  {
+    label: "Receita Líquida",
+    desc: "O que sobra no bolso",
+    type: "result",
+    getValue: (v) =>
+      RECEITA_BRUTA -
+      (RECEITA_BRUTA * COMISSAO_PCT) -
+      v.gestao -
+      v.limpeza -
+      v.condominio -
+      v.iptu -
+      (RECEITA_BRUTA * IMPOSTOS_PCT),
+  },
 ];
+
+function fmtCurrency(n: number) {
+  return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 0, maximumFractionDigits: 0 });
+}
 
 /* ── Scenarios ── */
 const SCENARIOS = [
@@ -62,7 +93,21 @@ type ActiveScenario = "conservador" | "base" | "agressivo";
 
 export default function RentabilidadeSection() {
   const [activeScenario, setActiveScenario] = useState<ActiveScenario>("base");
+  const [gestao, setGestao] = useState(900);
+  const [limpeza, setLimpeza] = useState(400);
+  const [condominio, setCondominio] = useState(500);
+  const [iptu, setIptu] = useState(300);
+
   const scenario = SCENARIOS.find((s) => s.key === activeScenario)!;
+
+  const vals = useMemo(() => ({ gestao, limpeza, condominio, iptu }), [gestao, limpeza, condominio, iptu]);
+
+  const setters: Record<string, (v: number) => void> = {
+    gestao: setGestao,
+    limpeza: setLimpeza,
+    condominio: setCondominio,
+    iptu: setIptu,
+  };
 
   return (
     <SectionBlock
@@ -75,10 +120,12 @@ export default function RentabilidadeSection() {
       <Card className="border-border mb-10">
         <CardContent className="p-5 md:p-6">
           <div className="space-y-0">
-            {WATERFALL.map((item, i) => {
+            {WATERFALL_CONFIG.map((item, i) => {
               const isRevenue = item.type === "revenue";
               const isResult = item.type === "result";
               const isCost = item.type === "cost" || item.type === "fixed";
+              const value = item.getValue(vals);
+              const formatted = isRevenue || isResult ? fmtCurrency(value) : `- ${fmtCurrency(value)}`;
 
               return (
                 <motion.div
@@ -97,9 +144,25 @@ export default function RentabilidadeSection() {
                       <p className={`text-sm font-body ${isResult ? "font-bold text-foreground" : "font-medium text-foreground"}`}>{item.label}</p>
                       <p className="text-xs text-muted-foreground font-body">{item.desc}</p>
                     </div>
-                    <span className={`text-sm font-mono font-semibold shrink-0 ${isResult ? "text-primary" : isCost ? "text-destructive/70" : "text-foreground"}`}>
-                      {item.example}
-                    </span>
+                    {item.editable && item.stateKey ? (
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <span className="text-sm text-muted-foreground">R$</span>
+                        <Input
+                          type="number"
+                          min={0}
+                          value={vals[item.stateKey]}
+                          onChange={(e) => {
+                            const num = Number(e.target.value);
+                            if (!Number.isNaN(num) && num >= 0) setters[item.stateKey!](num);
+                          }}
+                          className="w-20 h-8 text-sm font-mono text-right px-2"
+                        />
+                      </div>
+                    ) : (
+                      <span className={`text-sm font-mono font-semibold shrink-0 ${isResult ? "text-primary" : isCost ? "text-destructive/70" : "text-foreground"}`}>
+                        {formatted}
+                      </span>
+                    )}
                   </div>
                 </motion.div>
               );
