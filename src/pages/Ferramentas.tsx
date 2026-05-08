@@ -4,6 +4,7 @@ import PropertyDiagnosticoSection from "@/components/ferramentas/PropertyDiagnos
 import PropertyRecomendacaoSection from "@/components/ferramentas/PropertyRecomendacaoSection";
 import PropertyPlanoAcaoSection from "@/components/ferramentas/PropertyPlanoAcaoSection";
 import PropertySimuladorSection from "@/components/ferramentas/PropertySimuladorSection";
+import EventsRevenueSimulator from "@/components/ferramentas/EventsRevenueSimulator";
 import PropertyBenchmarkSection from "@/components/ferramentas/PropertyBenchmarkSection";
 import MarketIntelSection from "@/components/MarketIntelSection";
 import RentabilidadeSection from "@/components/guide/RentabilidadeSection";
@@ -72,8 +73,15 @@ export default function Ferramentas() {
           </div>
         </div>
 
-        {/* Benchmark vs renda fixa */}
+        {/* Simulador de Eventos */}
         <div className="w-full">
+          <div className="max-w-[1280px] mx-auto px-5 lg:px-10">
+            <EventsRevenueSimulator />
+          </div>
+        </div>
+
+        {/* Benchmark vs renda fixa */}
+        <div className="w-full bg-muted/20">
           <div className="max-w-[1280px] mx-auto px-5 lg:px-10">
             <PropertyBenchmarkSection />
           </div>
