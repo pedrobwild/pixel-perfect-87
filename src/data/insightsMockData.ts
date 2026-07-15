@@ -8,6 +8,12 @@ const totalForFrequency = 47;
 
 function makeDashboard(overrides: Partial<any> = {}) {
   const base = {
+    __mock: true,
+    executiveTakeaways: [
+      { icon: "brain", title: "Perfil dominante: Analítico", insight: "68% dos investidores decidem por dados. Sempre abra a reunião com AirDNA + simulador ao vivo." },
+      { icon: "shield", title: "Objeção #1 é preço (38%)", insight: "Reforce diferencial de design (+30% ocupação) e yield líquido 30% acima da média da região." },
+      { icon: "target", title: "Sinal forte de compra", insight: "Pedido de 2ª reunião com cônjuge/sócio antecede fechamento em 71% dos casos — priorize agenda." },
+    ],
     metrics: {
       totalForFrequency,
       noShowCount: 6,
