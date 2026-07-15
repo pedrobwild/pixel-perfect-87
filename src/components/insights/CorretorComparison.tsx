@@ -81,44 +81,22 @@ export default function CorretorComparison({ corretores, loadingUsers }: Correto
   const loadData = async (userId: string, setter: (d: CorretorData | null) => void, setLoading: (b: boolean) => void) => {
     if (!userId) return;
     setLoading(true);
-    try {
-      // Try cache first
-      const cacheKey = `user_${userId}`;
-      const { data: cached } = await supabase
-        .from("elephant_insights_cache")
-        .select("*")
-        .eq("cache_key", cacheKey)
-        .single();
-
-      if (cached) {
+    setTimeout(() => {
+      const mock = MOCK_CORRETOR_DATA[userId];
+      if (mock) {
         setter({
-          amandaName: cached.amanda_name || "Corretor",
-          totalMeetings: cached.total_meetings,
-          totalDurationMinutes: cached.total_duration_minutes,
-          positiveSentimentPct: cached.positive_sentiment_pct,
-          latestMeeting: cached.latest_meeting,
-          dashboard: cached.charts_data,
+          amandaName: mock.amandaName,
+          totalMeetings: mock.totalMeetings,
+          totalDurationMinutes: mock.totalDurationMinutes,
+          positiveSentimentPct: mock.positiveSentimentPct,
+          latestMeeting: mock.latestMeeting,
+          dashboard: mock.dashboard,
         });
       } else {
-        // Fetch from API
-        const { data: res, error } = await supabase.functions.invoke("elephant-insights", { body: { userId } });
-        if (error) throw error;
-        if (!res?.success) throw new Error("Erro");
-        setter({
-          amandaName: res.amandaName,
-          totalMeetings: res.totalMeetings,
-          totalDurationMinutes: res.totalDurationMinutes || 0,
-          positiveSentimentPct: res.positiveSentimentPct,
-          latestMeeting: res.latestMeeting,
-          dashboard: res.chartsData,
-        });
+        setter(null);
       }
-    } catch {
-      setter(null);
-      toast({ title: "Erro ao carregar dados", variant: "destructive" });
-    } finally {
       setLoading(false);
-    }
+    }, 250);
   };
 
   // Load data when selection changes
