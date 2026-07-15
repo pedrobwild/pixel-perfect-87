@@ -13,9 +13,9 @@ import {
   Loader2, UserCircle, RefreshCw, BarChart3, CalendarRange,
   TrendingUp, TrendingDown, Minus, ArrowUpDown, Flame, ShieldAlert, Brain,
 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import MultiBrokerWeeklySparkline from "./MultiBrokerWeeklySparkline";
+import { MOCK_CORRETOR_DATA } from "@/data/insightsMockData";
 
 interface CorretorUser {
   id: string;
