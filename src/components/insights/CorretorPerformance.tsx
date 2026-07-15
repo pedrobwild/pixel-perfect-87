@@ -14,10 +14,10 @@ import {
   Loader2, Users, RefreshCw, CalendarRange, Database,
   UserCircle, ArrowLeftRight, UserX,
 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import InsightsDashboard from "./InsightsDashboard";
 import CorretorComparison from "./CorretorComparison";
+import { MOCK_CORRETORES, MOCK_CORRETOR_DATA } from "@/data/insightsMockData";
 
 interface InsightsData {
   amandaName: string;
@@ -40,92 +40,38 @@ export default function CorretorPerformance() {
   const [data, setData] = useState<InsightsData | null>(null);
   const [loading, setLoading] = useState(false);
   const [initialLoad, setInitialLoad] = useState(true);
-  const [corretores, setCorretores] = useState<CorretorUser[]>([]);
-  const [selectedCorretor, setSelectedCorretor] = useState<string>("");
-  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [corretores] = useState<CorretorUser[]>(MOCK_CORRETORES);
+  const [selectedCorretor, setSelectedCorretor] = useState<string>(MOCK_CORRETORES[0].id);
+  const [loadingUsers] = useState(false);
   const [viewMode, setViewMode] = useState<"individual" | "comparativo">("individual");
   const { toast } = useToast();
 
   useEffect(() => {
-    const loadUsers = async () => {
-      setLoadingUsers(true);
-      try {
-        const { data: res, error } = await supabase.functions.invoke(
-          "elephant-insights",
-          { body: { action: "list-users" } }
-        );
-        if (!error && res?.success && res.users) {
-          setCorretores(res.users);
-          if (res.users.length > 0) setSelectedCorretor(res.users[0].id);
-        }
-      } catch { /* silent */ }
-      finally { setLoadingUsers(false); }
-    };
-    loadUsers();
-  }, []);
-
-  useEffect(() => {
     if (!selectedCorretor) { setInitialLoad(false); return; }
-    const loadCache = async () => {
-      try {
-        const { data: cached } = await supabase
-          .from("elephant_insights_cache")
-          .select("*")
-          .eq("cache_key", `user_${selectedCorretor}`)
-          .single();
-        if (cached) {
-          const age = Math.round((Date.now() - new Date(cached.updated_at).getTime()) / 60000);
-          setData({
-            amandaName: cached.amanda_name || "Corretor",
-            totalMeetings: cached.total_meetings,
-            totalDurationMinutes: cached.total_duration_minutes,
-            positiveSentimentPct: cached.positive_sentiment_pct,
-            latestMeeting: cached.latest_meeting,
-            cached: true, cacheAge: age,
-            dashboard: cached.charts_data,
-          });
-        } else { setData(null); }
-      } catch { setData(null); }
-      finally { setInitialLoad(false); }
-    };
-    loadCache();
+    const mock = MOCK_CORRETOR_DATA[selectedCorretor];
+    if (mock) {
+      setData({ ...mock, cached: true, cacheAge: 15 });
+    } else {
+      setData(null);
+    }
+    setInitialLoad(false);
   }, [selectedCorretor]);
 
   const fetchInsights = async (refresh = false) => {
     setLoading(true);
-    try {
-      const body: Record<string, string> = {};
-      if (refresh) body.refresh = "true";
-      if (selectedCorretor) body.userId = selectedCorretor;
-      const { data: res, error } = await supabase.functions.invoke("elephant-insights", { body });
-      if (error) throw error;
-      if (!res?.success) throw new Error(res?.error || "Erro ao buscar insights");
-      if (res.totalMeetings === 0) {
-        setData(null);
+    setTimeout(() => {
+      const mock = MOCK_CORRETOR_DATA[selectedCorretor];
+      if (mock) {
+        setData({ ...mock, cached: !refresh, cacheAge: refresh ? undefined : 15 });
         toast({
-          title: "Nenhuma reunião encontrada",
-          description: `${res.amandaName} não possui reuniões válidas registradas (reuniões sem duração são ignoradas).`,
-          variant: "destructive",
-        });
-      } else {
-        setData({
-          amandaName: res.amandaName,
-          totalMeetings: res.totalMeetings,
-          totalDurationMinutes: res.totalDurationMinutes || 0,
-          positiveSentimentPct: res.positiveSentimentPct,
-          latestMeeting: res.latestMeeting,
-          cached: res.cached || false, cacheAge: res.cacheAge,
-          dashboard: res.chartsData,
-        });
-        toast({
-          title: res.cached ? "Dados carregados do cache" : "Insights atualizados",
-          description: res.cached ? `Atualizado há ${res.cacheAge} minutos.` : "Dados processados com sucesso.",
+          title: refresh ? "Insights atualizados" : "Dados carregados",
+          description: "Demonstração com dados fictícios fixos.",
         });
       }
-    } catch (err: any) {
-      toast({ title: "Erro ao buscar insights", description: err.message || "Tente novamente.", variant: "destructive" });
-    } finally { setLoading(false); }
+      setLoading(false);
+    }, refresh ? 700 : 300);
   };
+
 
   const selectedCorretorName = corretores.find(c => c.id === selectedCorretor)?.name || "Corretor";
 
