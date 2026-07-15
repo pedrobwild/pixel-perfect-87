@@ -3,14 +3,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  Loader2, Users, RefreshCw, Sparkles, CalendarRange, Database,
-  Brain, ShieldAlert, MessageCircleQuestion, Eye, Target, UserX,
+  Loader2, Users, RefreshCw, Sparkles, CalendarRange, UserX,
 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import InsightsDashboard from "./InsightsDashboard";
 import QualitativeHighlights from "./QualitativeHighlights";
 import ExecutiveSummary from "./ExecutiveSummary";
+import { MOCK_CONSOLIDATED } from "@/data/insightsMockData";
 
 interface ConsolidatedData {
   totalMeetings: number;
@@ -32,100 +31,24 @@ export default function ConsolidatedInsights() {
   const { toast } = useToast();
 
   useEffect(() => {
-    loadFromCache();
-  }, []);
-
-  const loadFromCache = async () => {
-    try {
-      const { data: caches, error } = await supabase
-        .from("elephant_insights_cache")
-        .select("*")
-        .like("cache_key", "user_%");
-
-      if (error || !caches?.length) {
-        setData(null);
-        setInitialLoad(false);
-        return;
-      }
-
-      // Filter only Amanda and Juliana
-      const ALLOWED_NAMES = ["amanda", "juliana"];
-      const filteredCaches = caches.filter((c: any) => {
-        const name = (c.amanda_name || "").toLowerCase();
-        return ALLOWED_NAMES.some((n) => name.includes(n));
-      });
-
-      if (!filteredCaches.length) {
-        setData(null);
-        setInitialLoad(false);
-        return;
-      }
-
-      const merged = mergeCacheEntries(filteredCaches);
-      setData(merged);
-
-      // Auto-refresh if qualitative data is missing (AI failed on previous run)
-      const d = merged.dashboard;
-      const hasQualitative = d && (
-        (Array.isArray(d.personalityProfiles) && d.personalityProfiles.length > 0) ||
-        (Array.isArray(d.objections) && d.objections.length > 0) ||
-        (Array.isArray(d.topQuestions) && d.topQuestions.length > 0)
-      );
-      if (!hasQualitative && merged.totalMeetings > 0) {
-        console.log("Qualitative data missing from cache, auto-refreshing...");
-        // Don't await — let it run in background while showing metrics
-        fetchFresh();
-      }
-    } catch {
-      setData(null);
-    } finally {
+    // Load fixed fictitious data instantly
+    const t = setTimeout(() => {
+      setData(MOCK_CONSOLIDATED as ConsolidatedData);
       setInitialLoad(false);
-    }
-  };
+    }, 200);
+    return () => clearTimeout(t);
+  }, []);
 
   const fetchFresh = async () => {
     setLoading(true);
-    try {
-      const { data: usersRes, error: usersErr } = await supabase.functions.invoke(
-        "elephant-insights",
-        { body: { action: "list-users" } }
-      );
-      if (usersErr || !usersRes?.success) throw new Error("Erro ao listar corretores");
-
-      const allUsers = usersRes.users || [];
-      const ALLOWED_NAMES = ["amanda", "juliana"];
-      const filteredUsers = allUsers.filter((u: any) => {
-        const name = (u.name || "").toLowerCase();
-        return ALLOWED_NAMES.some((n) => name.includes(n));
-      });
-      if (!filteredUsers.length) throw new Error("Nenhum corretor autorizado encontrado");
-
-      // Process corretores in parallel for speed
-      const results = await Promise.allSettled(
-        filteredUsers.map((user: any) =>
-          supabase.functions.invoke("elephant-insights", {
-            body: { userId: user.id, refresh: "true" },
-          })
-        )
-      );
-
-      const failures = results.filter((r) => r.status === "rejected");
-      if (failures.length === filteredUsers.length) {
-        throw new Error("Falha ao processar todos os corretores");
-      }
-      if (failures.length > 0) {
-        console.warn(`${failures.length}/${filteredUsers.length} corretores falharam`);
-      }
-
-      await loadFromCache();
-      toast({ title: "Insights consolidados atualizados", description: `${filteredUsers.length} corretores processados.` });
-    } catch (err: any) {
-      console.error("Consolidated fetch error:", err);
-      toast({ title: "Erro ao atualizar", description: err.message, variant: "destructive" });
-    } finally {
+    setTimeout(() => {
+      setData({ ...(MOCK_CONSOLIDATED as ConsolidatedData) });
       setLoading(false);
-    }
+      toast({ title: "Insights consolidados atualizados", description: "Demonstração com dados fictícios fixos." });
+    }, 600);
   };
+
+
 
   return (
     <div className="space-y-6">

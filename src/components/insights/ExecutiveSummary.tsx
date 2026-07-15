@@ -29,11 +29,21 @@ export default function ExecutiveSummary({ dashboardData }: ExecutiveSummaryProp
 
   useEffect(() => {
     if (dashboardData && !hasLoaded) {
+      if (dashboardData.__mock && Array.isArray(dashboardData.executiveTakeaways)) {
+        setTakeaways(dashboardData.executiveTakeaways);
+        setHasLoaded(true);
+        return;
+      }
       generate();
     }
   }, [dashboardData]);
 
   const generate = async () => {
+    if (dashboardData?.__mock && Array.isArray(dashboardData.executiveTakeaways)) {
+      setTakeaways(dashboardData.executiveTakeaways);
+      setHasLoaded(true);
+      return;
+    }
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("elephant-insights", {
