@@ -192,7 +192,7 @@ export const DISTRICTS_MOCK: DistrictRow[] = [
     revenueMonthBRL: 8909,
     adrRangeLabel: "R$300–R$460",
     listingsCount: 1600,
-    priceSqm: 12500,
+    priceSqm: 11500,
     competition: "Média",
     sourceLabel: "Seed (substituir por dados reais)",
     recommendation: {
