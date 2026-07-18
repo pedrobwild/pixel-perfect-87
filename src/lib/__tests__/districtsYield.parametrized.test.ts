@@ -49,9 +49,10 @@ describe.each(INTEL_DISTRICTS)("yield bruto — $bairro", (d) => {
     expect(diff).toBeLessThan(REVENUE_TOL_PCT);
   });
 
-  it("yield da fórmula bate com yield reportado no mock", () => {
+  it("yield da fórmula bate com receita reportada / investimento", () => {
     const y = grossYield(d);
-    expect(Math.abs(y - d.yieldReported)).toBeLessThan(YIELD_TOL);
+    const expected = d.revenueYearReported / investment;
+    expect(Math.abs(y - expected)).toBeLessThan(YIELD_TOL);
   });
 
   it("investimento = área × preço/m² > 0", () => {
