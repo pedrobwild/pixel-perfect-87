@@ -15,10 +15,10 @@ export default defineConfig({
       reportsDirectory: "./coverage",
       include: ["src/lib/yieldCalc.ts"],
       thresholds: {
-        lines: 95,
+        lines: 100,
         functions: 100,
-        branches: 90,
-        statements: 95,
+        branches: 100,
+        statements: 100,
       },
     },
   },
